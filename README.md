@@ -6,16 +6,6 @@ A data science pipeline that collects, scores, maps, and generates recommendatio
 
 ---
 
-## Team
-
-| Name | Student ID |
-|---|---|
-| Vipparla Reddy Pranay | |
-| Venkata Nagendra Anamala | |
-| Siddhartha Ananthula | |
-| Hishikesh Phukan | |
-| Sameer Yadav | |
-
 **Supervisor:** Lawrence  
 **Industry Partner:** Regen Melbourne
 
