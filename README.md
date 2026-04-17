@@ -1,8 +1,25 @@
 # 300,000 Streets — School Street Safety & Active Travel Analysis
 
-RMIT University | COSC2667/2777 | Partner: Regen Melbourne
+> **RMIT University | COSC2667/2777 | Partner: Regen Melbourne**
 
 A data science pipeline that collects, scores, maps, and generates recommendations for school street safety in Melbourne's City of Darebin.
+
+---
+
+## Team
+
+| Name | Student ID |
+|---|---|
+| Vipparla Reddy Pranay | |
+| Venkata Nagendra Anamala | |
+| Siddhartha Ananthula | |
+| Hishikesh Phukan | |
+| Sameer Yadav | |
+
+**Supervisor:** Lawrence  
+**Industry Partner:** Regen Melbourne
+
+---
 
 ## Project Overview
 
@@ -13,17 +30,23 @@ The 300,000 Streets project analyses street safety conditions around schools in 
 - William Ruthven Secondary College — 60 Merrilands Rd, Reservoir VIC 3073
 - Preston High School — 2-16 Cooma St, Preston VIC 3072 *(Sprint 2)*
 
+---
+
 ## Scores Produced
 
 | Score | Full Name | Range | Measures |
+|---|---|---|---|
 | **FAS** | Footpath Accessibility Score | 0–10 | Footpath quality, width, continuity, condition |
 | **CSS** | Crossing Safety Score | 0–10 | Crossing type, distance from gate, visibility, tactile indicators |
 | **EEI** | Environmental Exposure Indicator | 0–10 | Speed limit, traffic volume, lanes, calming measures |
 
 Higher score = safer conditions for all three metrics.
 
+---
 
 ## Repository Structure
+
+```
 300000-Streets/
 │
 ├── poc_pipeline.py                  # Main pipeline — run this to generate all outputs
@@ -41,6 +64,7 @@ Higher score = safer conditions for all three metrics.
 └── README.md
 ```
 
+---
 
 ## Getting Started
 
@@ -95,6 +119,9 @@ William Ruthven SC  9.5  6.8 10.0  Moderate
 
   All outputs saved to /outputs/
 ```
+
+---
+
 ## How to Update Data
 
 When new observations are collected:
@@ -107,6 +134,8 @@ When new observations are collected:
 
 No code changes required when adding new rows or schools.
 
+---
+
 ## Recommendation Engine
 
 Recommendations are generated **automatically** from field data using a rule-based engine — not typed manually. The engine applies 10 documented rules to each observation row.
@@ -114,6 +143,7 @@ Recommendations are generated **automatically** from field data using a rule-bas
 ### Current Rules
 
 | Rule | Trigger | Priority |
+|---|---|---|
 | FOOTPATH_MISSING | Footpath absent or broken | High |
 | FOOTPATH_NARROW | Width < 1.5m | Medium |
 | CROSSING_ABSENT | No formal crossing | High |
@@ -125,9 +155,12 @@ Recommendations are generated **automatically** from field data using a rule-bas
 | POOR_LIGHTING | Poor or no street lighting | Medium |
 | VEGETATION_BLOCK | Vegetation blocking footpath | Medium |
 
+---
+
 ## Tools and Technologies
 
 | Tool | Purpose | License |
+|---|---|---|
 | Python 3.x | Pipeline, scoring, charts, recommendations | Free |
 | pandas | Data cleaning and analysis | Free |
 | matplotlib | Chart generation | Free |
@@ -139,10 +172,37 @@ Recommendations are generated **automatically** from field data using a rule-bas
 
 No paid tools or licenses required at any stage of this project.
 
+---
+
+## Data Collection
+
+Field observations are collected using a 47-field Google Form covering:
+- Footpath condition, width, continuity, and obstructions
+- Pedestrian crossing type, distance, visibility, and tactile indicators
+- Speed limits, school zone status, traffic volume, and lane count
+- Cycling infrastructure, lighting, and hazard types
+
+
+---
+
+## Scoring Framework
+
+All scores are calculated from field observations using documented formulas.  
 
 ### Severity Classification
 
 | Severity | Condition |
+|---|---|
 | **Major** | FAS < 4.0 OR CSS < 4.0 OR EEI < 4.0 OR within 100m of gate with CSS < 5.0 |
 | **Moderate** | FAS < 6.0 OR CSS < 6.0 OR EEI < 6.0 OR no school zone |
 | **Minor** | All scores ≥ 6.0 and no critical conditions |
+
+---
+
+## References
+
+- Australian Standard AS 1428.1 — Design for access and mobility
+- VicRoads School Zone Guidelines
+- Transport Accident Commission (TAC) Victoria — pedestrian safety research
+- Regen Melbourne — 300,000 Streets initiative
+- OpenStreetMap contributors (ODbL license)
