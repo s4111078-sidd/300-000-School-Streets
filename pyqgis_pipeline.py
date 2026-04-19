@@ -34,8 +34,15 @@ from qgis.core import (
     QgsRendererCategory,
     QgsSingleSymbolRenderer,
     QgsRasterLayer,
+    QgsRasterShader,
+    QgsColorRampShader,
+    QgsSingleBandPseudoColorRenderer,
+    QgsRasterTransparency,
+    QgsMapSettings,
+    QgsMapRendererSequentialJob,
+    QgsRectangle,
 )
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QVariant, QSize
 from qgis.PyQt.QtGui import QColor
 import processing
 
@@ -312,6 +319,119 @@ def build_osm_layer():
     return layer
 
 
+# ── KDE HEATMAP ──────────────────────────────────────────────────────────────
+
+def build_kde_layer(assess_layer, out_dir, radius_m=300, pixel_size_m=15):
+    """
+    Run kernel density estimation on assessment points.
+    Reprojects to EPSG:7855 (metric) for accurate distances, writes GeoTIFF.
+    """
+    kde_path = os.path.join(out_dir, 'kde_heatmap.tif')
+
+    reproj = processing.run('native:reprojectlayer', {
+        'INPUT':      assess_layer,
+        'TARGET_CRS': CRS_METRIC,
+        'OUTPUT':     'TEMPORARY_OUTPUT',
+    })['OUTPUT']
+
+    processing.run('qgis:heatmapkerneldensityestimation', {
+        'INPUT':        reproj,
+        'RADIUS':       radius_m,
+        'PIXEL_SIZE':   pixel_size_m,
+        'KERNEL':       0,       # Quartic kernel — smooth falloff
+        'OUTPUT_VALUE': 0,       # Raw density values
+        'OUTPUT':       kde_path,
+    })
+
+    layer = QgsRasterLayer(kde_path, 'Hazard Heatmap (KDE)', 'gdal')
+    if not layer.isValid():
+        print('      WARNING: KDE raster failed to load')
+    return layer
+
+
+def style_kde_layer(layer):
+    """Apply a green → yellow → red pseudocolour ramp; make zero cells transparent."""
+    provider = layer.dataProvider()
+    stats    = provider.bandStatistics(1)
+    min_val  = max(stats.minimumValue, 0.001)   # exclude true zero / NoData
+    max_val  = stats.maximumValue
+    mid_val  = (min_val + max_val) / 2
+
+    ramp_items = [
+        QgsColorRampShader.ColorRampItem(min_val, QColor('#1E8449'), 'Low'),
+        QgsColorRampShader.ColorRampItem(mid_val, QColor('#F4D03F'), 'Medium'),
+        QgsColorRampShader.ColorRampItem(max_val, QColor('#C0392B'), 'High'),
+    ]
+    ramp = QgsColorRampShader()
+    ramp.setColorRampType(QgsColorRampShader.Interpolated)
+    ramp.setColorRampItemList(ramp_items)
+
+    shader = QgsRasterShader()
+    shader.setRasterShaderFunction(ramp)
+
+    renderer = QgsSingleBandPseudoColorRenderer(provider, 1, shader)
+    renderer.setClassificationMin(min_val)
+    renderer.setClassificationMax(max_val)
+    layer.setRenderer(renderer)
+
+    # Make cells at or below zero fully transparent
+    t_pixel = QgsRasterTransparency.TransparentSingleValuePixel()
+    t_pixel.min = -9999
+    t_pixel.max = 0.0
+    t_pixel.percentTransparent = 100
+    transparency = QgsRasterTransparency()
+    transparency.setTransparentSingleValuePixelList([t_pixel])
+    layer.renderer().setRasterTransparency(transparency)
+
+    layer.setOpacity(0.65)
+    layer.triggerRepaint()
+
+
+def export_school_maps(active_schools, osm_layer, kde_layer,
+                       buf_800, buf_400, assess_layer, gates_layer, out_dir):
+    """
+    Render one PNG per school (1200×900 px) showing:
+    OSM base → KDE heatmap → walking buffers → hazard dots → school gate.
+    View radius is 1.8 km around each gate.
+    """
+    # Degrees per km at Melbourne latitude (~37.7°S)
+    D_LAT = 1.8 / 111.0
+    D_LON = 1.8 / 87.8
+
+    render_stack = [l for l in
+                    [osm_layer, kde_layer, buf_800, buf_400, assess_layer, gates_layer]
+                    if l and l.isValid()]
+
+    exported = []
+    for school_name, info in SCHOOL_GATES.items():
+        if school_name not in active_schools:
+            continue
+
+        lat, lon  = info['lat'], info['lon']
+        short     = SCHOOL_SHORT.get(school_name, school_name)
+        safe_name = short.replace(' ', '_').replace('/', '_')
+        out_path  = os.path.join(out_dir, f'map_{safe_name}.png')
+
+        extent = QgsRectangle(lon - D_LON, lat - D_LAT,
+                              lon + D_LON, lat + D_LAT)
+
+        settings = QgsMapSettings()
+        settings.setLayers(render_stack)
+        settings.setOutputSize(QSize(1200, 900))
+        settings.setExtent(extent)
+        settings.setDestinationCrs(CRS_WGS84)
+
+        job = QgsMapRendererSequentialJob(settings)
+        job.start()
+        job.waitForFinished()
+
+        job.renderedImage().save(out_path)
+        print(f'      Saved -> {out_path}')
+        exported.append(out_path)
+
+    return exported
+
+
 # ── EXPORT ────────────────────────────────────────────────────────────────────
 
 def export_geopackage(layers, gpkg_path):
@@ -342,25 +462,25 @@ print('  300,000 Streets — PyQGIS Pipeline')
 print('='*55)
 
 # 1 ── Load CSV
-print('\n[1/6] Loading and cleaning CSV data...')
+print('\n[1/8] Loading and cleaning CSV data...')
 assess_layer = build_assessment_layer(CSV_FILE)
 print(f'      {assess_layer.featureCount()} assessment points loaded')
 
 # 2 ── School gates (only for schools with CSV data)
-print('\n[2/6] Creating school gates layer...')
+print('\n[2/8] Creating school gates layer...')
 active_schools = {f['School'] for f in assess_layer.getFeatures()}
 print(f'      Schools with data: {sorted(active_schools)}')
 gates_layer = build_gates_layer(active_schools)
 print(f'      {gates_layer.featureCount()} gates created')
 
 # 3 ── Buffers
-print('\n[3/6] Generating 400m and 800m walking zone buffers...')
+print('\n[3/8] Generating 400m and 800m walking zone buffers...')
 buf_400 = build_buffer(gates_layer, 400, '400m Walking Zone')
 buf_800 = build_buffer(gates_layer, 800, '800m Walking Zone')
 print(f'      Buffers created for {buf_400.featureCount()} schools')
 
 # 4 ── Symbology
-print('\n[4/6] Applying symbology...')
+print('\n[4/8] Applying symbology...')
 style_assessment_layer(assess_layer)
 style_gates_layer(gates_layer)
 style_buffer(buf_400, '#333333', fill_opacity=0.10, border_width='0.7')
@@ -368,23 +488,33 @@ style_buffer(buf_800, '#888888', fill_opacity=0.04, border_width='0.4')
 print('      Severity colours applied to assessment points')
 
 # 5 ── Add to QGIS project
-print('\n[5/6] Adding layers to QGIS project...')
+print('\n[5/8] Building KDE heatmap...')
+kde_layer = build_kde_layer(assess_layer, OUT_DIR, radius_m=300, pixel_size_m=15)
+style_kde_layer(kde_layer)
+print('      KDE raster styled with green-yellow-red gradient')
+
+print('\n[6/8] Adding layers to QGIS project...')
 project = QgsProject.instance()
 project.clear()
 project.setCrs(CRS_WGS84)
 
 osm_layer = build_osm_layer()
 
-# Layer order: OSM at bottom, then buffers, then points, gates on top
-for lyr in [osm_layer, buf_800, buf_400, assess_layer, gates_layer]:
+# Layer order: OSM → KDE → buffers → points → gates
+for lyr in [osm_layer, kde_layer, buf_800, buf_400, assess_layer, gates_layer]:
     project.addMapLayer(lyr)
 
 print('      Layers added (bottom to top):')
-print('        OpenStreetMap  →  800m Zone  →  400m Zone')
+print('        OpenStreetMap  →  KDE Heatmap  →  800m Zone  →  400m Zone')
 print('        Safety Assessment Points  →  School Gates')
 
-# 6 ── Export
-print('\n[6/6] Exporting GeoPackage and saving project...')
+# 7 ── Per-school PNG exports
+print('\n[7/8] Exporting per-school map images...')
+export_school_maps(active_schools, osm_layer, kde_layer,
+                   buf_800, buf_400, assess_layer, gates_layer, OUT_DIR)
+
+# 8 ── GeoPackage + project
+print('\n[8/8] Exporting GeoPackage and saving project...')
 export_geopackage([gates_layer, assess_layer, buf_400, buf_800], GPKG_OUT)
 
 project.setFileName(PROJ_OUT)
@@ -395,6 +525,8 @@ print('  PIPELINE COMPLETE')
 print('='*55)
 print(f'  GeoPackage   -> {GPKG_OUT}')
 print(f'  QGIS Project -> {PROJ_OUT}')
+print(f'  KDE Raster   -> {os.path.join(OUT_DIR, "kde_heatmap.tif")}')
+print(f'  School maps  -> outputs/map_<school>.png  (one per school)')
 print('\n  Summary of assessment points:')
 for feat in assess_layer.getFeatures():
     score = feat['Overall_score']
