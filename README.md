@@ -1,198 +1,144 @@
-# 300,000 Streets — School Street Safety & Active Travel Analysis
+# 300,000 Streets of Melbourne — School Streets Safety Analysis
 
-> **RMIT University | COSC2667/2777 | Partner: Regen Melbourne**
-
-A data science pipeline that collects, scores, maps, and generates recommendations for school street safety in Melbourne's City of Darebin.
+A pedestrian safety assessment tool for walking routes around three secondary schools in Melbourne's northern suburbs. Built in collaboration between **Regen Melbourne** and **RMIT University**.
 
 ---
 
-**Supervisor:** Lawrence  
-**Industry Partner:** Regen Melbourne
+## Schools assessed
+
+| School | Address |
+|---|---|
+| Reservoir High School | 855 Plenty Rd, Reservoir VIC 3073 |
+| William Ruthven Secondary College | 60 Merrilands Rd, Reservoir VIC 3073 |
+| Preston High School | 2-16 Cooma St, Preston VIC 3072 |
 
 ---
 
-## Project Overview
+## Scoring system
 
-The 300,000 Streets project analyses street safety conditions around schools in the City of Darebin, Melbourne. Field observations are collected via Google Form, scored using a documented framework, mapped using QGIS and Folium, and processed through a rule-based recommendation engine that automatically generates prioritised infrastructure interventions.
+Each assessed location is scored across three dimensions (0 = worst, 10 = best):
 
-### Schools Assessed
-- Reservoir High School — 855 Plenty Rd, Reservoir VIC 3073
-- William Ruthven Secondary College — 60 Merrilands Rd, Reservoir VIC 3073
-- Preston High School — 2-16 Cooma St, Preston VIC 3072 *(Sprint 2)*
+| Score | Meaning |
+|---|---|
+| **FAS** — Footpath Accessibility Score | Footpath presence, width, continuity, and condition |
+| **CSS** — Crossing Safety Score | Crossing type, distance, visibility, and signals |
+| **EEI** — Environmental Exposure Indicator | Traffic volume, speed, lighting, and school zone |
 
----
+Overall score = average of FAS + CSS + EEI. A score of **6.0 or above** is considered good.
 
-## Scores Produced
-
-| Score | Full Name | Range | Measures |
-|---|---|---|---|
-| **FAS** | Footpath Accessibility Score | 0–10 | Footpath quality, width, continuity, condition |
-| **CSS** | Crossing Safety Score | 0–10 | Crossing type, distance from gate, visibility, tactile indicators |
-| **EEI** | Environmental Exposure Indicator | 0–10 | Speed limit, traffic volume, lanes, calming measures |
-
-Higher score = safer conditions for all three metrics.
+Hazard severity is classified as **Major**, **Moderate**, or **Minor**.
 
 ---
 
-## Repository Structure
+## Project structure
 
 ```
-300000-Streets/
-│
-├── poc_pipeline.py                  # Main pipeline — run this to generate all outputs
-├── school_data.csv                  # Field observation data (Google Form export)
-│
-├── outputs/
-│   ├── chart1_safety_scores.png     # Bar chart — FAS, CSS, EEI per school
-│   ├── chart2_hazard_severity.png   # Stacked bar — hazard count by severity
-│   ├── chart3_score_breakdown.png   # Per-school score breakdown with severity badge
-│   ├── map_interactive.html         # Interactive Folium map — open in browser
-│   ├── recommendations.csv          # Auto-generated recommendations from rules engine
-│   └── school_data_scored.csv       # Cleaned and scored dataset
-│
-│
-└── README.md
+300-000-School-Streets/
+├── school_data.csv          ← Field observation data (update this to refresh outputs)
+├── poc_pipeline.py          ← Charts + interactive map (pandas / matplotlib / folium)
+├── pyqgis_pipeline.py       ← GIS automation (PyQGIS)
+├── kde_analysis.py          ← KDE heatmap analysis — maintained by teammate
+└── outputs/
+    ├── chart1_safety_scores.png
+    ├── chart2_hazard_severity.png
+    ├── chart3_score_breakdown.png
+    ├── map_interactive.html
+    ├── recommendations.csv
+    ├── kde_heatmap.tif          ← Produced by kde_analysis.py (input to PyQGIS pipeline)
+    ├── map_Reservoir_HS.png     ← Per-school map exports
+    ├── map_William_Ruthven_SC.png
+    ├── school_streets.gpkg      ← GeoPackage (all vector layers)
+    └── school_streets.qgz       ← QGIS project file
 ```
 
 ---
 
-## Getting Started
+## How to run
 
-### Prerequisites
+### Step 1 — Charts, interactive map, and recommendations (`poc_pipeline.py`)
 
-Make sure you have Python 3.8 or above installed. Then install the required libraries:
+Requires Python 3 with `pandas`, `matplotlib`, `numpy`, and `folium`.
 
 ```bash
-pip install pandas matplotlib folium numpy
-```
-
-### Running the Pipeline
-
-1. Clone the repository
-```bash
-git clone https://github.com/YOUR_USERNAME/300000-streets.git
-cd 300000-streets
-```
-
-2. Make sure your CSV file is in the same folder as `poc_pipeline.py`
-
-3. Open `poc_pipeline.py` and confirm the filename on line 20 matches your CSV:
-```python
-CSV_FILE = '300_000_Streets___Dataset_-_Form_Responses.csv'
-```
-
-4. Run the pipeline
-```bash
+pip install pandas matplotlib numpy folium
 python poc_pipeline.py
 ```
 
-5. All outputs are saved to the `/outputs/` folder automatically
+Outputs saved to `outputs/`:
+- `chart1_safety_scores.png` — average FAS / CSS / EEI scores per school
+- `chart2_hazard_severity.png` — hazard severity counts per school
+- `chart3_score_breakdown.png` — per-location score breakdown
+- `map_interactive.html` — open in any browser; click markers for details
+- `recommendations.csv` — auto-generated rule-based intervention list
 
-### Expected Terminal Output
+---
 
-```
-=======================================================
-  300,000 Streets — POC Pipeline
-=======================================================
+### Step 2 — KDE heatmap analysis (`kde_analysis.py`)
 
-[1/5] Loading and cleaning data...
-      Loaded 2 rows
-      SCORES CONFIRMED:
-      School_short  FAS  CSS  EEI  Sev_clean
-      Reservoir HS  4.2  5.7  7.0  Moderate
-William Ruthven SC  9.5  6.8 10.0  Moderate
+> Maintained by a separate team member. Run this before Step 3.
 
-[2/5] Generating Chart 1 — Safety Scores...
-[3/5] Generating Chart 2 — Hazard Severity...
-[4/5] Generating Chart 3 — Score Breakdown...
-[5/5] Generating Interactive Map...
+Produces `outputs/kde_heatmap.tif` — the raster input required by the PyQGIS pipeline.
 
-  All outputs saved to /outputs/
+```bash
+python kde_analysis.py
 ```
 
 ---
 
-## How to Update Data
+### Step 3 — GIS layers and map exports (`pyqgis_pipeline.py`)
 
-When new observations are collected:
+Requires **QGIS 3.x** installed. Run Step 2 first so `outputs/kde_heatmap.tif` exists.  
+If the KDE raster is missing the pipeline will still run — the heatmap layer is simply skipped.
 
-1. Export the Google Form responses as CSV
-2. Replace `school_data.csv` in the project folder with the new file
-3. Make sure the filename matches `CSV_FILE` in `poc_pipeline.py`
-4. Run `python poc_pipeline.py`
-5. All charts, maps, and recommendations regenerate automatically
+**From the QGIS Python Console** (recommended):
+```python
+exec(open('/full/path/to/pyqgis_pipeline.py').read())
+```
 
-No code changes required when adding new rows or schools.
+**Standalone** (edit `QGIS_PREFIX` at the top of the script to match your QGIS install):
+```bash
+python pyqgis_pipeline.py
+```
 
----
+Outputs saved to `outputs/`:
 
-## Recommendation Engine
-
-Recommendations are generated **automatically** from field data using a rule-based engine — not typed manually. The engine applies 10 documented rules to each observation row.
-
-### Current Rules
-
-| Rule | Trigger | Priority |
-|---|---|---|
-| FOOTPATH_MISSING | Footpath absent or broken | High |
-| FOOTPATH_NARROW | Width < 1.5m | Medium |
-| CROSSING_ABSENT | No formal crossing | High |
-| CROSSING_TOO_FAR | Crossing > 150m from gate | High |
-| TACTILE_MISSING | No tactile indicators | Medium |
-| NO_SCHOOL_ZONE | No school zone signage | High |
-| NO_TRAFFIC_CALMING | No calming + 3 or more lanes | High |
-| NO_CYCLING_INFRA | No cycling infrastructure | Low |
-| POOR_LIGHTING | Poor or no street lighting | Medium |
-| VEGETATION_BLOCK | Vegetation blocking footpath | Medium |
-
----
-
-## Tools and Technologies
-
-| Tool | Purpose | License |
-|---|---|---|
-| Python 3.x | Pipeline, scoring, charts, recommendations | Free |
-| pandas | Data cleaning and analysis | Free |
-| matplotlib | Chart generation | Free |
-| Folium | Interactive HTML map | Free |
-| QGIS 3.x | Cartographic mapping, buffer zones | Free (GNU GPL) |
-| GeoPackage | Spatial database format | Free |
-| Google Forms | Field data collection | Free |
-| OpenStreetMap | Base map layer | Free (ODbL) |
-
-No paid tools or licenses required at any stage of this project.
-
----
-
-## Data Collection
-
-Field observations are collected using a 47-field Google Form covering:
-- Footpath condition, width, continuity, and obstructions
-- Pedestrian crossing type, distance, visibility, and tactile indicators
-- Speed limits, school zone status, traffic volume, and lane count
-- Cycling infrastructure, lighting, and hazard types
-
-
----
-
-## Scoring Framework
-
-All scores are calculated from field observations using documented formulas.  
-
-### Severity Classification
-
-| Severity | Condition |
+| File | Description |
 |---|---|
-| **Major** | FAS < 4.0 OR CSS < 4.0 OR EEI < 4.0 OR within 100m of gate with CSS < 5.0 |
-| **Moderate** | FAS < 6.0 OR CSS < 6.0 OR EEI < 6.0 OR no school zone |
-| **Minor** | All scores ≥ 6.0 and no critical conditions |
+| `school_streets.gpkg` | GeoPackage with all vector layers |
+| `school_streets.qgz` | QGIS project — open directly in QGIS |
+| `map_<School>.png` | Per-school map image (1200×900 px) |
+
+Layers created in QGIS (bottom to top):
+
+| Layer | Style |
+|---|---|
+| OpenStreetMap | XYZ tile base map |
+| Hazard Heatmap (KDE) | Green → yellow → red gradient, 65% opacity |
+| 800m Walking Zone | Light grey buffer rings |
+| 400m Walking Zone | Dark grey buffer rings |
+| Safety Assessment Points | Circles coloured by severity (red / orange / green) |
+| School Gates | Black star markers |
+
+Buffers use **EPSG:7855** (GDA2020 / MGA zone 55) for accurate metric distances.  
+Only schools with rows in `school_data.csv` get a gate marker and buffers — schools with no data are automatically skipped.
 
 ---
 
-## References
+## Updating the data
 
-- Australian Standard AS 1428.1 — Design for access and mobility
-- VicRoads School Zone Guidelines
-- Transport Accident Commission (TAC) Victoria — pedestrian safety research
-- Regen Melbourne — 300,000 Streets initiative
-- OpenStreetMap contributors (ODbL license)
+1. Replace or edit `school_data.csv` with new field observations.
+2. Re-run Step 1, Step 2, and Step 3 in order.
+
+---
+
+## Dependencies
+
+| Script | Requirement |
+|---|---|
+| `poc_pipeline.py` | Python 3 — `pandas`, `matplotlib`, `numpy`, `folium` |
+| `kde_analysis.py` | Python 3 — see teammate's script for dependencies |
+| `pyqgis_pipeline.py` | QGIS 3.x (PyQGIS + processing framework) |
+
+---
+
+*300,000 Streets of Melbourne — Regen Melbourne x RMIT University*
