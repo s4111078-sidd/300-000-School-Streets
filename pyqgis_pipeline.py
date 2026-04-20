@@ -321,31 +321,19 @@ def build_osm_layer():
 
 # ── KDE HEATMAP ──────────────────────────────────────────────────────────────
 
-def build_kde_layer(assess_layer, out_dir, radius_m=300, pixel_size_m=15):
+def load_kde_layer(kde_path):
     """
-    Run kernel density estimation on assessment points.
-    Reprojects to EPSG:7855 (metric) for accurate distances, writes GeoTIFF.
+    Load the KDE raster produced by the teammate's analysis script.
+    Expected path: outputs/kde_heatmap.tif
     """
-    kde_path = os.path.join(out_dir, 'kde_heatmap.tif')
-
-    reproj = processing.run('native:reprojectlayer', {
-        'INPUT':      assess_layer,
-        'TARGET_CRS': CRS_METRIC,
-        'OUTPUT':     'TEMPORARY_OUTPUT',
-    })['OUTPUT']
-
-    processing.run('qgis:heatmapkerneldensityestimation', {
-        'INPUT':        reproj,
-        'RADIUS':       radius_m,
-        'PIXEL_SIZE':   pixel_size_m,
-        'KERNEL':       0,       # Quartic kernel — smooth falloff
-        'OUTPUT_VALUE': 0,       # Raw density values
-        'OUTPUT':       kde_path,
-    })
-
+    if not os.path.exists(kde_path):
+        print(f'      WARNING: KDE raster not found at {kde_path}')
+        print('               Run the KDE analysis script first, then re-run this pipeline.')
+        return None
     layer = QgsRasterLayer(kde_path, 'Hazard Heatmap (KDE)', 'gdal')
     if not layer.isValid():
-        print('      WARNING: KDE raster failed to load')
+        print(f'      WARNING: KDE raster could not be loaded from {kde_path}')
+        return None
     return layer
 
 
@@ -488,10 +476,13 @@ style_buffer(buf_800, '#888888', fill_opacity=0.04, border_width='0.4')
 print('      Severity colours applied to assessment points')
 
 # 5 ── Add to QGIS project
-print('\n[5/8] Building KDE heatmap...')
-kde_layer = build_kde_layer(assess_layer, OUT_DIR, radius_m=300, pixel_size_m=15)
-style_kde_layer(kde_layer)
-print('      KDE raster styled with green-yellow-red gradient')
+print('\n[5/8] Loading KDE heatmap (produced by teammate\'s analysis script)...')
+kde_layer = load_kde_layer(os.path.join(OUT_DIR, 'kde_heatmap.tif'))
+if kde_layer:
+    style_kde_layer(kde_layer)
+    print('      KDE raster loaded and styled with green-yellow-red gradient')
+else:
+    print('      Skipping KDE — continuing without heatmap layer')
 
 print('\n[6/8] Adding layers to QGIS project...')
 project = QgsProject.instance()
@@ -500,9 +491,10 @@ project.setCrs(CRS_WGS84)
 
 osm_layer = build_osm_layer()
 
-# Layer order: OSM → KDE → buffers → points → gates
+# Layer order: OSM → KDE (if available) → buffers → points → gates
 for lyr in [osm_layer, kde_layer, buf_800, buf_400, assess_layer, gates_layer]:
-    project.addMapLayer(lyr)
+    if lyr and lyr.isValid():
+        project.addMapLayer(lyr)
 
 print('      Layers added (bottom to top):')
 print('        OpenStreetMap  →  KDE Heatmap  →  800m Zone  →  400m Zone')
