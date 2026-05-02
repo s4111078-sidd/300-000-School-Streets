@@ -80,6 +80,16 @@ df['FAS'] = pd.to_numeric(df['FAS'], errors='coerce')
 df['CSS'] = pd.to_numeric(df['CSS'], errors='coerce')
 df['EEI'] = pd.to_numeric(df['EEI'], errors='coerce')
 
+# ── Cycling infrastructure bonus applied to EEI ────────────
+# +0.5 if cycling infrastructure is present on the observed street
+def apply_cycling_bonus(row):
+    if pd.notna(row['EEI']) and pd.notna(row['Cycling_infra']):
+        if row['Cycling_infra'] != 'No cycling infrastructure':
+            return min(row['EEI'] + 0.5, 10.0)  # cap at 10
+    return row['EEI']
+
+df['EEI'] = df.apply(apply_cycling_bonus, axis=1)
+
 def clean_severity(s):
     s = str(s).lower()
     if 'major'    in s: return 'Major'
