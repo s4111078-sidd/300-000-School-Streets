@@ -754,3 +754,72 @@ print(df[['School_short', 'FAS', 'CSS', 'EEI', 'Sev_clean', 'Overall_score']]
                        'Overall_score': 'Overall'})
       .to_string(index=False))
 print("\n  To update: replace CSV and re-run python poc_pipeline.py\n")
+
+# ══════════════════════════════════════════════════════════
+# STEP 7 — DEMOGRAPHICS ANALYSIS
+# ══════════════════════════════════════════════════════════
+print("\n[7/7] Generating Demographics Analysis...")
+
+demo_file = 'demographics_darebin.csv'
+
+try:
+    demo_df = pd.read_csv(demo_file)
+
+    suburbs = demo_df['Suburb'].tolist()
+
+    metrics = {
+        'Median Weekly\nHousehold Income ($)': demo_df['Median weekly household income ($)'].tolist(),
+        '% Households\nWith No Car':           demo_df['% households no car'].tolist(),
+        '% Using Public\nTransport to Work':   demo_df['% public transport to work'].tolist(),
+        '% Working\nFull Time (35hrs+)':       demo_df['% working full time (35hrs+)'].tolist(),
+    }
+
+    fig, axes = plt.subplots(1, 4, figsize=(14, 5))
+    fig.patch.set_facecolor('white')
+    colours = ['#1A5276', '#C0392B', '#D35400', '#1E8449']
+
+    for ax, (metric, vals), colour in zip(axes, metrics.items(), colours):
+        bars = ax.bar(suburbs, vals, color=colour,
+                      edgecolor='white', width=0.5)
+        for bar, val in zip(bars, vals):
+            ax.text(bar.get_x() + bar.get_width()/2,
+                    bar.get_height() + max(vals)*0.02,
+                    str(val), ha='center', va='bottom',
+                    fontsize=10, fontweight='bold', color='#1A1A1A')
+        ax.set_title(metric, fontsize=9, fontweight='bold',
+                     color='#1A1A1A', pad=8)
+        ax.set_ylim(0, max(vals) * 1.3)
+        ax.set_xticklabels(suburbs, fontsize=9, fontweight='bold')
+        ax.yaxis.grid(True, color='#DDDDDD', linewidth=0.6)
+        ax.set_axisbelow(True)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.set_facecolor('#FAFAFA')
+
+    fig.suptitle(
+        'Suburb Demographics — City of Darebin  (ABS Census 2021)',
+        fontsize=13, fontweight='bold', y=1.02)
+    plt.figtext(0.99, 0.01,
+                '300,000 Streets  |  Source: ABS Census 2021',
+                ha='right', fontsize=7, color='#888888')
+    plt.tight_layout()
+
+    demo_chart = os.path.join(OUT_DIR, 'chart4_demographics.png')
+    plt.savefig(demo_chart, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"      Saved -> {demo_chart}")
+
+    # Print key insights
+    print("\n      KEY INSIGHTS:")
+    for _, row in demo_df.iterrows():
+        children = round(row['Total population'] *
+                         row['% children aged 5-17'] / 100)
+        print(f"      {row['Suburb']}:")
+        print(f"        ~{children:,} school-age children")
+        print(f"        ${row['Median weekly household income ($)']:,}/week median income")
+        print(f"        {row['% households no car']}% households have no car")
+        print(f"        {row['% working full time (35hrs+)']}% parents working full time")
+
+except FileNotFoundError:
+    print(f"      WARNING: {demo_file} not found — skipping")
+    print("      Copy demographics_darebin.csv to FYP folder")
