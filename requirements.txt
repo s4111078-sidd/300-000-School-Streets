@@ -1,0 +1,17 @@
+# ── poc_pipeline.py ───────────────────────────────────────────────────────────
+pandas
+matplotlib
+numpy
+folium
+rasterio           # saves KDE heatmap as georeferenced GeoTIFF for PyQGIS
+
+# ── export_walking_network.py ─────────────────────────────────────────────────
+geopandas
+osmnx
+shapely
+scipy
+networkx
+
+# ── pyqgis_pipeline.py ────────────────────────────────────────────────────────
+# Requires QGIS 3.x installed on the system — not pip-installable.
+# Run via the QGIS Python Console or the standalone QGIS Python interpreter.
