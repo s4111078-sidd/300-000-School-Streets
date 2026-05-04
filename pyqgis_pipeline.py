@@ -50,8 +50,9 @@ import processing
 BASE_DIR = '/Users/hishikeshphukan/Library/CloudStorage/OneDrive-RMITUniversity/300,000 Streets of Melbourne/300-000-School-Streets'
 CSV_FILE = os.path.join(BASE_DIR, 'school_data.csv')
 OUT_DIR  = os.path.join(BASE_DIR, 'outputs')
-GPKG_OUT = os.path.join(OUT_DIR, 'school_streets.gpkg')
-PROJ_OUT = os.path.join(OUT_DIR, 'school_streets.qgz')
+GPKG_OUT    = os.path.join(OUT_DIR, 'school_streets.gpkg')
+PROJ_OUT    = os.path.join(OUT_DIR, 'school_streets.qgz')
+CRASH_CSV   = os.path.join(OUT_DIR, 'crash_data_darebin.csv')
 os.makedirs(OUT_DIR, exist_ok=True)
 
 CRS_WGS84    = QgsCoordinateReferenceSystem('EPSG:4326')
@@ -303,6 +304,78 @@ def style_buffer(layer, hex_col, fill_opacity=0.08, border_width='0.5'):
     layer.triggerRepaint()
 
 
+# ── CRASH DATA ───────────────────────────────────────────────────────────────
+
+def build_crash_layer(crash_csv):
+    """Load crash_data_darebin.csv produced by crash_analysis.py."""
+    if not os.path.exists(crash_csv):
+        print('      WARNING: crash_data_darebin.csv not found — run crash_analysis.py first.')
+        return None
+
+    fields = QgsFields()
+    for name, vtype in [
+        ('nearest_school', QVariant.String),
+        ('dist_to_gate_m', QVariant.Double),
+        ('ACCIDENT_NO',    QVariant.String),
+        ('ACCIDENTDATE',   QVariant.String),
+        ('PED_OR_CYC',     QVariant.String),
+    ]:
+        fields.append(QgsField(name, vtype))
+
+    layer = QgsVectorLayer('Point?crs=EPSG:4326', 'Road Crashes (Ped/Cyc)', 'memory')
+    provider = layer.dataProvider()
+    provider.addAttributes(fields)
+    layer.updateFields()
+
+    features = []
+    try:
+        with open(crash_csv, newline='', encoding='utf-8-sig') as f:
+            reader = csv.DictReader(f)
+            headers = reader.fieldnames or []
+            lat_col  = next((h for h in headers if h.upper() in ('LAT', 'LATITUDE', 'Y')), None)
+            lon_col  = next((h for h in headers if h.upper() in ('LON', 'LONG', 'LONGITUDE', 'X')), None)
+            acc_col  = next((h for h in headers if 'ACCIDENT_NO' in h.upper()), headers[0] if headers else None)
+            date_col = next((h for h in headers if 'DATE' in h.upper()), None)
+
+            if not lat_col or not lon_col:
+                print(f'      WARNING: lat/lon columns not found in crash CSV. Columns: {headers[:8]}')
+                return None
+
+            for raw in reader:
+                lat = _safe_float(raw.get(lat_col))
+                lon = _safe_float(raw.get(lon_col))
+                if lat is None or lon is None:
+                    continue
+                feat = QgsFeature(layer.fields())
+                feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lon, lat)))
+                feat['nearest_school'] = raw.get('nearest_school', '')
+                feat['dist_to_gate_m'] = _safe_float(raw.get('dist_to_gate_m'))
+                feat['ACCIDENT_NO']    = raw.get(acc_col, '') if acc_col else ''
+                feat['ACCIDENTDATE']   = raw.get(date_col, '') if date_col else ''
+                feat['PED_OR_CYC']     = str(raw.get('PED_OR_CYC', 'True'))
+                features.append(feat)
+    except Exception as e:
+        print(f'      WARNING: Could not load crash data: {e}')
+        return None
+
+    provider.addFeatures(features)
+    layer.updateExtents()
+    return layer
+
+
+def style_crash_layer(layer):
+    """Blue diamond markers for road crash locations."""
+    sym = QgsMarkerSymbol.createSimple({
+        'name':          'diamond',
+        'color':         '#2980B9',
+        'outline_color': 'white',
+        'outline_width': '0.5',
+        'size':          '5',
+    })
+    layer.setRenderer(QgsSingleSymbolRenderer(sym))
+    layer.triggerRepaint()
+
+
 # ── BASE MAP ─────────────────────────────────────────────────────────────────
 
 def build_osm_layer():
@@ -377,11 +450,11 @@ def style_kde_layer(layer):
     layer.triggerRepaint()
 
 
-def export_school_maps(active_schools, osm_layer, kde_layer,
+def export_school_maps(active_schools, osm_layer, kde_layer, crash_layer,
                        buf_800, buf_400, assess_layer, gates_layer, out_dir):
     """
     Render one PNG per school (1200×900 px) showing:
-    OSM base → KDE heatmap → walking buffers → hazard dots → school gate.
+    OSM → KDE → walking buffers → crash points → hazard dots → school gate.
     View radius is 1.8 km around each gate.
     """
     # Degrees per km at Melbourne latitude (~37.7°S)
@@ -389,7 +462,7 @@ def export_school_maps(active_schools, osm_layer, kde_layer,
     D_LON = 1.8 / 87.8
 
     render_stack = [l for l in
-                    [osm_layer, kde_layer, buf_800, buf_400, assess_layer, gates_layer]
+                    [osm_layer, kde_layer, buf_800, buf_400, crash_layer, assess_layer, gates_layer]
                     if l and l.isValid()]
 
     exported = []
@@ -480,7 +553,7 @@ style_buffer(buf_800, '#888888', fill_opacity=0.04, border_width='0.4')
 print('      Severity colours applied to assessment points')
 
 # 5 ── KDE heatmap (from poc_pipeline.py Step 6)
-print('\n[5/7] Loading KDE heatmap (produced by poc_pipeline.py)...')
+print('\n[5/8] Loading KDE heatmap (produced by poc_pipeline.py)...')
 kde_layer = load_kde_layer(os.path.join(OUT_DIR, 'kde_heatmap.tif'))
 if kde_layer:
     style_kde_layer(kde_layer)
@@ -488,30 +561,40 @@ if kde_layer:
 else:
     print('      Skipping KDE — run poc_pipeline.py first')
 
-# 6 ── Add layers to QGIS project
-print('\n[6/7] Adding layers to QGIS project...')
+# 6 ── Crash data (from crash_analysis.py)
+print('\n[6/8] Loading road crash data (produced by crash_analysis.py)...')
+crash_layer = build_crash_layer(CRASH_CSV)
+if crash_layer:
+    style_crash_layer(crash_layer)
+    print(f'      {crash_layer.featureCount()} crash points loaded (pedestrian/cyclist, last 5 yrs)')
+else:
+    print('      Skipping crash layer — run crash_analysis.py first')
+
+# 7 ── Add layers to QGIS project
+print('\n[7/8] Adding layers to QGIS project...')
 project = QgsProject.instance()
 project.clear()
 project.setCrs(CRS_WGS84)
 
 osm_layer = build_osm_layer()
 
-# Layer order: OSM → KDE → buffers → points → gates
-for lyr in [osm_layer, kde_layer, buf_800, buf_400, assess_layer, gates_layer]:
+# Layer order: OSM → KDE → buffers → crashes → points → gates
+for lyr in [osm_layer, kde_layer, buf_800, buf_400, crash_layer, assess_layer, gates_layer]:
     if lyr and lyr.isValid():
         project.addMapLayer(lyr)
 
 print('      Layers added (bottom to top):')
 print('        OSM → KDE Heatmap → 800m/400m Zone')
-print('        Safety Assessment Points → School Gates')
+print('        Road Crashes → Safety Assessment Points → School Gates')
 
-# 7 ── Per-school PNG exports + GeoPackage + project
-print('\n[7/7] Exporting per-school map images...')
-export_school_maps(active_schools, osm_layer, kde_layer,
+# 8 ── Per-school PNG exports + GeoPackage + project
+print('\n[8/8] Exporting per-school map images...')
+export_school_maps(active_schools, osm_layer, kde_layer, crash_layer,
                    buf_800, buf_400, assess_layer, gates_layer, OUT_DIR)
 
 print('      Exporting GeoPackage and saving project...')
-export_geopackage([gates_layer, assess_layer, buf_400, buf_800], GPKG_OUT)
+gpkg_layers = [l for l in [gates_layer, assess_layer, buf_400, buf_800, crash_layer] if l]
+export_geopackage(gpkg_layers, GPKG_OUT)
 
 project.setFileName(PROJ_OUT)
 project.write()
@@ -522,6 +605,7 @@ print('='*55)
 print(f'  GeoPackage   -> {GPKG_OUT}')
 print(f'  QGIS Project -> {PROJ_OUT}')
 print(f'  KDE Raster   -> {os.path.join(OUT_DIR, "kde_heatmap.tif")}')
+print(f'  Crash Data   -> {CRASH_CSV}')
 print(f'  School maps  -> outputs/map_<school>.png  (one per school)')
 print('\n  Summary of assessment points:')
 for feat in assess_layer.getFeatures():

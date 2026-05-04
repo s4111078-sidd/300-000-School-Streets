@@ -533,6 +533,39 @@ for _, row in df.iterrows():
         tooltip=f"{row['School_short']} — {row['Street']} ({sev})"
     ).add_to(m)
 
+# ── Crash markers (optional — needs crash_analysis.py to have been run) ───────
+crash_csv_path = os.path.join(OUT_DIR, 'crash_data_darebin.csv')
+crash_count_interactive = 0
+crash_df = pd.DataFrame()
+lat_c = lon_c = None
+if os.path.exists(crash_csv_path):
+    crash_df = pd.read_csv(crash_csv_path, low_memory=False)
+    crash_df.columns = crash_df.columns.str.strip()
+    lat_c = next((c for c in crash_df.columns if c.upper() in ('LAT', 'LATITUDE', 'Y')), None)
+    lon_c = next((c for c in crash_df.columns if c.upper() in ('LON', 'LONG', 'LONGITUDE', 'X')), None)
+    if lat_c and lon_c:
+        for _, cr in crash_df.dropna(subset=[lat_c, lon_c]).iterrows():
+            school = cr.get('nearest_school', 'Unknown')
+            dist   = cr.get('dist_to_gate_m', '')
+            date   = cr.get('ACCIDENTDATE', '') or cr.get('accidentdate', '')
+            folium.CircleMarker(
+                location=[cr[lat_c], cr[lon_c]], radius=7,
+                color='white', weight=1.5, fill=True,
+                fill_color='#2980B9', fill_opacity=0.85,
+                popup=folium.Popup(
+                    f"<div style='font-family:Arial;font-size:12px'>"
+                    f"<b>Road Crash</b><br>"
+                    f"<b>School:</b> {school}<br>"
+                    f"<b>Distance to gate:</b> {dist:.0f}m<br>" if isinstance(dist, float) else
+                    f"<b>Distance to gate:</b> {dist}<br>"
+                    f"<b>Date:</b> {date}<br>"
+                    f"<span style='color:#2980B9'>Pedestrian/Cyclist involved</span>"
+                    f"</div>", max_width=220),
+                tooltip=f"Crash — {school} ({dist:.0f}m)" if isinstance(dist, float) else f"Crash — {school}"
+            ).add_to(m)
+            crash_count_interactive += 1
+        print(f"      Added {crash_count_interactive} crash markers to interactive map")
+
 legend_html = """
 <div style="position:fixed;bottom:30px;left:30px;z-index:1000;
      background:white;padding:12px 16px;border-radius:8px;
@@ -542,6 +575,7 @@ legend_html = """
   <span style="color:#C0392B">&#9679;</span> Major<br>
   <span style="color:#D35400">&#9679;</span> Moderate<br>
   <span style="color:#1E8449">&#9679;</span> Minor<br>
+  <span style="color:#2980B9">&#9679;</span> Road crash (ped/cyc)<br>
   <span style="color:#333">&#9670;</span> School gate<br>
   &#9711; 400m / 800m buffer<br><br>
   <span style="color:#999;font-size:10px">Click any point for details</span>
@@ -712,6 +746,18 @@ else:
             tooltip=f"{row['School_short']} — {row['Street']} ({sev})"
         ).add_to(m2)
 
+    # ── Crash markers on heatmap ──────────────────────────────
+    if os.path.exists(crash_csv_path) and lat_c and lon_c:
+        for _, cr in crash_df.dropna(subset=[lat_c, lon_c]).iterrows():
+            school = cr.get('nearest_school', 'Unknown')
+            dist   = cr.get('dist_to_gate_m', '')
+            folium.CircleMarker(
+                location=[cr[lat_c], cr[lon_c]], radius=6,
+                color='white', weight=1.5, fill=True,
+                fill_color='#2980B9', fill_opacity=0.85,
+                tooltip=f"Crash — {school}"
+            ).add_to(m2)
+
     legend_html2 = """
     <div style="position:fixed;bottom:30px;left:30px;z-index:1000;
          background:white;padding:12px 16px;border-radius:8px;
@@ -724,6 +770,7 @@ else:
       <span style="color:#1E8449">&#9632;</span> Minimal<br>
       <span style="color:#D35400">&#9679;</span> Moderate hazard<br>
       <span style="color:#1E8449">&#9679;</span> Minor hazard<br>
+      <span style="color:#2980B9">&#9679;</span> Road crash (ped/cyc)<br>
       &#9711; 400m buffer<br><br>
       <span style="color:#999;font-size:10px">Weighted by severity</span>
     </div>"""
