@@ -3,14 +3,6 @@
 <head>
     
     <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-    
-        <script>
-            L_NO_TOUCH = false;
-            L_DISABLE_3D = false;
-        </script>
-    
-    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
-    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -25,7 +17,7 @@
             <meta name="viewport" content="width=device-width,
                 initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
-                #map_fd43eb56a8f7acc45c751dd0b98a8212 {
+                #map_20e4cad5159dbf4f7d6bec51658e125e {
                     position: relative;
                     width: 100.0%;
                     height: 100.0%;
@@ -34,6 +26,29 @@
                 }
                 .leaflet-container { font-size: 1rem; }
             </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
         
     <script src="https://cdn.jsdelivr.net/gh/python-visualization/folium@main/folium/templates/leaflet_heat.min.js"></script>
 </head>
@@ -55,248 +70,326 @@
       <span style="color:#999;font-size:10px">Weighted by severity</span>
     </div>
     
-            <div class="folium-map" id="map_fd43eb56a8f7acc45c751dd0b98a8212" ></div>
+            <div class="folium-map" id="map_20e4cad5159dbf4f7d6bec51658e125e" ></div>
         
 </body>
 <script>
     
     
-            var map_fd43eb56a8f7acc45c751dd0b98a8212 = L.map(
-                "map_fd43eb56a8f7acc45c751dd0b98a8212",
+            var map_20e4cad5159dbf4f7d6bec51658e125e = L.map(
+                "map_20e4cad5159dbf4f7d6bec51658e125e",
                 {
                     center: [-37.70947142, 145.01619625],
                     crs: L.CRS.EPSG3857,
-                    zoom: 14,
-                    zoomControl: true,
-                    preferCanvas: false,
+                    ...{
+  "zoom": 14,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
                 }
             );
-            L.control.scale().addTo(map_fd43eb56a8f7acc45c751dd0b98a8212);
+            L.control.scale().addTo(map_20e4cad5159dbf4f7d6bec51658e125e);
 
             
 
         
     
-            var tile_layer_37a270e365f6cf7bec25d967abd9d072 = L.tileLayer(
+            var tile_layer_05bcc2d2b5d1305552475cc48c8d0305 = L.tileLayer(
                 "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-                {"attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e", "detectRetina": false, "maxNativeZoom": 20, "maxZoom": 20, "minZoom": 0, "noWrap": false, "opacity": 1, "subdomains": "abcd", "tms": false}
+                {
+  "minZoom": 0,
+  "maxZoom": 20,
+  "maxNativeZoom": 20,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
+  "subdomains": "abcd",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
             );
         
     
-            tile_layer_37a270e365f6cf7bec25d967abd9d072.addTo(map_fd43eb56a8f7acc45c751dd0b98a8212);
+            tile_layer_05bcc2d2b5d1305552475cc48c8d0305.addTo(map_20e4cad5159dbf4f7d6bec51658e125e);
         
     
-            var heat_map_e29885c6fd1e0ee43b2f51579a1923c3 = L.heatLayer(
+            var heat_map_f4279ab7863b7a7611f8b307dc3c3da5 = L.heatLayer(
                 [[-37.7224, 145.0294, 2.0], [-37.69654284, 145.0029925, 2.0]],
-                {"blur": 30, "gradient": {"0.2": "#1E8449", "0.5": "#F4D03F", "0.75": "#D35400", "1.0": "#C0392B"}, "maxZoom": 18, "minOpacity": 0.4, "radius": 50}
+                {
+  "minOpacity": 0.4,
+  "maxZoom": 18,
+  "radius": 50,
+  "blur": 30,
+  "gradient": {
+  "0.2": "#1E8449",
+  "0.5": "#F4D03F",
+  "0.75": "#D35400",
+  "1.0": "#C0392B",
+},
+}
             );
         
     
-            heat_map_e29885c6fd1e0ee43b2f51579a1923c3.addTo(map_fd43eb56a8f7acc45c751dd0b98a8212);
+            heat_map_f4279ab7863b7a7611f8b307dc3c3da5.addTo(map_20e4cad5159dbf4f7d6bec51658e125e);
         
     
-            var marker_653991645d4fb320b7c215bd39102d7a = L.marker(
+            var marker_a0232451284218e74ce193248b0ea524 = L.marker(
                 [-37.7224, 145.0294],
-                {}
-            ).addTo(map_fd43eb56a8f7acc45c751dd0b98a8212);
+                {
+}
+            ).addTo(map_20e4cad5159dbf4f7d6bec51658e125e);
         
     
-            var icon_137f2babb2bf1bd3859b5e7905f77d7a = L.AwesomeMarkers.icon(
-                {"extraClasses": "fa-rotate-0", "icon": "graduation-cap", "iconColor": "white", "markerColor": "black", "prefix": "fa"}
+            var icon_cb58e9cbacaaa8d98a34e2ebc0e79ef9 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "black",
+  "iconColor": "white",
+  "icon": "graduation-cap",
+  "prefix": "fa",
+  "extraClasses": "fa-rotate-0",
+}
             );
-            marker_653991645d4fb320b7c215bd39102d7a.setIcon(icon_137f2babb2bf1bd3859b5e7905f77d7a);
         
     
-        var popup_538140cfc10a01b05488e38eff0f887e = L.popup({"maxWidth": 220});
+        var popup_a5540e0ecc21f5277e082da4a6556061 = L.popup({
+  "maxWidth": 220,
+});
 
         
             
-                var html_346403600a204c86eb28cbcc870618cc = $(`<div id="html_346403600a204c86eb28cbcc870618cc" style="width: 100.0%; height: 100.0%;"><b>Reservoir High School</b><br>855 Plenty Rd, Reservoir VIC 3073</div>`)[0];
-                popup_538140cfc10a01b05488e38eff0f887e.setContent(html_346403600a204c86eb28cbcc870618cc);
+                var html_3bef2c1d99625dc474c7285944d0d849 = $(`<div id="html_3bef2c1d99625dc474c7285944d0d849" style="width: 100.0%; height: 100.0%;"><b>Reservoir High School</b><br>855 Plenty Rd, Reservoir VIC 3073</div>`)[0];
+                popup_a5540e0ecc21f5277e082da4a6556061.setContent(html_3bef2c1d99625dc474c7285944d0d849);
             
         
 
-        marker_653991645d4fb320b7c215bd39102d7a.bindPopup(popup_538140cfc10a01b05488e38eff0f887e)
+        marker_a0232451284218e74ce193248b0ea524.bindPopup(popup_a5540e0ecc21f5277e082da4a6556061)
         ;
 
         
     
     
-            marker_653991645d4fb320b7c215bd39102d7a.bindTooltip(
+            marker_a0232451284218e74ce193248b0ea524.bindTooltip(
                 `<div>
                      Reservoir High School
                  </div>`,
-                {"sticky": true}
+                {
+  "sticky": true,
+}
             );
         
     
-            var circle_732777ae578b2b43d801531bb200e6e4 = L.circle(
+                marker_a0232451284218e74ce193248b0ea524.setIcon(icon_cb58e9cbacaaa8d98a34e2ebc0e79ef9);
+            
+    
+            var circle_50a59e332cfca19c7b343d8fc1deae9d = L.circle(
                 [-37.7224, 145.0294],
                 {"bubblingMouseEvents": true, "color": "#333333", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#333333", "fillOpacity": 0.04, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 400, "stroke": true, "weight": 1.5}
-            ).addTo(map_fd43eb56a8f7acc45c751dd0b98a8212);
+            ).addTo(map_20e4cad5159dbf4f7d6bec51658e125e);
         
     
-            circle_732777ae578b2b43d801531bb200e6e4.bindTooltip(
+            circle_50a59e332cfca19c7b343d8fc1deae9d.bindTooltip(
                 `<div>
                      400m buffer
                  </div>`,
-                {"sticky": true}
+                {
+  "sticky": true,
+}
             );
         
     
-            var marker_d5c6d9e308b612d1e1cefc613dda83d8 = L.marker(
+            var marker_b428215fa8e3b3414c0e746f0c976ee7 = L.marker(
                 [-37.69654, 145.00299],
-                {}
-            ).addTo(map_fd43eb56a8f7acc45c751dd0b98a8212);
+                {
+}
+            ).addTo(map_20e4cad5159dbf4f7d6bec51658e125e);
         
     
-            var icon_de34f126ea958364c74f402ac15e63ed = L.AwesomeMarkers.icon(
-                {"extraClasses": "fa-rotate-0", "icon": "graduation-cap", "iconColor": "white", "markerColor": "black", "prefix": "fa"}
+            var icon_5a1865350344a571bd833523a1fbc733 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "black",
+  "iconColor": "white",
+  "icon": "graduation-cap",
+  "prefix": "fa",
+  "extraClasses": "fa-rotate-0",
+}
             );
-            marker_d5c6d9e308b612d1e1cefc613dda83d8.setIcon(icon_de34f126ea958364c74f402ac15e63ed);
         
     
-        var popup_6494710a68de491953f412f6940df7ee = L.popup({"maxWidth": 220});
+        var popup_f092ae887050a8a2a5db9b5566401b22 = L.popup({
+  "maxWidth": 220,
+});
 
         
             
-                var html_a5c00785b6d27b384ee099d6ce886428 = $(`<div id="html_a5c00785b6d27b384ee099d6ce886428" style="width: 100.0%; height: 100.0%;"><b>William Ruthven Secondary College</b><br>60 Merrilands Rd, Reservoir VIC 3073</div>`)[0];
-                popup_6494710a68de491953f412f6940df7ee.setContent(html_a5c00785b6d27b384ee099d6ce886428);
+                var html_70432f18764a3d0a16789677efe79a95 = $(`<div id="html_70432f18764a3d0a16789677efe79a95" style="width: 100.0%; height: 100.0%;"><b>William Ruthven Secondary College</b><br>60 Merrilands Rd, Reservoir VIC 3073</div>`)[0];
+                popup_f092ae887050a8a2a5db9b5566401b22.setContent(html_70432f18764a3d0a16789677efe79a95);
             
         
 
-        marker_d5c6d9e308b612d1e1cefc613dda83d8.bindPopup(popup_6494710a68de491953f412f6940df7ee)
+        marker_b428215fa8e3b3414c0e746f0c976ee7.bindPopup(popup_f092ae887050a8a2a5db9b5566401b22)
         ;
 
         
     
     
-            marker_d5c6d9e308b612d1e1cefc613dda83d8.bindTooltip(
+            marker_b428215fa8e3b3414c0e746f0c976ee7.bindTooltip(
                 `<div>
                      William Ruthven Secondary College
                  </div>`,
-                {"sticky": true}
+                {
+  "sticky": true,
+}
             );
         
     
-            var circle_544994be2073aaeacc745c439a1b6949 = L.circle(
+                marker_b428215fa8e3b3414c0e746f0c976ee7.setIcon(icon_5a1865350344a571bd833523a1fbc733);
+            
+    
+            var circle_b44d8fc2a7277cc2ea0ea9005136cc95 = L.circle(
                 [-37.69654, 145.00299],
                 {"bubblingMouseEvents": true, "color": "#333333", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#333333", "fillOpacity": 0.04, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 400, "stroke": true, "weight": 1.5}
-            ).addTo(map_fd43eb56a8f7acc45c751dd0b98a8212);
+            ).addTo(map_20e4cad5159dbf4f7d6bec51658e125e);
         
     
-            circle_544994be2073aaeacc745c439a1b6949.bindTooltip(
+            circle_b44d8fc2a7277cc2ea0ea9005136cc95.bindTooltip(
                 `<div>
                      400m buffer
                  </div>`,
-                {"sticky": true}
+                {
+  "sticky": true,
+}
             );
         
     
-            var marker_58d695f70675bfa555946b53d545865c = L.marker(
+            var marker_f46e7e446b11f3b9cd63dabdb9a1d624 = L.marker(
                 [-37.7417, 145.0071],
-                {}
-            ).addTo(map_fd43eb56a8f7acc45c751dd0b98a8212);
+                {
+}
+            ).addTo(map_20e4cad5159dbf4f7d6bec51658e125e);
         
     
-            var icon_c23b694a9def6b89757f6960e4619db3 = L.AwesomeMarkers.icon(
-                {"extraClasses": "fa-rotate-0", "icon": "graduation-cap", "iconColor": "white", "markerColor": "black", "prefix": "fa"}
+            var icon_a326575215b5969ee28ca4cb68b7f9a1 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "black",
+  "iconColor": "white",
+  "icon": "graduation-cap",
+  "prefix": "fa",
+  "extraClasses": "fa-rotate-0",
+}
             );
-            marker_58d695f70675bfa555946b53d545865c.setIcon(icon_c23b694a9def6b89757f6960e4619db3);
         
     
-        var popup_9a5d86b80701c3ccd23ee75bc8654d62 = L.popup({"maxWidth": 220});
+        var popup_87c5624653d448b3ebd87e95772933d7 = L.popup({
+  "maxWidth": 220,
+});
 
         
             
-                var html_0062b05786eba4c07f045911f0acc4df = $(`<div id="html_0062b05786eba4c07f045911f0acc4df" style="width: 100.0%; height: 100.0%;"><b>Preston High School</b><br>2-16 Cooma St, Preston VIC 3072</div>`)[0];
-                popup_9a5d86b80701c3ccd23ee75bc8654d62.setContent(html_0062b05786eba4c07f045911f0acc4df);
+                var html_ec91115def8182e9de73d908d47d6138 = $(`<div id="html_ec91115def8182e9de73d908d47d6138" style="width: 100.0%; height: 100.0%;"><b>Preston High School</b><br>2-16 Cooma St, Preston VIC 3072</div>`)[0];
+                popup_87c5624653d448b3ebd87e95772933d7.setContent(html_ec91115def8182e9de73d908d47d6138);
             
         
 
-        marker_58d695f70675bfa555946b53d545865c.bindPopup(popup_9a5d86b80701c3ccd23ee75bc8654d62)
+        marker_f46e7e446b11f3b9cd63dabdb9a1d624.bindPopup(popup_87c5624653d448b3ebd87e95772933d7)
         ;
 
         
     
     
-            marker_58d695f70675bfa555946b53d545865c.bindTooltip(
+            marker_f46e7e446b11f3b9cd63dabdb9a1d624.bindTooltip(
                 `<div>
                      Preston High School
                  </div>`,
-                {"sticky": true}
+                {
+  "sticky": true,
+}
             );
         
     
-            var circle_e3da49b680e3773b75cc860efa2d701a = L.circle(
+                marker_f46e7e446b11f3b9cd63dabdb9a1d624.setIcon(icon_a326575215b5969ee28ca4cb68b7f9a1);
+            
+    
+            var circle_a056ceff2301fdf9d013b1450818d59b = L.circle(
                 [-37.7417, 145.0071],
                 {"bubblingMouseEvents": true, "color": "#333333", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#333333", "fillOpacity": 0.04, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 400, "stroke": true, "weight": 1.5}
-            ).addTo(map_fd43eb56a8f7acc45c751dd0b98a8212);
+            ).addTo(map_20e4cad5159dbf4f7d6bec51658e125e);
         
     
-            circle_e3da49b680e3773b75cc860efa2d701a.bindTooltip(
+            circle_a056ceff2301fdf9d013b1450818d59b.bindTooltip(
                 `<div>
                      400m buffer
                  </div>`,
-                {"sticky": true}
+                {
+  "sticky": true,
+}
             );
         
     
-            var circle_marker_114711e032dfa7082d65b586c6817edf = L.circleMarker(
+            var circle_marker_d9757b9e7ea30e506017e9fcab9f4527 = L.circleMarker(
                 [-37.7224, 145.0294],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
-            ).addTo(map_fd43eb56a8f7acc45c751dd0b98a8212);
+            ).addTo(map_20e4cad5159dbf4f7d6bec51658e125e);
         
     
-        var popup_2e528bf5192d8057d868d419c415fdf1 = L.popup({"maxWidth": 270});
+        var popup_a071f1520cf3d6d2ec21d7ecd67f6038 = L.popup({
+  "maxWidth": 270,
+});
 
         
             
-                var html_c9cfa2ce7b25826eb0b49ba2d3de0674 = $(`<div id="html_c9cfa2ce7b25826eb0b49ba2d3de0674" style="width: 100.0%; height: 100.0%;">         <div style="font-family:Arial;font-size:12px;min-width:230px">           <b style="font-size:13px">Reservoir High School</b><br>           <span style="color:#666">Plenty Rd</span><br>           <hr style="margin:5px 0">           <b>Severity:</b>           <span style="color:orange">Moderate</span><br>           <b>FAS:</b> 4.2 &nbsp;           <b>CSS:</b> 5.7 &nbsp;           <b>EEI:</b> 7.0<br>           <hr style="margin:5px 0">           <b>Hazards:</b><br>           <span style="color:#555;font-size:11px">Damaged or uneven footpath, No pedestrian crossing, Unsafe or inadequate crossing, No kerb ramps at intersections, No cycling infrastructure</span><br>           <hr style="margin:5px 0">           <b>Top Recommendation:</b><br>           <span style="font-size:11px">Construct continuous concrete footpath minimum 1.8m wide</span><br>           <b>Priority:</b> High         </div></div>`)[0];
-                popup_2e528bf5192d8057d868d419c415fdf1.setContent(html_c9cfa2ce7b25826eb0b49ba2d3de0674);
+                var html_c200a3dd4c122c39bf7c18abfd46f4aa = $(`<div id="html_c200a3dd4c122c39bf7c18abfd46f4aa" style="width: 100.0%; height: 100.0%;">         <div style="font-family:Arial;font-size:12px;min-width:230px">           <b style="font-size:13px">Reservoir High School</b><br>           <span style="color:#666">Plenty Rd</span><br>           <hr style="margin:5px 0">           <b>Severity:</b>           <span style="color:orange">Moderate</span><br>           <b>FAS:</b> 4.2 &nbsp;           <b>CSS:</b> 5.7 &nbsp;           <b>EEI:</b> 7.0<br>           <hr style="margin:5px 0">           <b>Hazards:</b><br>           <span style="color:#555;font-size:11px">Damaged or uneven footpath, No pedestrian crossing, Unsafe or inadequate crossing, No kerb ramps at intersections, No cycling infrastructure</span><br>           <hr style="margin:5px 0">           <b>Top Recommendation:</b><br>           <span style="font-size:11px">Construct continuous concrete footpath minimum 1.8m wide</span><br>           <b>Priority:</b> High         </div></div>`)[0];
+                popup_a071f1520cf3d6d2ec21d7ecd67f6038.setContent(html_c200a3dd4c122c39bf7c18abfd46f4aa);
             
         
 
-        circle_marker_114711e032dfa7082d65b586c6817edf.bindPopup(popup_2e528bf5192d8057d868d419c415fdf1)
+        circle_marker_d9757b9e7ea30e506017e9fcab9f4527.bindPopup(popup_a071f1520cf3d6d2ec21d7ecd67f6038)
         ;
 
         
     
     
-            circle_marker_114711e032dfa7082d65b586c6817edf.bindTooltip(
+            circle_marker_d9757b9e7ea30e506017e9fcab9f4527.bindTooltip(
                 `<div>
                      Reservoir HS — Plenty Rd (Moderate)
                  </div>`,
-                {"sticky": true}
+                {
+  "sticky": true,
+}
             );
         
     
-            var circle_marker_2ae9290f8cf4869104619ca441594249 = L.circleMarker(
+            var circle_marker_730851dd5194532f3bd06d8b18868e5c = L.circleMarker(
                 [-37.69654284, 145.0029925],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
-            ).addTo(map_fd43eb56a8f7acc45c751dd0b98a8212);
+            ).addTo(map_20e4cad5159dbf4f7d6bec51658e125e);
         
     
-        var popup_a3c795d975d47d2ad44ace735f66b932 = L.popup({"maxWidth": 270});
+        var popup_a3d90f25cdda4d2f84e4545d8e71ddce = L.popup({
+  "maxWidth": 270,
+});
 
         
             
-                var html_1a7a845e38a6d42d66375860f5500296 = $(`<div id="html_1a7a845e38a6d42d66375860f5500296" style="width: 100.0%; height: 100.0%;">         <div style="font-family:Arial;font-size:12px;min-width:230px">           <b style="font-size:13px">William Ruthven Secondary College</b><br>           <span style="color:#666">Merrilands Road</span><br>           <hr style="margin:5px 0">           <b>Severity:</b>           <span style="color:orange">Moderate</span><br>           <b>FAS:</b> 9.5 &nbsp;           <b>CSS:</b> 6.8 &nbsp;           <b>EEI:</b> 10.0<br>           <hr style="margin:5px 0">           <b>Hazards:</b><br>           <span style="color:#555;font-size:11px">Missing school zone signage, Vegetation blocking footpath, No cycling infrastructure</span><br>           <hr style="margin:5px 0">           <b>Top Recommendation:</b><br>           <span style="font-size:11px">Install school zone signs with 40km/h speed restriction on all approaches</span><br>           <b>Priority:</b> High         </div></div>`)[0];
-                popup_a3c795d975d47d2ad44ace735f66b932.setContent(html_1a7a845e38a6d42d66375860f5500296);
+                var html_6022e5d84803c48b867cb2ac22d92871 = $(`<div id="html_6022e5d84803c48b867cb2ac22d92871" style="width: 100.0%; height: 100.0%;">         <div style="font-family:Arial;font-size:12px;min-width:230px">           <b style="font-size:13px">William Ruthven Secondary College</b><br>           <span style="color:#666">Merrilands Road</span><br>           <hr style="margin:5px 0">           <b>Severity:</b>           <span style="color:orange">Moderate</span><br>           <b>FAS:</b> 9.5 &nbsp;           <b>CSS:</b> 6.8 &nbsp;           <b>EEI:</b> 10.0<br>           <hr style="margin:5px 0">           <b>Hazards:</b><br>           <span style="color:#555;font-size:11px">Missing school zone signage, Vegetation blocking footpath, No cycling infrastructure</span><br>           <hr style="margin:5px 0">           <b>Top Recommendation:</b><br>           <span style="font-size:11px">Install school zone signs with 40km/h speed restriction on all approaches</span><br>           <b>Priority:</b> High         </div></div>`)[0];
+                popup_a3d90f25cdda4d2f84e4545d8e71ddce.setContent(html_6022e5d84803c48b867cb2ac22d92871);
             
         
 
-        circle_marker_2ae9290f8cf4869104619ca441594249.bindPopup(popup_a3c795d975d47d2ad44ace735f66b932)
+        circle_marker_730851dd5194532f3bd06d8b18868e5c.bindPopup(popup_a3d90f25cdda4d2f84e4545d8e71ddce)
         ;
 
         
     
     
-            circle_marker_2ae9290f8cf4869104619ca441594249.bindTooltip(
+            circle_marker_730851dd5194532f3bd06d8b18868e5c.bindTooltip(
                 `<div>
                      William Ruthven SC — Merrilands Road (Moderate)
                  </div>`,
-                {"sticky": true}
+                {
+  "sticky": true,
+}
             );
         
 </script>
