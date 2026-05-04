@@ -12,7 +12,7 @@ if _STANDALONE:
     _app = QgsApplication([], False)
     _app.setPrefixPath(QGIS_PREFIX, True)
     _app.initQgis()
-    import processing as _proc_mod
+    import processing  # noqa: F401
     from processing.core.Processing import Processing as _ProcCore
     _ProcCore.initialize()
 
@@ -323,18 +323,20 @@ def build_osm_layer():
 
 def load_kde_layer(kde_path):
     """
-    Load the KDE raster produced by the teammate's analysis script.
+    Load the KDE GeoTIFF produced by poc_pipeline.py (Step 6).
     Expected path: outputs/kde_heatmap.tif
+    Run poc_pipeline.py first to generate this file.
     """
     if not os.path.exists(kde_path):
-        print(f'      WARNING: KDE raster not found at {kde_path}')
-        print('               Run the KDE analysis script first, then re-run this pipeline.')
+        print(f'      WARNING: kde_heatmap.tif not found — run poc_pipeline.py first.')
         return None
     layer = QgsRasterLayer(kde_path, 'Hazard Heatmap (KDE)', 'gdal')
     if not layer.isValid():
         print(f'      WARNING: KDE raster could not be loaded from {kde_path}')
         return None
     return layer
+
+
 
 
 def style_kde_layer(layer):
@@ -423,9 +425,11 @@ def export_school_maps(active_schools, osm_layer, kde_layer,
 # ── EXPORT ────────────────────────────────────────────────────────────────────
 
 def export_geopackage(layers, gpkg_path):
-    """Write all layers to a single GeoPackage (overwrites if exists)."""
-    if os.path.exists(gpkg_path):
-        os.remove(gpkg_path)
+    """
+    Write layers to GeoPackage, preserving any existing layers (e.g. walking_network
+    written by export_walking_network.py). Each layer is overwritten by name only.
+    """
+    file_exists = os.path.exists(gpkg_path)
 
     options = QgsVectorFileWriter.SaveVectorOptions()
     options.driverName = 'GPKG'
@@ -433,7 +437,7 @@ def export_geopackage(layers, gpkg_path):
     for i, lyr in enumerate(layers):
         options.layerName = lyr.name().replace(' ', '_')
         options.actionOnExistingFile = (
-            QgsVectorFileWriter.CreateOrOverwriteFile if i == 0
+            QgsVectorFileWriter.CreateOrOverwriteFile if (i == 0 and not file_exists)
             else QgsVectorFileWriter.CreateOrOverwriteLayer
         )
         err, msg, _, _ = QgsVectorFileWriter.writeAsVectorFormatV3(
@@ -450,63 +454,63 @@ print('  300,000 Streets — PyQGIS Pipeline')
 print('='*55)
 
 # 1 ── Load CSV
-print('\n[1/8] Loading and cleaning CSV data...')
+print('\n[1/7] Loading and cleaning CSV data...')
 assess_layer = build_assessment_layer(CSV_FILE)
 print(f'      {assess_layer.featureCount()} assessment points loaded')
 
 # 2 ── School gates (only for schools with CSV data)
-print('\n[2/8] Creating school gates layer...')
+print('\n[2/7] Creating school gates layer...')
 active_schools = {f['School'] for f in assess_layer.getFeatures()}
 print(f'      Schools with data: {sorted(active_schools)}')
 gates_layer = build_gates_layer(active_schools)
 print(f'      {gates_layer.featureCount()} gates created')
 
 # 3 ── Buffers
-print('\n[3/8] Generating 400m and 800m walking zone buffers...')
+print('\n[3/7] Generating 400m and 800m walking zone buffers...')
 buf_400 = build_buffer(gates_layer, 400, '400m Walking Zone')
 buf_800 = build_buffer(gates_layer, 800, '800m Walking Zone')
 print(f'      Buffers created for {buf_400.featureCount()} schools')
 
 # 4 ── Symbology
-print('\n[4/8] Applying symbology...')
+print('\n[4/7] Applying symbology...')
 style_assessment_layer(assess_layer)
 style_gates_layer(gates_layer)
 style_buffer(buf_400, '#333333', fill_opacity=0.10, border_width='0.7')
 style_buffer(buf_800, '#888888', fill_opacity=0.04, border_width='0.4')
 print('      Severity colours applied to assessment points')
 
-# 5 ── Add to QGIS project
-print('\n[5/8] Loading KDE heatmap (produced by teammate\'s analysis script)...')
+# 5 ── KDE heatmap (from poc_pipeline.py Step 6)
+print('\n[5/7] Loading KDE heatmap (produced by poc_pipeline.py)...')
 kde_layer = load_kde_layer(os.path.join(OUT_DIR, 'kde_heatmap.tif'))
 if kde_layer:
     style_kde_layer(kde_layer)
     print('      KDE raster loaded and styled with green-yellow-red gradient')
 else:
-    print('      Skipping KDE — continuing without heatmap layer')
+    print('      Skipping KDE — run poc_pipeline.py first')
 
-print('\n[6/8] Adding layers to QGIS project...')
+# 6 ── Add layers to QGIS project
+print('\n[6/7] Adding layers to QGIS project...')
 project = QgsProject.instance()
 project.clear()
 project.setCrs(CRS_WGS84)
 
 osm_layer = build_osm_layer()
 
-# Layer order: OSM → KDE (if available) → buffers → points → gates
+# Layer order: OSM → KDE → buffers → points → gates
 for lyr in [osm_layer, kde_layer, buf_800, buf_400, assess_layer, gates_layer]:
     if lyr and lyr.isValid():
         project.addMapLayer(lyr)
 
 print('      Layers added (bottom to top):')
-print('        OpenStreetMap  →  KDE Heatmap  →  800m Zone  →  400m Zone')
-print('        Safety Assessment Points  →  School Gates')
+print('        OSM → KDE Heatmap → 800m/400m Zone')
+print('        Safety Assessment Points → School Gates')
 
-# 7 ── Per-school PNG exports
-print('\n[7/8] Exporting per-school map images...')
+# 7 ── Per-school PNG exports + GeoPackage + project
+print('\n[7/7] Exporting per-school map images...')
 export_school_maps(active_schools, osm_layer, kde_layer,
                    buf_800, buf_400, assess_layer, gates_layer, OUT_DIR)
 
-# 8 ── GeoPackage + project
-print('\n[8/8] Exporting GeoPackage and saving project...')
+print('      Exporting GeoPackage and saving project...')
 export_geopackage([gates_layer, assess_layer, buf_400, buf_800], GPKG_OUT)
 
 project.setFileName(PROJ_OUT)
