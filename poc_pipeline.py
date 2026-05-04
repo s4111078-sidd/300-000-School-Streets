@@ -630,6 +630,24 @@ else:
     plt.close()
     print(f"      Saved -> {heatmap_out}")
 
+    # ── GeoTIFF for PyQGIS import ──────────────────────────
+    kde_tif = os.path.join(OUT_DIR, 'kde_heatmap.tif')
+    try:
+        import rasterio
+        from rasterio.transform import from_bounds
+        from rasterio.crs import CRS as RioCRS
+        transform = from_bounds(lon_min, lat_min, lon_max, lat_max, 300, 300)
+        with rasterio.open(
+            kde_tif, 'w', driver='GTiff',
+            height=300, width=300, count=1, dtype='float32',
+            crs=RioCRS.from_epsg(4326), transform=transform, nodata=0.0,
+        ) as dst:
+            dst.write(density[::-1].astype('float32'), 1)  # flip: matplotlib origin=lower
+        print(f"      Saved -> {kde_tif}  (georeferenced — ready for PyQGIS)")
+    except ImportError:
+        print("      NOTE: rasterio not installed — kde_heatmap.tif not saved")
+        print("            Run: pip install rasterio")
+
     # ── Interactive heatmap HTML ───────────────────────────
     heat_data = [[float(lats[i]), float(lons[i]), float(weights[i])]
                  for i in range(len(lats))]
