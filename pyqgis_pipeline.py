@@ -47,7 +47,7 @@ from qgis.PyQt.QtGui import QColor
 import processing
 
 # ── CONFIG ───────────────────────────────────────────────────────────────────
-BASE_DIR = r'C:\Users\HP\300-000-School-Streets'
+BASE_DIR = '/Users/hishikeshphukan/Library/CloudStorage/OneDrive-RMITUniversity/300,000 Streets of Melbourne/300-000-School-Streets'
 CSV_FILE = os.path.join(BASE_DIR, 'school_data.csv')
 OUT_DIR  = os.path.join(BASE_DIR, 'outputs')
 GPKG_OUT    = os.path.join(OUT_DIR, 'school_streets.gpkg')
@@ -461,8 +461,9 @@ def export_school_maps(active_schools, osm_layer, kde_layer, crash_layer,
     D_LAT = 1.8 / 111.0
     D_LON = 1.8 / 87.8
 
+    # QgsMapSettings.setLayers: first item = drawn on top, last item = drawn at bottom
     render_stack = [l for l in
-                    [osm_layer, kde_layer, buf_800, buf_400, crash_layer, assess_layer, gates_layer]
+                    [gates_layer, assess_layer, crash_layer, buf_400, buf_800, kde_layer, osm_layer]
                     if l and l.isValid()]
 
     exported = []
@@ -586,6 +587,14 @@ for lyr in [osm_layer, kde_layer, buf_800, buf_400, crash_layer, assess_layer, g
 print('      Layers added (bottom to top):')
 print('        OSM → KDE Heatmap → 800m/400m Zone')
 print('        Road Crashes → Safety Assessment Points → School Gates')
+
+# Refresh the QGIS canvas so all layers appear immediately
+# iface is only available when running inside the QGIS GUI console
+_iface = globals().get('iface')
+if _iface:
+    _iface.mapCanvas().zoomToFullExtent()
+    _iface.mapCanvas().refresh()
+    print('      Canvas refreshed — all layers now visible in QGIS')
 
 # 8 ── Per-school PNG exports + GeoPackage + project
 print('\n[8/8] Exporting per-school map images...')
