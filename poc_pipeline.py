@@ -76,35 +76,201 @@ df['School_short'] = df['School'].map({
     'Preston High School'              : 'Preston HS',
 }).fillna(df['School'])
 
-df['FAS'] = pd.to_numeric(df['FAS'], errors='coerce')
-df['CSS'] = pd.to_numeric(df['CSS'], errors='coerce')
-df['EEI'] = pd.to_numeric(df['EEI'], errors='coerce')
+# ── PRESERVE OBSERVER-ENTERED VALUES FOR AUDIT ────────────
+df['FAS_obs'] = pd.to_numeric(df['FAS'], errors='coerce')
+df['CSS_obs'] = pd.to_numeric(df['CSS'], errors='coerce')
+df['EEI_obs'] = pd.to_numeric(df['EEI'], errors='coerce')
 
-# ── Cycling infrastructure bonus applied to EEI ────────────
-# +0.5 if cycling infrastructure is present on the observed street
-def apply_cycling_bonus(row):
-    if pd.notna(row['EEI']) and pd.notna(row['Cycling_infra']):
-        if row['Cycling_infra'] != 'No cycling infrastructure':
-            return min(row['EEI'] + 0.5, 10.0)  # cap at 10
-    return row['EEI']
-
-df['EEI'] = df.apply(apply_cycling_bonus, axis=1)
-
-def clean_severity(s):
+def _clean_sev(s):
     s = str(s).lower()
     if 'major'    in s: return 'Major'
     if 'moderate' in s: return 'Moderate'
     if 'minor'    in s: return 'Minor'
     return 'Unknown'
 
-df['Sev_clean']     = df['Severity'].apply(clean_severity)
-df['Overall_score'] = (df['FAS'] + df['CSS'] + df['EEI']) / 3
+df['Sev_obs'] = df['Severity'].apply(_clean_sev)
+
+# ── COMPUTE FAS FROM SUB-INDICATORS ───────────────────────
+# AS 1428.1-2009 (min footpath width 1.5m); Scoring Framework v1.0 s.2
+def _fas(row):
+    pts = 0.0
+    p = str(row.get('Footpath_present', ''))
+    if   'both sides' in p:                                    pts += 3.0
+    elif 'one side'   in p:                                    pts += 2.0
+    elif 'partial'    in p.lower() or 'broken' in p.lower():  pts += 1.0
+
+    try:
+        w = float(row['Footpath_width'])
+        if   w >= 2.0: pts += 2.0
+        elif w >= 1.5: pts += 1.5
+        elif w >= 1.2: pts += 1.0
+        elif w >= 1.0: pts += 0.5
+    except (ValueError, TypeError): pass
+
+    c = str(row.get('Continuity', ''))
+    if   '100%'     in c: pts += 2.0
+    elif '75 to 99' in c: pts += 1.5
+    elif '50 to 74' in c: pts += 1.0
+
+    try:
+        pts += (float(row['FP_condition']) / 5.0) * 2.0
+    except (ValueError, TypeError): pass
+
+    k = str(row.get('Kerb_ramps', ''))
+    if   'all nearby' in k.lower(): pts += 0.50
+    elif 'some'       in k.lower(): pts += 0.25
+
+    o = str(row.get('Obstructions', ''))
+    if   'no obstruction' in o.lower(): pts += 0.50
+    elif 'minor'          in o.lower(): pts += 0.25
+
+    return min(round(pts, 1), 10.0)
+
+# ── COMPUTE CSS FROM SUB-INDICATORS ───────────────────────
+# Austroads Guide to Traffic Management Part 13; AS 1742.10; Scoring Framework v1.0 s.3
+def _css(row):
+    pts = 0.0
+    ct = str(row.get('Crossing_present', ''))
+    if   'signal' in ct.lower() or 'traffic light' in ct.lower(): pts += 4.0
+    elif 'raised' in ct.lower():                                   pts += 3.0
+    elif 'zebra'  in ct.lower() or 'marked' in ct.lower():        pts += 2.5
+    elif 'refuge' in ct.lower():                                   pts += 2.0
+    elif 'informal' in ct.lower() or 'unmarked' in ct.lower():    pts += 0.5
+
+    try:
+        d = float(row['Crossing_dist'])
+        if   d <=  30: pts += 2.0
+        elif d <=  75: pts += 1.5
+        elif d <= 150: pts += 1.0
+        elif d <= 250: pts += 0.5
+    except (ValueError, TypeError): pass  # 'None' or no crossing = 0 pts
+
+    try:
+        pts += (float(row['Visibility']) / 5.0) * 2.0
+    except (ValueError, TypeError): pass
+
+    t = str(row.get('Tactile', ''))
+    if   'both sides' in t.lower(): pts += 1.00
+    elif 'one side'   in t.lower(): pts += 0.50
+
+    s = str(row.get('Signal', ''))
+    if   'countdown'  in s.lower(): pts += 1.0
+    elif ('yes'       in s.lower()
+          and 'no pedestrian'  not in s.lower()
+          and 'not applicable' not in s.lower()): pts += 0.5
+
+    return min(round(pts, 1), 10.0)
+
+# ── COMPUTE EEI FROM SUB-INDICATORS ───────────────────────
+# TAC Victoria speed-injury severity data; VicRoads School Zone Guidelines; Scoring Framework v1.0 s.4
+def _eei(row):
+    pts = 10.0
+    try:
+        speed = float(''.join(c for c in str(row.get('Speed_limit', '')) if c.isdigit()) or '50')
+        if   speed >= 70: pts -= 3.0
+        elif speed >= 60: pts -= 2.0
+        elif speed >= 50: pts -= 1.0
+    except (ValueError, TypeError): pts -= 1.0
+
+    v = str(row.get('Traffic_volume', '')).lower()
+    if   'very high' in v or 'major arterial' in v: pts -= 3.0
+    elif 'high'      in v:                          pts -= 2.0
+    elif 'moderate'  in v:                          pts -= 1.0
+
+    l = str(row.get('Lanes', '')).lower()
+    if   '3 or more' in l: pts -= 1.5
+    elif '2 lanes'   in l: pts -= 0.5
+
+    h = str(row.get('Heavy_vehicles', '')).lower()
+    if   'frequent' in h: pts -= 1.0
+    elif 'occasion' in h: pts -= 0.5
+
+    tc = str(row.get('Traffic_calming', '')).lower()
+    if 'no traffic calming' not in tc and tc not in ('', 'nan'):
+        pts += 0.5
+
+    sz = str(row.get('School_zone', '')).lower()
+    if   'enforced' in sz:                              pts += 1.0
+    elif 'present'  in sz and 'no school' not in sz:   pts += 0.5
+
+    return min(max(round(pts, 1), 0.0), 10.0)
+
+# ── COMPUTE CIS FROM INFRASTRUCTURE TYPE ──────────────────
+# LTS (Mekuria, Furth & Nixon 2012); VicRoads TEM Vol. 3 Part 218
+CIS_MAP = {
+    'Yes — separated bike lane':          9.0,  # LTS 1 — suitable for children
+    'Yes — shared path or greenway':      8.0,  # LTS 1 — off-road, no vehicle conflict
+    'Yes — painted bike lane (on-road)':  4.5,  # LTS 2–3 — not appropriate for school children per VicRoads TEM Part 218
+    'Yes — advisory lane / shared road':  2.0,  # LTS 3–4 — clearly inadequate for children
+    'No cycling infrastructure':          1.0,  # LTS 4 equivalent — absence of any provision
+}
+
+def _cis(val):
+    if pd.isna(val):
+        return np.nan
+    v = str(val).strip()
+    for key, score in CIS_MAP.items():
+        if key.lower() in v.lower():
+            return score
+    return 1.0 if 'no cycling' in v.lower() else 2.0
+
+# ── COMPUTE SEVERITY FROM FRAMEWORK RULES ─────────────────
+# Rules: 300,000 Streets Scoring Framework v1.0, Section 5
+def _severity(row):
+    fas, css, eei = row['FAS'], row['CSS'], row['EEI']
+    try:    dist_gate  = float(row.get('Distance_gate', 9999) or 9999)
+    except: dist_gate  = 9999
+    try:    cross_dist = float(row.get('Crossing_dist', 9999) or 9999)
+    except: cross_dist = 9999
+    try:    speed = float(''.join(c for c in str(row.get('Speed_limit', '')) if c.isdigit()) or '50')
+    except: speed = 50
+    no_zone = 'no school zone' in str(row.get('School_zone', '')).lower()
+
+    if fas < 4.0:                      return 'Major'
+    if css < 4.0:                      return 'Major'
+    if eei < 4.0:                      return 'Major'
+    if dist_gate <= 100 and css < 5.0: return 'Major'
+    if no_zone and speed >= 60:        return 'Major'
+    if fas < 6.0:                      return 'Moderate'
+    if css < 6.0:                      return 'Moderate'
+    if eei < 6.0:                      return 'Moderate'
+    if no_zone:                        return 'Moderate'
+    if cross_dist > 150:               return 'Moderate'
+    return 'Minor'
+
+# ── APPLY ALL SCORING FUNCTIONS ───────────────────────────
+df['FAS'] = df.apply(_fas, axis=1)
+df['CSS'] = df.apply(_css, axis=1)
+df['EEI'] = df.apply(_eei, axis=1)
+df['CIS'] = df['Cycling_infra'].apply(_cis)
+df['Sev_clean']     = df.apply(_severity, axis=1)
+df['Overall_score'] = (df['FAS'] + df['CSS'] + df['EEI'] + df['CIS']) / 4
 
 print(f"      Loaded {len(df)} rows from {CSV_FILE}")
 print(f"      Schools: {df['School'].unique().tolist()}")
 print()
-print("      SCORES CONFIRMED:")
-print(df[['School_short', 'FAS', 'CSS', 'EEI', 'Sev_clean']].to_string(index=False))
+print("      SCORE AUDIT — computed vs observer-entered:")
+print(f"      {'School':<22} {'Dim':>4}  {'Computed':>8}  {'Observer':>8}  {'Δ':>4}")
+print("      " + "─" * 54)
+for _, row in df.iterrows():
+    for dim in ['FAS', 'CSS', 'EEI']:
+        comp = row[dim]
+        obs  = row[f'{dim}_obs']
+        delta = round(abs(comp - obs), 1) if pd.notna(obs) else 0.0
+        flag  = '  ← MISMATCH' if delta > 0.2 else ''
+        print(f"      {row['School_short']:<22} {dim:>4}  {comp:>8.1f}  {obs:>8.1f}  {delta:>4.1f}{flag}")
+print()
+print("      SEVERITY AUDIT:")
+for _, row in df.iterrows():
+    comp = row['Sev_clean']
+    obs  = row['Sev_obs']
+    flag = ' ✓' if comp == obs else '  ← MISMATCH'
+    print(f"      {row['School_short']:<22}: computed={comp:<10} observer={obs}{flag}")
+print()
+print("      FINAL COMPUTED SCORES:")
+print(df[['School_short', 'FAS', 'CSS', 'EEI', 'CIS', 'Sev_clean', 'Overall_score']]
+      .rename(columns={'School_short': 'School', 'Sev_clean': 'Severity', 'Overall_score': 'Overall'})
+      .to_string(index=False))
 
 # ══════════════════════════════════════════════════════════
 # STEP 2 — CHART 1: SAFETY SCORES
@@ -115,23 +281,25 @@ schools  = df['School_short'].tolist()
 fas_vals = df['FAS'].tolist()
 css_vals = df['CSS'].tolist()
 eei_vals = df['EEI'].tolist()
+cis_vals = df['CIS'].tolist()
 x        = np.arange(len(schools))
-width    = 0.22
+width    = 0.18
 
-fig, ax = plt.subplots(figsize=(11, 6))
+fig, ax = plt.subplots(figsize=(12, 6))
 fig.patch.set_facecolor('white')
 ax.set_facecolor('#FAFAFA')
 
-b1 = ax.bar(x - width, fas_vals, width, label='Footpath Score (FAS)',    color='#1A1A1A', edgecolor='white')
-b2 = ax.bar(x,         css_vals, width, label='Crossing Score (CSS)',     color='#666666', edgecolor='white')
-b3 = ax.bar(x + width, eei_vals, width, label='Environment Score (EEI)', color='#AAAAAA', edgecolor='white')
+b1 = ax.bar(x - 1.5*width, fas_vals, width, label='Footpath Score (FAS)',    color='#1A1A1A', edgecolor='white')
+b2 = ax.bar(x - 0.5*width, css_vals, width, label='Crossing Score (CSS)',     color='#555555', edgecolor='white')
+b3 = ax.bar(x + 0.5*width, eei_vals, width, label='Environment Score (EEI)', color='#999999', edgecolor='white')
+b4 = ax.bar(x + 1.5*width, cis_vals, width, label='Cycling Infra Score (CIS)', color='#27AE60', edgecolor='white')
 
-for bars in [b1, b2, b3]:
+for bars in [b1, b2, b3, b4]:
     for bar in bars:
         h = bar.get_height()
         ax.text(bar.get_x() + bar.get_width()/2, h + 0.15,
                 f'{h:.1f}', ha='center', va='bottom',
-                fontsize=10, fontweight='bold', color='#1A1A1A')
+                fontsize=9, fontweight='bold', color='#1A1A1A')
 
 ax.axhline(y=6, color='#C0392B', linewidth=1, linestyle='--', alpha=0.7, zorder=0)
 ax.text(len(schools) - 0.05, 6.15, 'Good threshold (6.0)',
@@ -217,20 +385,22 @@ print(f"      Saved -> {out2}")
 # ══════════════════════════════════════════════════════════
 print("\n[4/6] Generating Chart 3 — Score Breakdown...")
 
-metric_labels = ['Footpath\n(FAS)', 'Crossing\n(CSS)', 'Environment\n(EEI)']
+metric_labels = ['Footpath\n(FAS)', 'Crossing\n(CSS)', 'Environment\n(EEI)', 'Cycling\n(CIS)']
 n   = len(df)
-fig, axes = plt.subplots(1, n, figsize=(6*n, 6), sharey=True)
+fig, axes = plt.subplots(1, n, figsize=(7*n, 6), sharey=True)
 fig.patch.set_facecolor('white')
 if n == 1:
     axes = [axes]
 
 for ax, (_, row) in zip(axes, df.iterrows()):
-    vals   = [float(row['FAS']), float(row['CSS']), float(row['EEI'])]
+    vals   = [float(row['FAS']), float(row['CSS']), float(row['EEI']), float(row['CIS'])]
     school = row['School_short']
     sev    = row['Sev_clean']
     bar_colours = []
-    for v in vals:
-        if   v < 4: bar_colours.append('#C0392B')
+    for i, v in enumerate(vals):
+        if i == 3:  # CIS always uses green palette
+            bar_colours.append('#27AE60' if v >= 6 else '#D35400' if v >= 4 else '#C0392B')
+        elif v < 4: bar_colours.append('#C0392B')
         elif v < 6: bar_colours.append('#D35400')
         elif v < 8: bar_colours.append('#888888')
         else:       bar_colours.append('#1A1A1A')
@@ -441,6 +611,8 @@ for _, row in df.iterrows():
             'Severity'      : row['Sev_clean'],
             'FAS'           : row['FAS'],
             'CSS'           : row['CSS'],
+            'EEI'           : row['EEI'],
+            'CIS'           : row['CIS'],
             'Hazard'        : rec['hazard'],
             'Recommendation': rec['recommendation'],
             'Priority'      : rec['priority'],
@@ -515,7 +687,8 @@ for _, row in df.iterrows():
       <span style="color:{folium_sev.get(sev,'gray')}">{sev}</span><br>
       <b>FAS:</b> {row['FAS']:.1f} &nbsp;
       <b>CSS:</b> {row['CSS']:.1f} &nbsp;
-      <b>EEI:</b> {row['EEI']:.1f}<br>
+      <b>EEI:</b> {row['EEI']:.1f} &nbsp;
+      <b>CIS:</b> {row['CIS']:.1f}<br>
       <hr style="margin:5px 0">
       <b>Hazards:</b><br>
       <span style="color:#555;font-size:11px">{hazards}</span><br>
@@ -795,10 +968,14 @@ print("  map_heatmap.html            — KDE heatmap (open in browser)")
 print("  heatmap.png                 — Static heatmap for QGIS import")
 print("  recommendations.csv         — Auto-generated recommendations")
 print("="*55)
-print("\n  Final scores:")
-print(df[['School_short', 'FAS', 'CSS', 'EEI', 'Sev_clean', 'Overall_score']]
+print("\n  Final computed scores (FAS/CSS/EEI computed from sub-indicators):")
+print(df[['School_short', 'FAS', 'CSS', 'EEI', 'CIS', 'Sev_clean', 'Overall_score']]
       .rename(columns={'School_short': 'School', 'Sev_clean': 'Severity',
                        'Overall_score': 'Overall'})
+      .to_string(index=False))
+print("\n  Observer-entered scores (for audit):")
+print(df[['School_short', 'FAS_obs', 'CSS_obs', 'EEI_obs']]
+      .rename(columns={'School_short': 'School', 'FAS_obs': 'FAS', 'CSS_obs': 'CSS', 'EEI_obs': 'EEI'})
       .to_string(index=False))
 print("\n  To update: replace CSV and re-run python poc_pipeline.py\n")
 

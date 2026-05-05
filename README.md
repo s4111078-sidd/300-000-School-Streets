@@ -23,8 +23,26 @@ Each assessed location is scored across three dimensions (0 = worst, 10 = best):
 | **FAS** — Footpath Accessibility Score | Footpath presence, width, continuity, and condition |
 | **CSS** — Crossing Safety Score | Crossing type, distance, visibility, and signals |
 | **EEI** — Environmental Exposure Indicator | Traffic volume, speed, lighting, and school zone |
+| **CIS** — Cycling Infrastructure Score | Type of cycling infrastructure present on the school frontage road |
 
-Overall score = average of FAS + CSS + EEI. A score of **6.0 or above** is considered good.
+Overall score = average of FAS + CSS + EEI + CIS. A score of **6.0 or above** is considered good.
+
+CIS is derived from the observed cycling infrastructure type, scored against two published frameworks:
+
+- **Level of Traffic Stress (LTS)** — Mekuria, Furth & Nixon (2012), Mineta Transportation Institute, San José State University. LTS 1 = low stress, suitable for children. LTS 4 = high stress, suitable only for experienced adults.
+- **VicRoads TEM Vol. 3 Part 218** — facility selection hierarchy for strategically important cycling corridors. Off-road or physically separated facilities are the preferred provision on school routes.
+
+Scores below 6.0 indicate infrastructure not considered appropriate for school-age cyclists.
+
+| Cycling infrastructure | LTS | VicRoads preference | CIS |
+|---|---|---|---|
+| Separated bike lane (physically protected) | LTS 1 | Tier 1 — preferred | 9.0 |
+| Shared path or greenway (off-road) | LTS 1 | Tier 1 — preferred | 8.0 |
+| Painted bike lane (on-road, no separation) | LTS 2–3 | Tier 2–3 | 4.5 |
+| Advisory lane / shared road marking | LTS 3–4 | Tier 4 | 2.0 |
+| No cycling infrastructure | LTS 4 equivalent | Not recommended | 1.0 |
+
+> Note: the commonly cited "Austroads LoS A–F" for cycling does not exist as an Austroads standard — that framing derives from the US Highway Capacity Manual BLOS model. The Austroads cycling tool is a 100-point numeric instrument (AP-R724-25). LTS and VicRoads TEM Part 218 are the appropriate cited standards for this project.
 
 Hazard severity is classified as **Major**, **Moderate**, or **Minor**.
 
