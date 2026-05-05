@@ -47,7 +47,7 @@ from qgis.PyQt.QtGui import QColor
 import processing
 
 # ── CONFIG ───────────────────────────────────────────────────────────────────
-BASE_DIR = '/Users/hishikeshphukan/Library/CloudStorage/OneDrive-RMITUniversity/300,000 Streets of Melbourne/300-000-School-Streets'
+BASE_DIR = r'C:\Users\HP\300-000-School-Streets'
 CSV_FILE = os.path.join(BASE_DIR, 'school_data.csv')
 OUT_DIR  = os.path.join(BASE_DIR, 'outputs')
 GPKG_OUT    = os.path.join(OUT_DIR, 'school_streets.gpkg')
