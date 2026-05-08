@@ -17,7 +17,11 @@
             <meta name="viewport" content="width=device-width,
                 initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
+<<<<<<< HEAD
                 #map_3023da4d07e74411732b71c0bc36139c {
+=======
+                #map_23d93e222fbb94120fc5cdf744e09830 {
+>>>>>>> rish_development
                     position: relative;
                     width: 100.0%;
                     height: 100.0%;
@@ -68,14 +72,23 @@
   <span style="color:#999;font-size:10px">Click any point for details</span>
 </div>
     
+<<<<<<< HEAD
             <div class="folium-map" id="map_3023da4d07e74411732b71c0bc36139c" ></div>
+=======
+            <div class="folium-map" id="map_23d93e222fbb94120fc5cdf744e09830" ></div>
+>>>>>>> rish_development
         
 </body>
 <script>
     
     
+<<<<<<< HEAD
             var map_3023da4d07e74411732b71c0bc36139c = L.map(
                 "map_3023da4d07e74411732b71c0bc36139c",
+=======
+            var map_23d93e222fbb94120fc5cdf744e09830 = L.map(
+                "map_23d93e222fbb94120fc5cdf744e09830",
+>>>>>>> rish_development
                 {
                     center: [-37.72014761333333, 145.01319083333334],
                     crs: L.CRS.EPSG3857,
@@ -87,13 +100,21 @@
 
                 }
             );
+<<<<<<< HEAD
             L.control.scale().addTo(map_3023da4d07e74411732b71c0bc36139c);
+=======
+            L.control.scale().addTo(map_23d93e222fbb94120fc5cdf744e09830);
+>>>>>>> rish_development
 
             
 
         
     
+<<<<<<< HEAD
             var tile_layer_014ad68aef36216cf950966dac83df80 = L.tileLayer(
+=======
+            var tile_layer_31791deffbd201103e4943a19150b463 = L.tileLayer(
+>>>>>>> rish_development
                 "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
                 {
   "minZoom": 0,
@@ -110,6 +131,7 @@
             );
         
     
+<<<<<<< HEAD
             tile_layer_014ad68aef36216cf950966dac83df80.addTo(map_3023da4d07e74411732b71c0bc36139c);
         
     
@@ -121,6 +143,19 @@
         
     
             var icon_7161e2a4ceb0bf7ad7658b43aca8ad62 = L.AwesomeMarkers.icon(
+=======
+            tile_layer_31791deffbd201103e4943a19150b463.addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+            var marker_6d8da744f109900bb3168560f166bd5a = L.marker(
+                [-37.7224, 145.0294],
+                {
+}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+            var icon_b75fba994669d885b98fa78852842a4e = L.AwesomeMarkers.icon(
+>>>>>>> rish_development
                 {
   "markerColor": "black",
   "iconColor": "white",
@@ -131,24 +166,41 @@
             );
         
     
+<<<<<<< HEAD
         var popup_79ee5943beddee3f0717e9ce1f320b5b = L.popup({
+=======
+        var popup_a7ce634b81fa9450e7fa883ea4e5cd4d = L.popup({
+>>>>>>> rish_development
   "maxWidth": 240,
 });
 
         
             
+<<<<<<< HEAD
                 var html_2cb742e6581cdd6c8c998954eec1d652 = $(`<div id="html_2cb742e6581cdd6c8c998954eec1d652" style="width: 100.0%; height: 100.0%;"><b>Reservoir High School</b><br>855 Plenty Rd, Reservoir VIC 3073<br><i>School gate</i></div>`)[0];
                 popup_79ee5943beddee3f0717e9ce1f320b5b.setContent(html_2cb742e6581cdd6c8c998954eec1d652);
             
         
 
         marker_af64d54660ace1b9e5e39c068480bd67.bindPopup(popup_79ee5943beddee3f0717e9ce1f320b5b)
+=======
+                var html_e4a855cea68bdb261ed5ce2b22f0a5bb = $(`<div id="html_e4a855cea68bdb261ed5ce2b22f0a5bb" style="width: 100.0%; height: 100.0%;"><b>Reservoir High School</b><br>855 Plenty Rd, Reservoir VIC 3073<br><i>School gate</i></div>`)[0];
+                popup_a7ce634b81fa9450e7fa883ea4e5cd4d.setContent(html_e4a855cea68bdb261ed5ce2b22f0a5bb);
+            
+        
+
+        marker_6d8da744f109900bb3168560f166bd5a.bindPopup(popup_a7ce634b81fa9450e7fa883ea4e5cd4d)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             marker_af64d54660ace1b9e5e39c068480bd67.bindTooltip(
+=======
+            marker_6d8da744f109900bb3168560f166bd5a.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Reservoir High School
                  </div>`,
@@ -158,6 +210,7 @@
             );
         
     
+<<<<<<< HEAD
                 marker_af64d54660ace1b9e5e39c068480bd67.setIcon(icon_7161e2a4ceb0bf7ad7658b43aca8ad62);
             
     
@@ -168,6 +221,18 @@
         
     
             circle_eceb32fda40ec8abc37e84d3be1d5af0.bindTooltip(
+=======
+                marker_6d8da744f109900bb3168560f166bd5a.setIcon(icon_b75fba994669d885b98fa78852842a4e);
+            
+    
+            var circle_d6f2765d25d5a56f72e55f9b8201ece2 = L.circle(
+                [-37.7224, 145.0294],
+                {"bubblingMouseEvents": true, "color": "#333333", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#333333", "fillOpacity": 0.04, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 400, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+            circle_d6f2765d25d5a56f72e55f9b8201ece2.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      400m buffer
                  </div>`,
@@ -177,6 +242,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_96bda39c8c6c799f9385c1c4210de9e1 = L.circle(
                 [-37.7224, 145.0294],
                 {"bubblingMouseEvents": true, "color": "#888888", "dashArray": "6", "dashOffset": null, "fill": true, "fillColor": "#888888", "fillOpacity": 0.02, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 800, "stroke": true, "weight": 1}
@@ -184,6 +250,15 @@
         
     
             circle_96bda39c8c6c799f9385c1c4210de9e1.bindTooltip(
+=======
+            var circle_f84c187f6848d799b81a60e9d087fc53 = L.circle(
+                [-37.7224, 145.0294],
+                {"bubblingMouseEvents": true, "color": "#888888", "dashArray": "6", "dashOffset": null, "fill": true, "fillColor": "#888888", "fillOpacity": 0.02, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 800, "stroke": true, "weight": 1}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+            circle_f84c187f6848d799b81a60e9d087fc53.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      800m buffer
                  </div>`,
@@ -193,6 +268,7 @@
             );
         
     
+<<<<<<< HEAD
             var marker_4c3fa1e56629bedd6ef716cf4d7eb447 = L.marker(
                 [-37.69654, 145.00299],
                 {
@@ -201,6 +277,16 @@
         
     
             var icon_ea6aef7082f0f7decb1ef47eb187d3b9 = L.AwesomeMarkers.icon(
+=======
+            var marker_68b22029c22f07d3235045c50d85693d = L.marker(
+                [-37.69654, 145.00299],
+                {
+}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+            var icon_34bc5a28a64c15d608b0c34641bd820b = L.AwesomeMarkers.icon(
+>>>>>>> rish_development
                 {
   "markerColor": "black",
   "iconColor": "white",
@@ -211,24 +297,41 @@
             );
         
     
+<<<<<<< HEAD
         var popup_4313b5c09c520277679731d6e1683a20 = L.popup({
+=======
+        var popup_ad74502b03f0b3329efcc787f55c023e = L.popup({
+>>>>>>> rish_development
   "maxWidth": 240,
 });
 
         
             
+<<<<<<< HEAD
                 var html_d88eb126a1f8ff9cc1f0404b828f1a11 = $(`<div id="html_d88eb126a1f8ff9cc1f0404b828f1a11" style="width: 100.0%; height: 100.0%;"><b>William Ruthven Secondary College</b><br>60 Merrilands Rd, Reservoir VIC 3073<br><i>School gate</i></div>`)[0];
                 popup_4313b5c09c520277679731d6e1683a20.setContent(html_d88eb126a1f8ff9cc1f0404b828f1a11);
             
         
 
         marker_4c3fa1e56629bedd6ef716cf4d7eb447.bindPopup(popup_4313b5c09c520277679731d6e1683a20)
+=======
+                var html_7353452db53077e911f1a0fc676e204f = $(`<div id="html_7353452db53077e911f1a0fc676e204f" style="width: 100.0%; height: 100.0%;"><b>William Ruthven Secondary College</b><br>60 Merrilands Rd, Reservoir VIC 3073<br><i>School gate</i></div>`)[0];
+                popup_ad74502b03f0b3329efcc787f55c023e.setContent(html_7353452db53077e911f1a0fc676e204f);
+            
+        
+
+        marker_68b22029c22f07d3235045c50d85693d.bindPopup(popup_ad74502b03f0b3329efcc787f55c023e)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             marker_4c3fa1e56629bedd6ef716cf4d7eb447.bindTooltip(
+=======
+            marker_68b22029c22f07d3235045c50d85693d.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      William Ruthven Secondary College
                  </div>`,
@@ -238,6 +341,7 @@
             );
         
     
+<<<<<<< HEAD
                 marker_4c3fa1e56629bedd6ef716cf4d7eb447.setIcon(icon_ea6aef7082f0f7decb1ef47eb187d3b9);
             
     
@@ -248,6 +352,18 @@
         
     
             circle_e1d239f8d8b1faf3aea7c2c02d77c6d5.bindTooltip(
+=======
+                marker_68b22029c22f07d3235045c50d85693d.setIcon(icon_34bc5a28a64c15d608b0c34641bd820b);
+            
+    
+            var circle_2ead2e528e8036e8c3536ff2bb3a9476 = L.circle(
+                [-37.69654, 145.00299],
+                {"bubblingMouseEvents": true, "color": "#333333", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#333333", "fillOpacity": 0.04, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 400, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+            circle_2ead2e528e8036e8c3536ff2bb3a9476.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      400m buffer
                  </div>`,
@@ -257,6 +373,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_7d71d8b569479e140076bf3a03e883b9 = L.circle(
                 [-37.69654, 145.00299],
                 {"bubblingMouseEvents": true, "color": "#888888", "dashArray": "6", "dashOffset": null, "fill": true, "fillColor": "#888888", "fillOpacity": 0.02, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 800, "stroke": true, "weight": 1}
@@ -264,6 +381,15 @@
         
     
             circle_7d71d8b569479e140076bf3a03e883b9.bindTooltip(
+=======
+            var circle_0270a5ba98695bac81fcc2db048f3fbe = L.circle(
+                [-37.69654, 145.00299],
+                {"bubblingMouseEvents": true, "color": "#888888", "dashArray": "6", "dashOffset": null, "fill": true, "fillColor": "#888888", "fillOpacity": 0.02, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 800, "stroke": true, "weight": 1}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+            circle_0270a5ba98695bac81fcc2db048f3fbe.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      800m buffer
                  </div>`,
@@ -273,6 +399,7 @@
             );
         
     
+<<<<<<< HEAD
             var marker_c3d4184438bf088864f35f27a9d1a6b4 = L.marker(
                 [-37.7417, 145.0071],
                 {
@@ -281,6 +408,16 @@
         
     
             var icon_7b87e65a84b683523bd60284b2c02b14 = L.AwesomeMarkers.icon(
+=======
+            var marker_af26393f580ce69485e1999f7666ae22 = L.marker(
+                [-37.7417, 145.0071],
+                {
+}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+            var icon_4bbfaaf8097beb0d2ca710860a53009a = L.AwesomeMarkers.icon(
+>>>>>>> rish_development
                 {
   "markerColor": "black",
   "iconColor": "white",
@@ -291,24 +428,41 @@
             );
         
     
+<<<<<<< HEAD
         var popup_eca859e55fbe6dfdcd5c540e7a8cfe61 = L.popup({
+=======
+        var popup_e1ef8a2527c74114de100ab6a5c08d2b = L.popup({
+>>>>>>> rish_development
   "maxWidth": 240,
 });
 
         
             
+<<<<<<< HEAD
                 var html_75aebbea0bf37dd911680095be72e41c = $(`<div id="html_75aebbea0bf37dd911680095be72e41c" style="width: 100.0%; height: 100.0%;"><b>Preston High School</b><br>2-16 Cooma St, Preston VIC 3072<br><i>School gate</i></div>`)[0];
                 popup_eca859e55fbe6dfdcd5c540e7a8cfe61.setContent(html_75aebbea0bf37dd911680095be72e41c);
             
         
 
         marker_c3d4184438bf088864f35f27a9d1a6b4.bindPopup(popup_eca859e55fbe6dfdcd5c540e7a8cfe61)
+=======
+                var html_3766282314a76191489c5250acc8323b = $(`<div id="html_3766282314a76191489c5250acc8323b" style="width: 100.0%; height: 100.0%;"><b>Preston High School</b><br>2-16 Cooma St, Preston VIC 3072<br><i>School gate</i></div>`)[0];
+                popup_e1ef8a2527c74114de100ab6a5c08d2b.setContent(html_3766282314a76191489c5250acc8323b);
+            
+        
+
+        marker_af26393f580ce69485e1999f7666ae22.bindPopup(popup_e1ef8a2527c74114de100ab6a5c08d2b)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             marker_c3d4184438bf088864f35f27a9d1a6b4.bindTooltip(
+=======
+            marker_af26393f580ce69485e1999f7666ae22.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Preston High School
                  </div>`,
@@ -318,6 +472,7 @@
             );
         
     
+<<<<<<< HEAD
                 marker_c3d4184438bf088864f35f27a9d1a6b4.setIcon(icon_7b87e65a84b683523bd60284b2c02b14);
             
     
@@ -328,6 +483,18 @@
         
     
             circle_7fcc170f524d26bc3d4506c214f5590e.bindTooltip(
+=======
+                marker_af26393f580ce69485e1999f7666ae22.setIcon(icon_4bbfaaf8097beb0d2ca710860a53009a);
+            
+    
+            var circle_9c77902804c18cc2670265d68b028562 = L.circle(
+                [-37.7417, 145.0071],
+                {"bubblingMouseEvents": true, "color": "#333333", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#333333", "fillOpacity": 0.04, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 400, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+            circle_9c77902804c18cc2670265d68b028562.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      400m buffer
                  </div>`,
@@ -337,6 +504,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_5e6e44ebd83e703ca47cbaa8e26c858b = L.circle(
                 [-37.7417, 145.0071],
                 {"bubblingMouseEvents": true, "color": "#888888", "dashArray": "6", "dashOffset": null, "fill": true, "fillColor": "#888888", "fillOpacity": 0.02, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 800, "stroke": true, "weight": 1}
@@ -344,6 +512,15 @@
         
     
             circle_5e6e44ebd83e703ca47cbaa8e26c858b.bindTooltip(
+=======
+            var circle_709dcf41fcf498241a0cc5764b755e9a = L.circle(
+                [-37.7417, 145.0071],
+                {"bubblingMouseEvents": true, "color": "#888888", "dashArray": "6", "dashOffset": null, "fill": true, "fillColor": "#888888", "fillOpacity": 0.02, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 800, "stroke": true, "weight": 1}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+            circle_709dcf41fcf498241a0cc5764b755e9a.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      800m buffer
                  </div>`,
@@ -353,6 +530,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_c6d07ec9529ab7234352aabb4e00ea16 = L.circleMarker(
                 [-37.7224, 145.0294],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
@@ -360,23 +538,45 @@
         
     
         var popup_c6420efc0dbeeb343fd61e669ca6e4b0 = L.popup({
+=======
+            var circle_marker_c98d7fb081730aa495248ef78cc5598e = L.circleMarker(
+                [-37.7224, 145.0294],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_55c15fab4afef0adb826983756cbddc9 = L.popup({
+>>>>>>> rish_development
   "maxWidth": 270,
 });
 
         
             
+<<<<<<< HEAD
                 var html_385b7eb70954e430c5246440530d903e = $(`<div id="html_385b7eb70954e430c5246440530d903e" style="width: 100.0%; height: 100.0%;">     <div style="font-family:Arial;font-size:12px;min-width:230px">       <b style="font-size:13px">Reservoir High School</b><br>       <span style="color:#666">Plenty Rd</span><br>       <hr style="margin:5px 0">       <b>Severity:</b>       <span style="color:orange">Moderate</span><br>       <b>FAS:</b> 4.2 &nbsp;       <b>CSS:</b> 5.7 &nbsp;       <b>EEI:</b> 7.0 &nbsp;       <b>CIS:</b> 1.0<br>       <hr style="margin:5px 0">       <b>Hazards:</b><br>       <span style="color:#555;font-size:11px">Damaged or uneven footpath, No pedestrian crossing, Unsafe or inadequate crossing, No kerb ramps at intersections, No cycling infrastructure</span><br>       <hr style="margin:5px 0">       <b>Top Recommendation:</b><br>       <span style="font-size:11px">Construct continuous concrete footpath minimum 1.8m wide</span><br>       <b>Priority:</b> High     </div></div>`)[0];
                 popup_c6420efc0dbeeb343fd61e669ca6e4b0.setContent(html_385b7eb70954e430c5246440530d903e);
             
         
 
         circle_marker_c6d07ec9529ab7234352aabb4e00ea16.bindPopup(popup_c6420efc0dbeeb343fd61e669ca6e4b0)
+=======
+                var html_09ad2ea6764c938ca9c5be2f7735d6f8 = $(`<div id="html_09ad2ea6764c938ca9c5be2f7735d6f8" style="width: 100.0%; height: 100.0%;">     <div style="font-family:Arial;font-size:12px;min-width:230px">       <b style="font-size:13px">Reservoir High School</b><br>       <span style="color:#666">Plenty Rd</span><br>       <hr style="margin:5px 0">       <b>Severity:</b>       <span style="color:orange">Moderate</span><br>       <b>FAS:</b> 4.2 &nbsp;       <b>CSS:</b> 5.7 &nbsp;       <b>EEI:</b> 7.0 &nbsp;       <b>CYS:</b> 8.0<br>       <hr style="margin:5px 0">       <b>Hazards:</b><br>       <span style="color:#555;font-size:11px">Damaged or uneven footpath, No pedestrian crossing, Unsafe or inadequate crossing, No kerb ramps at intersections, No cycling infrastructure</span><br>       <hr style="margin:5px 0">       <b>Top Recommendation:</b><br>       <span style="font-size:11px">Construct continuous concrete footpath minimum 1.8m wide</span><br>       <b>Priority:</b> High     </div></div>`)[0];
+                popup_55c15fab4afef0adb826983756cbddc9.setContent(html_09ad2ea6764c938ca9c5be2f7735d6f8);
+            
+        
+
+        circle_marker_c98d7fb081730aa495248ef78cc5598e.bindPopup(popup_55c15fab4afef0adb826983756cbddc9)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_c6d07ec9529ab7234352aabb4e00ea16.bindTooltip(
+=======
+            circle_marker_c98d7fb081730aa495248ef78cc5598e.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Reservoir HS — Plenty Rd (Moderate)
                  </div>`,
@@ -386,6 +586,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_f60d28f77961985f248e9fcca95d7a8e = L.circleMarker(
                 [-37.69654284, 145.0029925],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
@@ -393,23 +594,45 @@
         
     
         var popup_55306fefef9bd8cd9d2fdcbfa2d61e3d = L.popup({
+=======
+            var circle_marker_45159ceb026e552fdd534f00ade80653 = L.circleMarker(
+                [-37.69654284, 145.0029925],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_413491492ebed63aaa5016316fc630c1 = L.popup({
+>>>>>>> rish_development
   "maxWidth": 270,
 });
 
         
             
+<<<<<<< HEAD
                 var html_4012c354486eafb9a28543c2dc0aa1b4 = $(`<div id="html_4012c354486eafb9a28543c2dc0aa1b4" style="width: 100.0%; height: 100.0%;">     <div style="font-family:Arial;font-size:12px;min-width:230px">       <b style="font-size:13px">William Ruthven Secondary College</b><br>       <span style="color:#666">Merrilands Road</span><br>       <hr style="margin:5px 0">       <b>Severity:</b>       <span style="color:orange">Moderate</span><br>       <b>FAS:</b> 9.5 &nbsp;       <b>CSS:</b> 6.8 &nbsp;       <b>EEI:</b> 10.0 &nbsp;       <b>CIS:</b> 1.0<br>       <hr style="margin:5px 0">       <b>Hazards:</b><br>       <span style="color:#555;font-size:11px">Missing school zone signage, Vegetation blocking footpath, No cycling infrastructure</span><br>       <hr style="margin:5px 0">       <b>Top Recommendation:</b><br>       <span style="font-size:11px">Install school zone signs with 40km/h speed restriction on all approaches</span><br>       <b>Priority:</b> High     </div></div>`)[0];
                 popup_55306fefef9bd8cd9d2fdcbfa2d61e3d.setContent(html_4012c354486eafb9a28543c2dc0aa1b4);
             
         
 
         circle_marker_f60d28f77961985f248e9fcca95d7a8e.bindPopup(popup_55306fefef9bd8cd9d2fdcbfa2d61e3d)
+=======
+                var html_c0f650bef4b25be9aa2a482464191ce7 = $(`<div id="html_c0f650bef4b25be9aa2a482464191ce7" style="width: 100.0%; height: 100.0%;">     <div style="font-family:Arial;font-size:12px;min-width:230px">       <b style="font-size:13px">William Ruthven Secondary College</b><br>       <span style="color:#666">Merrilands Road</span><br>       <hr style="margin:5px 0">       <b>Severity:</b>       <span style="color:orange">Moderate</span><br>       <b>FAS:</b> 9.5 &nbsp;       <b>CSS:</b> 6.8 &nbsp;       <b>EEI:</b> 10.0 &nbsp;       <b>CYS:</b> 5.0<br>       <hr style="margin:5px 0">       <b>Hazards:</b><br>       <span style="color:#555;font-size:11px">Missing school zone signage, Vegetation blocking footpath, No cycling infrastructure</span><br>       <hr style="margin:5px 0">       <b>Top Recommendation:</b><br>       <span style="font-size:11px">Install school zone signs with 40km/h speed restriction on all approaches</span><br>       <b>Priority:</b> High     </div></div>`)[0];
+                popup_413491492ebed63aaa5016316fc630c1.setContent(html_c0f650bef4b25be9aa2a482464191ce7);
+            
+        
+
+        circle_marker_45159ceb026e552fdd534f00ade80653.bindPopup(popup_413491492ebed63aaa5016316fc630c1)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_f60d28f77961985f248e9fcca95d7a8e.bindTooltip(
+=======
+            circle_marker_45159ceb026e552fdd534f00ade80653.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      William Ruthven SC — Merrilands Road (Moderate)
                  </div>`,
@@ -419,6 +642,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_fe8b179efdd060255c2c97456c995b15 = L.circleMarker(
                 [-37.7415, 145.00718],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
@@ -426,23 +650,45 @@
         
     
         var popup_0e1b760f7d0bf1d4d0da8a431daebb22 = L.popup({
+=======
+            var circle_marker_1d2418369dc824aa3ad38c750a4e2566 = L.circleMarker(
+                [-37.7415, 145.00718],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_a7d783f5b2dcd8b8ea5087738feaec22 = L.popup({
+>>>>>>> rish_development
   "maxWidth": 270,
 });
 
         
             
+<<<<<<< HEAD
                 var html_334fff306026b4cb99aec57c6ef8abb4 = $(`<div id="html_334fff306026b4cb99aec57c6ef8abb4" style="width: 100.0%; height: 100.0%;">     <div style="font-family:Arial;font-size:12px;min-width:230px">       <b style="font-size:13px">Preston High School</b><br>       <span style="color:#666">Cooma street</span><br>       <hr style="margin:5px 0">       <b>Severity:</b>       <span style="color:red">Major</span><br>       <b>FAS:</b> 9.1 &nbsp;       <b>CSS:</b> 0.4 &nbsp;       <b>EEI:</b> 8.5 &nbsp;       <b>CIS:</b> 9.0<br>       <hr style="margin:5px 0">       <b>Hazards:</b><br>       <span style="color:#555;font-size:11px">Missing footpath, No pedestrian crossing, Unsafe or inadequate crossing, Missing school zone signage, Other — describe in notes below</span><br>       <hr style="margin:5px 0">       <b>Top Recommendation:</b><br>       <span style="font-size:11px">Install raised zebra crossing with tactile pavers adjacent to school gate</span><br>       <b>Priority:</b> High     </div></div>`)[0];
                 popup_0e1b760f7d0bf1d4d0da8a431daebb22.setContent(html_334fff306026b4cb99aec57c6ef8abb4);
             
         
 
         circle_marker_fe8b179efdd060255c2c97456c995b15.bindPopup(popup_0e1b760f7d0bf1d4d0da8a431daebb22)
+=======
+                var html_e037bacfcef3c77ccafafdac0e7441ab = $(`<div id="html_e037bacfcef3c77ccafafdac0e7441ab" style="width: 100.0%; height: 100.0%;">     <div style="font-family:Arial;font-size:12px;min-width:230px">       <b style="font-size:13px">Preston High School</b><br>       <span style="color:#666">Cooma street</span><br>       <hr style="margin:5px 0">       <b>Severity:</b>       <span style="color:red">Major</span><br>       <b>FAS:</b> 8.6 &nbsp;       <b>CSS:</b> 0.4 &nbsp;       <b>EEI:</b> 8.5 &nbsp;       <b>CYS:</b> 6.0<br>       <hr style="margin:5px 0">       <b>Hazards:</b><br>       <span style="color:#555;font-size:11px">Missing footpath, No pedestrian crossing, Unsafe or inadequate crossing, Missing school zone signage, Other — describe in notes below</span><br>       <hr style="margin:5px 0">       <b>Top Recommendation:</b><br>       <span style="font-size:11px">Install raised zebra crossing with tactile pavers adjacent to school gate</span><br>       <b>Priority:</b> High     </div></div>`)[0];
+                popup_a7d783f5b2dcd8b8ea5087738feaec22.setContent(html_e037bacfcef3c77ccafafdac0e7441ab);
+            
+        
+
+        circle_marker_1d2418369dc824aa3ad38c750a4e2566.bindPopup(popup_a7d783f5b2dcd8b8ea5087738feaec22)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_fe8b179efdd060255c2c97456c995b15.bindTooltip(
+=======
+            circle_marker_1d2418369dc824aa3ad38c750a4e2566.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Preston HS — Cooma street (Major)
                  </div>`,
@@ -452,6 +698,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_cc2a49a7ca194f9fbbbdb0b1b0935c2d = L.circleMarker(
                 [-37.723873, 145.02838],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
@@ -459,23 +706,45 @@
         
     
         var popup_3bb9a8b3feb46a4f0de6813c4d268741 = L.popup({
+=======
+            var circle_marker_5780b9c20da62a52b94999e5fe227aac = L.circleMarker(
+                [-37.723873, 145.02838],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_fa3c43f5671d965645c9c5992b1477cc = L.popup({
+>>>>>>> rish_development
   "maxWidth": 220,
 });
 
         
             
+<<<<<<< HEAD
                 var html_8f63248c716d34a4c78c3c24b8f59585 = $(`<div id="html_8f63248c716d34a4c78c3c24b8f59585" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Reservoir HS<br><b>Distance to gate:</b> 187m<br></div>`)[0];
                 popup_3bb9a8b3feb46a4f0de6813c4d268741.setContent(html_8f63248c716d34a4c78c3c24b8f59585);
             
         
 
         circle_marker_cc2a49a7ca194f9fbbbdb0b1b0935c2d.bindPopup(popup_3bb9a8b3feb46a4f0de6813c4d268741)
+=======
+                var html_fb825d5a15d28dd5048ba3e21d75f527 = $(`<div id="html_fb825d5a15d28dd5048ba3e21d75f527" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Reservoir HS<br><b>Distance to gate:</b> 187m<br></div>`)[0];
+                popup_fa3c43f5671d965645c9c5992b1477cc.setContent(html_fb825d5a15d28dd5048ba3e21d75f527);
+            
+        
+
+        circle_marker_5780b9c20da62a52b94999e5fe227aac.bindPopup(popup_fa3c43f5671d965645c9c5992b1477cc)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_cc2a49a7ca194f9fbbbdb0b1b0935c2d.bindTooltip(
+=======
+            circle_marker_5780b9c20da62a52b94999e5fe227aac.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Crash — Reservoir HS (187m)
                  </div>`,
@@ -485,6 +754,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_21979c00461dd573d0fa3001963766c8 = L.circleMarker(
                 [-37.74037, 145.00365],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
@@ -525,23 +795,45 @@
         
     
         var popup_c5131a51a0e4247a2af7c0e2b5e912af = L.popup({
+=======
+            var circle_marker_6b6e8b3ce94661248821578191d00521 = L.circleMarker(
+                [-37.740276, 145.0054],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_63dd8ac6735b82ad3630d847dc87e38d = L.popup({
+>>>>>>> rish_development
   "maxWidth": 220,
 });
 
         
             
+<<<<<<< HEAD
                 var html_0dfc77980b08ee456fbc2617002bcca0 = $(`<div id="html_0dfc77980b08ee456fbc2617002bcca0" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 218m<br></div>`)[0];
                 popup_c5131a51a0e4247a2af7c0e2b5e912af.setContent(html_0dfc77980b08ee456fbc2617002bcca0);
             
         
 
         circle_marker_19037a62235459ee157b764358336235.bindPopup(popup_c5131a51a0e4247a2af7c0e2b5e912af)
+=======
+                var html_8dae0c33dc15ff012fbab31fc015ae49 = $(`<div id="html_8dae0c33dc15ff012fbab31fc015ae49" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 218m<br></div>`)[0];
+                popup_63dd8ac6735b82ad3630d847dc87e38d.setContent(html_8dae0c33dc15ff012fbab31fc015ae49);
+            
+        
+
+        circle_marker_6b6e8b3ce94661248821578191d00521.bindPopup(popup_63dd8ac6735b82ad3630d847dc87e38d)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_19037a62235459ee157b764358336235.bindTooltip(
+=======
+            circle_marker_6b6e8b3ce94661248821578191d00521.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Crash — Preston HS (218m)
                  </div>`,
@@ -551,6 +843,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_fbe97c171e3822c9d876dc0a2c0c49d4 = L.circleMarker(
                 [-37.74037, 145.00365],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
@@ -624,23 +917,45 @@
         
     
         var popup_10c0b03beaae51a696bc6bcb47a81233 = L.popup({
+=======
+            var circle_marker_7f6e1ae13db80384f56978aec0d2b624 = L.circleMarker(
+                [-37.697067, 145.00346],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_84a1e65ba4aa2fd5b922f67dd0dc2cb9 = L.popup({
+>>>>>>> rish_development
   "maxWidth": 220,
 });
 
         
             
+<<<<<<< HEAD
                 var html_8fd70173378bcf9943d8752401c4e5e1 = $(`<div id="html_8fd70173378bcf9943d8752401c4e5e1" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> William Ruthven SC<br><b>Distance to gate:</b> 72m<br></div>`)[0];
                 popup_10c0b03beaae51a696bc6bcb47a81233.setContent(html_8fd70173378bcf9943d8752401c4e5e1);
             
         
 
         circle_marker_2168c4fec977c3b3ed1da780f32198a3.bindPopup(popup_10c0b03beaae51a696bc6bcb47a81233)
+=======
+                var html_bf3ad3d65c50324ef1528f24570bd20d = $(`<div id="html_bf3ad3d65c50324ef1528f24570bd20d" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> William Ruthven SC<br><b>Distance to gate:</b> 72m<br></div>`)[0];
+                popup_84a1e65ba4aa2fd5b922f67dd0dc2cb9.setContent(html_bf3ad3d65c50324ef1528f24570bd20d);
+            
+        
+
+        circle_marker_7f6e1ae13db80384f56978aec0d2b624.bindPopup(popup_84a1e65ba4aa2fd5b922f67dd0dc2cb9)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_2168c4fec977c3b3ed1da780f32198a3.bindTooltip(
+=======
+            circle_marker_7f6e1ae13db80384f56978aec0d2b624.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Crash — William Ruthven SC (72m)
                  </div>`,
@@ -650,6 +965,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_ee7f1edd21be9b2a0a114d4022a2081d = L.circleMarker(
                 [-37.694176, 145.0038],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
@@ -657,23 +973,45 @@
         
     
         var popup_397da638ea978484b7a257572c1e2051 = L.popup({
+=======
+            var circle_marker_bc6acc70279d3f4aa8be5e08b3897b35 = L.circleMarker(
+                [-37.694176, 145.0038],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_753d4874fb8ccb6929e95a881d5ee648 = L.popup({
+>>>>>>> rish_development
   "maxWidth": 220,
 });
 
         
             
+<<<<<<< HEAD
                 var html_f964d666674937ff738319de2d53ef5a = $(`<div id="html_f964d666674937ff738319de2d53ef5a" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> William Ruthven SC<br><b>Distance to gate:</b> 272m<br></div>`)[0];
                 popup_397da638ea978484b7a257572c1e2051.setContent(html_f964d666674937ff738319de2d53ef5a);
             
         
 
         circle_marker_ee7f1edd21be9b2a0a114d4022a2081d.bindPopup(popup_397da638ea978484b7a257572c1e2051)
+=======
+                var html_9be122c439fea22834f5ef0ad7b0b73a = $(`<div id="html_9be122c439fea22834f5ef0ad7b0b73a" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> William Ruthven SC<br><b>Distance to gate:</b> 272m<br></div>`)[0];
+                popup_753d4874fb8ccb6929e95a881d5ee648.setContent(html_9be122c439fea22834f5ef0ad7b0b73a);
+            
+        
+
+        circle_marker_bc6acc70279d3f4aa8be5e08b3897b35.bindPopup(popup_753d4874fb8ccb6929e95a881d5ee648)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_ee7f1edd21be9b2a0a114d4022a2081d.bindTooltip(
+=======
+            circle_marker_bc6acc70279d3f4aa8be5e08b3897b35.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Crash — William Ruthven SC (272m)
                  </div>`,
@@ -683,6 +1021,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_5c9eeac3c85ee0fbba317787acb19d12 = L.circleMarker(
                 [-37.723537, 145.02844],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
@@ -723,23 +1062,45 @@
         
     
         var popup_3b598e30115f41717a4b7b77ae03770b = L.popup({
+=======
+            var circle_marker_c0f7e15e671ae773e77d0da189db965d = L.circleMarker(
+                [-37.742344, 145.00333],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_c41c048d142d6ef48c30d40800407356 = L.popup({
+>>>>>>> rish_development
   "maxWidth": 220,
 });
 
         
             
+<<<<<<< HEAD
                 var html_e87b59ece05439961890b3b82a1d6e15 = $(`<div id="html_e87b59ece05439961890b3b82a1d6e15" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 339m<br></div>`)[0];
                 popup_3b598e30115f41717a4b7b77ae03770b.setContent(html_e87b59ece05439961890b3b82a1d6e15);
             
         
 
         circle_marker_739f34ba2942f20d53f4d3bf765983be.bindPopup(popup_3b598e30115f41717a4b7b77ae03770b)
+=======
+                var html_05a7ede669d0a2041df01e8aff3a335b = $(`<div id="html_05a7ede669d0a2041df01e8aff3a335b" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 339m<br></div>`)[0];
+                popup_c41c048d142d6ef48c30d40800407356.setContent(html_05a7ede669d0a2041df01e8aff3a335b);
+            
+        
+
+        circle_marker_c0f7e15e671ae773e77d0da189db965d.bindPopup(popup_c41c048d142d6ef48c30d40800407356)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_739f34ba2942f20d53f4d3bf765983be.bindTooltip(
+=======
+            circle_marker_c0f7e15e671ae773e77d0da189db965d.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Crash — Preston HS (339m)
                  </div>`,
@@ -749,6 +1110,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_e9f5822090bfc9dcc19f64e9becd4be6 = L.circleMarker(
                 [-37.69967, 145.00494],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
@@ -756,23 +1118,45 @@
         
     
         var popup_1e97f5d2f872349085c2decbe5540e65 = L.popup({
+=======
+            var circle_marker_8817a7ce66835acdebc1a9a43d8d3cdf = L.circleMarker(
+                [-37.69967, 145.00494],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_b20734b3c253c5159f466d1ba2745c2d = L.popup({
+>>>>>>> rish_development
   "maxWidth": 220,
 });
 
         
             
+<<<<<<< HEAD
                 var html_b9d0226bbec183f5859c822faf50341d = $(`<div id="html_b9d0226bbec183f5859c822faf50341d" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> William Ruthven SC<br><b>Distance to gate:</b> 388m<br></div>`)[0];
                 popup_1e97f5d2f872349085c2decbe5540e65.setContent(html_b9d0226bbec183f5859c822faf50341d);
             
         
 
         circle_marker_e9f5822090bfc9dcc19f64e9becd4be6.bindPopup(popup_1e97f5d2f872349085c2decbe5540e65)
+=======
+                var html_d6fda09a40a0c84819fd5766426120f4 = $(`<div id="html_d6fda09a40a0c84819fd5766426120f4" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> William Ruthven SC<br><b>Distance to gate:</b> 388m<br></div>`)[0];
+                popup_b20734b3c253c5159f466d1ba2745c2d.setContent(html_d6fda09a40a0c84819fd5766426120f4);
+            
+        
+
+        circle_marker_8817a7ce66835acdebc1a9a43d8d3cdf.bindPopup(popup_b20734b3c253c5159f466d1ba2745c2d)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_e9f5822090bfc9dcc19f64e9becd4be6.bindTooltip(
+=======
+            circle_marker_8817a7ce66835acdebc1a9a43d8d3cdf.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Crash — William Ruthven SC (388m)
                  </div>`,
@@ -782,6 +1166,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_9941ae7f3aa2b42741d445ffe389e3c7 = L.circleMarker(
                 [-37.74037, 145.00365],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
@@ -789,23 +1174,45 @@
         
     
         var popup_95ccdd0f27bf6c20d4b16ae999764033 = L.popup({
+=======
+            var circle_marker_7f3bcfd2e44825e8305f4742c61f2f7d = L.circleMarker(
+                [-37.74037, 145.00365],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_18c4de49936d4a21840f8e9908a32864 = L.popup({
+>>>>>>> rish_development
   "maxWidth": 220,
 });
 
         
             
+<<<<<<< HEAD
                 var html_35c43ce375eb170d00177d06d66e6908 = $(`<div id="html_35c43ce375eb170d00177d06d66e6908" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 338m<br></div>`)[0];
                 popup_95ccdd0f27bf6c20d4b16ae999764033.setContent(html_35c43ce375eb170d00177d06d66e6908);
             
         
 
         circle_marker_9941ae7f3aa2b42741d445ffe389e3c7.bindPopup(popup_95ccdd0f27bf6c20d4b16ae999764033)
+=======
+                var html_2fb61c1e54948a5b0b6450d6f5e90eb7 = $(`<div id="html_2fb61c1e54948a5b0b6450d6f5e90eb7" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 338m<br></div>`)[0];
+                popup_18c4de49936d4a21840f8e9908a32864.setContent(html_2fb61c1e54948a5b0b6450d6f5e90eb7);
+            
+        
+
+        circle_marker_7f3bcfd2e44825e8305f4742c61f2f7d.bindPopup(popup_18c4de49936d4a21840f8e9908a32864)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_9941ae7f3aa2b42741d445ffe389e3c7.bindTooltip(
+=======
+            circle_marker_7f3bcfd2e44825e8305f4742c61f2f7d.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Crash — Preston HS (338m)
                  </div>`,
@@ -815,6 +1222,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_2a626c2b25fb6a59e596297d55df1125 = L.circleMarker(
                 [-37.741646, 145.0093],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
@@ -855,23 +1263,45 @@
         
     
         var popup_39429d266a2a7df811a2d1b1827a342b = L.popup({
+=======
+            var circle_marker_ae0846e402aee24d92e4fac7dfa2bd58 = L.circleMarker(
+                [-37.74107, 145.00975],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_3959b7c604d249475a880b777da60c6b = L.popup({
+>>>>>>> rish_development
   "maxWidth": 220,
 });
 
         
             
+<<<<<<< HEAD
                 var html_c5b357f21c41730cad3affbd482e2ea8 = $(`<div id="html_c5b357f21c41730cad3affbd482e2ea8" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 243m<br></div>`)[0];
                 popup_39429d266a2a7df811a2d1b1827a342b.setContent(html_c5b357f21c41730cad3affbd482e2ea8);
             
         
 
         circle_marker_c31372c33fefdb4db12b80c6ef19bef6.bindPopup(popup_39429d266a2a7df811a2d1b1827a342b)
+=======
+                var html_1a36ec13caab8adc406c02fde837b1aa = $(`<div id="html_1a36ec13caab8adc406c02fde837b1aa" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 243m<br></div>`)[0];
+                popup_3959b7c604d249475a880b777da60c6b.setContent(html_1a36ec13caab8adc406c02fde837b1aa);
+            
+        
+
+        circle_marker_ae0846e402aee24d92e4fac7dfa2bd58.bindPopup(popup_3959b7c604d249475a880b777da60c6b)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_c31372c33fefdb4db12b80c6ef19bef6.bindTooltip(
+=======
+            circle_marker_ae0846e402aee24d92e4fac7dfa2bd58.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Crash — Preston HS (243m)
                  </div>`,
@@ -881,6 +1311,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_6452a673c45cd377ab1a245baf0624d2 = L.circleMarker(
                 [-37.74315, 145.00812],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
@@ -888,23 +1319,45 @@
         
     
         var popup_05340a086ae3b718959908e8e9c070d5 = L.popup({
+=======
+            var circle_marker_8a8882e62f652055e60f940cc5447a12 = L.circleMarker(
+                [-37.74315, 145.00812],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_e0ad4d269bbfc3f0ec8b17c2b56e91ba = L.popup({
+>>>>>>> rish_development
   "maxWidth": 220,
 });
 
         
             
+<<<<<<< HEAD
                 var html_a4c3a5b460fb644f3bdb7e7feb195499 = $(`<div id="html_a4c3a5b460fb644f3bdb7e7feb195499" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 184m<br></div>`)[0];
                 popup_05340a086ae3b718959908e8e9c070d5.setContent(html_a4c3a5b460fb644f3bdb7e7feb195499);
             
         
 
         circle_marker_6452a673c45cd377ab1a245baf0624d2.bindPopup(popup_05340a086ae3b718959908e8e9c070d5)
+=======
+                var html_d640aa7c710f1a559c69d820b77cf0f5 = $(`<div id="html_d640aa7c710f1a559c69d820b77cf0f5" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 184m<br></div>`)[0];
+                popup_e0ad4d269bbfc3f0ec8b17c2b56e91ba.setContent(html_d640aa7c710f1a559c69d820b77cf0f5);
+            
+        
+
+        circle_marker_8a8882e62f652055e60f940cc5447a12.bindPopup(popup_e0ad4d269bbfc3f0ec8b17c2b56e91ba)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_6452a673c45cd377ab1a245baf0624d2.bindTooltip(
+=======
+            circle_marker_8a8882e62f652055e60f940cc5447a12.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Crash — Preston HS (184m)
                  </div>`,
@@ -914,6 +1367,7 @@
             );
         
     
+<<<<<<< HEAD
             var circle_marker_fa27ea2dcfced8e5eac4a94561d5b88a = L.circleMarker(
                 [-37.744354, 145.00716],
                 {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
@@ -954,23 +1408,45 @@
         
     
         var popup_609f895503ea5cf42c1575cd24ab7686 = L.popup({
+=======
+            var circle_marker_9445dca5ae176658f9ffb8082f4e4c6a = L.circleMarker(
+                [-37.73918, 145.00735],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2980B9", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
+            ).addTo(map_23d93e222fbb94120fc5cdf744e09830);
+        
+    
+        var popup_b187445699f75d5d953edae3fb3f5e3a = L.popup({
+>>>>>>> rish_development
   "maxWidth": 220,
 });
 
         
             
+<<<<<<< HEAD
                 var html_1d653008a9a15f9f22bb5630a8f80a06 = $(`<div id="html_1d653008a9a15f9f22bb5630a8f80a06" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 281m<br></div>`)[0];
                 popup_609f895503ea5cf42c1575cd24ab7686.setContent(html_1d653008a9a15f9f22bb5630a8f80a06);
             
         
 
         circle_marker_fd1cab1edf30ff69e42f453bf1545dfc.bindPopup(popup_609f895503ea5cf42c1575cd24ab7686)
+=======
+                var html_3a42a3b24f8f379918ebedf61b408c0f = $(`<div id="html_3a42a3b24f8f379918ebedf61b408c0f" style="width: 100.0%; height: 100.0%;"><div style='font-family:Arial;font-size:12px'><b>Road Crash</b><br><b>School:</b> Preston HS<br><b>Distance to gate:</b> 281m<br></div>`)[0];
+                popup_b187445699f75d5d953edae3fb3f5e3a.setContent(html_3a42a3b24f8f379918ebedf61b408c0f);
+            
+        
+
+        circle_marker_9445dca5ae176658f9ffb8082f4e4c6a.bindPopup(popup_b187445699f75d5d953edae3fb3f5e3a)
+>>>>>>> rish_development
         ;
 
         
     
     
+<<<<<<< HEAD
             circle_marker_fd1cab1edf30ff69e42f453bf1545dfc.bindTooltip(
+=======
+            circle_marker_9445dca5ae176658f9ffb8082f4e4c6a.bindTooltip(
+>>>>>>> rish_development
                 `<div>
                      Crash — Preston HS (281m)
                  </div>`,
@@ -979,6 +1455,7 @@
 }
             );
         
+<<<<<<< HEAD
     
             var circle_marker_2f83dac7e92d546a296c69049bb8a153 = L.circleMarker(
                 [-37.741062, 145.00356],
@@ -1045,5 +1522,7 @@
 }
             );
         
+=======
+>>>>>>> rish_development
 </script>
 </html>

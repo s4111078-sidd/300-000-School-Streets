@@ -297,6 +297,8 @@ b4 = ax.bar(x + 1.5*width, cis_vals, width, label='Cycling Infra Score (CIS)', c
 for bars in [b1, b2, b3, b4]:
     for bar in bars:
         h = bar.get_height()
+        if np.isnan(h):
+            continue
         ax.text(bar.get_x() + bar.get_width()/2, h + 0.15,
                 f'{h:.1f}', ha='center', va='bottom',
                 fontsize=9, fontweight='bold', color='#1A1A1A')
@@ -412,7 +414,7 @@ for ax, (_, row) in zip(axes, df.iterrows()):
     ax.set_ylim(0, 12)
     ax.set_title(school, fontsize=11, fontweight='bold', pad=10)
     ax.axhline(y=6, color='#C0392B', linewidth=0.8, linestyle='--', alpha=0.5)
-    ax.text(2.3, 6.15, '6.0', fontsize=8, color='#C0392B', va='bottom')
+    ax.text(3.3, 6.15, '6.0', fontsize=8, color='#C0392B', va='bottom')
     ax.yaxis.grid(True, color='#DDDDDD', linewidth=0.6)
     ax.set_axisbelow(True)
     ax.spines['top'].set_visible(False)
@@ -536,6 +538,24 @@ def generate_recommendation(row):
             'priority'      : 'Low',
             'cost'          : 'Medium — $20,000 to $200,000',
             'timeframe'     : 'Long-term — 1 to 3 years'
+        })
+
+    # Rule 15 — LOW_CYS (Cycling Safety Score below threshold)
+    if pd.notna(row.get('CYS')) and float(row['CYS']) < 4:
+        recs.append({
+            'hazard'        : f'Poor cycling safety score (CYS {row["CYS"]:.1f}/10) — unsafe conditions for students cycling to school',
+            'recommendation': 'Install separated cycling infrastructure (kerb-protected lane or shared path), improve surface condition, and add wayfinding signage',
+            'priority'      : 'High',
+            'cost'          : 'Medium — $20,000 to $200,000',
+            'timeframe'     : 'Short-term — within 1 year'
+        })
+    elif pd.notna(row.get('CYS')) and float(row['CYS']) < 6:
+        recs.append({
+            'hazard'        : f'Moderate cycling safety score (CYS {row["CYS"]:.1f}/10) — cycling route needs improvement',
+            'recommendation': 'Add painted bike lanes, fix surface defects, and install parking-protected lane or flexible delineators where space allows',
+            'priority'      : 'Medium',
+            'cost'          : 'Low — under $20,000',
+            'timeframe'     : 'Short-term — within 1 year'
         })
 
     # Rule 9 — POOR_LIGHTING
