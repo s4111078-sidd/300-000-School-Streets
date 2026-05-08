@@ -80,15 +80,90 @@ df['FAS'] = pd.to_numeric(df['FAS'], errors='coerce')
 df['CSS'] = pd.to_numeric(df['CSS'], errors='coerce')
 df['EEI'] = pd.to_numeric(df['EEI'], errors='coerce')
 
-# ── Cycling infrastructure bonus applied to EEI ────────────
-# +0.5 if cycling infrastructure is present on the observed street
-def apply_cycling_bonus(row):
-    if pd.notna(row['EEI']) and pd.notna(row['Cycling_infra']):
-        if row['Cycling_infra'] != 'No cycling infrastructure':
-            return min(row['EEI'] + 0.5, 10.0)  # cap at 10
-    return row['EEI']
+# ── CYS — Cycling Safety Score ─────────────────────────────
+# Priority 1: manual CYS column in school_data.csv
+# Priority 2: computed from OSM cycling network in spatial_features.csv
+# Priority 3: NaN (charts show N/A)
 
-df['EEI'] = df.apply(apply_cycling_bonus, axis=1)
+def compute_cys(sf_row):
+    """
+    Derive Cycling Safety Score (0–10) from OSM spatial features at 400m buffer.
+
+    Scoring rubric:
+      Cycling coverage   (0–4 pts): cycle_pct_400m
+      Protected infra    (0–3 pts): protected_cycle_length_400m
+      Crossing safety    (0–2 pts): signals_400m + crossing_density_400m
+      Speed environment  (0–1 pts): avg_speed_400m <= 40 km/h
+    """
+    score = 0.0
+
+    # 1. Cycling coverage — what % of the walkable network has cycling routes
+    pct = sf_row.get('cycle_pct_400m', np.nan)
+    if pd.notna(pct):
+        if   pct >= 40: score += 4
+        elif pct >= 25: score += 3
+        elif pct >= 15: score += 2
+        elif pct >= 5:  score += 1
+
+    # 2. Protected infrastructure — dedicated cycleways or separated tracks
+    protected = sf_row.get('protected_cycle_length_400m', np.nan)
+    if pd.notna(protected):
+        if   protected >= 300: score += 3
+        elif protected >= 100: score += 2
+        elif protected > 0:    score += 1
+
+    # 3. Crossing safety — traffic signals and crossing density
+    signals = sf_row.get('signals_400m', np.nan)
+    density = sf_row.get('crossing_density_400m', np.nan)
+    if pd.notna(signals) and signals >= 3:   score += 1
+    if pd.notna(density) and density >= 1.0: score += 1
+
+    # 4. Speed environment — lower speeds safer for cycling
+    avg_speed = sf_row.get('avg_speed_400m', np.nan)
+    if pd.notna(avg_speed) and avg_speed <= 40: score += 1
+
+    return round(min(score, 10.0), 1)
+
+
+_cys_col = next(
+    (c for c in df.columns if 'CYS' in c.upper() or 'CYCLING SAFETY' in c.upper()),
+    None
+)
+
+if _cys_col:
+    df['CYS'] = pd.to_numeric(df[_cys_col], errors='coerce')
+    print(f"      CYS column found in CSV: '{_cys_col}'")
+
+else:
+    # Try computing from spatial_features.csv
+    _sf_path = os.path.join(OUT_DIR, 'spatial_features.csv')
+    _cycling_cols = ['cycle_pct_400m', 'protected_cycle_length_400m']
+
+    if os.path.exists(_sf_path):
+        _sf = pd.read_csv(_sf_path)
+        if all(c in _sf.columns for c in _cycling_cols):
+            _sf_lookup = _sf.set_index('school_name')
+            _school_map = {
+                'Reservoir High School':             'Reservoir HS',
+                'William Ruthven Secondary College': 'William Ruthven SC',
+                'Preston High School':               'Preston HS',
+            }
+            def _lookup_cys(school_full):
+                key = _school_map.get(school_full, school_full)
+                if key in _sf_lookup.index:
+                    return compute_cys(_sf_lookup.loc[key])
+                return np.nan
+
+            df['CYS'] = df['School'].apply(_lookup_cys)
+            computed = df['CYS'].notna().sum()
+            print(f"      CYS computed from spatial_features.csv for {computed}/{len(df)} locations")
+            print(df[['School_short', 'CYS']].drop_duplicates().to_string(index=False))
+        else:
+            df['CYS'] = np.nan
+            print("      NOTE: spatial_features.csv missing cycling columns — re-run spatial_features.py")
+    else:
+        df['CYS'] = np.nan
+        print("      NOTE: spatial_features.csv not found — run spatial_features.py to auto-compute CYS")
 
 def clean_severity(s):
     s = str(s).lower()
@@ -98,13 +173,14 @@ def clean_severity(s):
     return 'Unknown'
 
 df['Sev_clean']     = df['Severity'].apply(clean_severity)
-df['Overall_score'] = (df['FAS'] + df['CSS'] + df['EEI']) / 3
+# Overall = mean of available scores (CYS treated as NaN until data is collected)
+df['Overall_score'] = df[['FAS', 'CSS', 'EEI', 'CYS']].mean(axis=1)
 
 print(f"      Loaded {len(df)} rows from {CSV_FILE}")
 print(f"      Schools: {df['School'].unique().tolist()}")
 print()
 print("      SCORES CONFIRMED:")
-print(df[['School_short', 'FAS', 'CSS', 'EEI', 'Sev_clean']].to_string(index=False))
+print(df[['School_short', 'FAS', 'CSS', 'EEI', 'CYS', 'Sev_clean']].to_string(index=False))
 
 # ══════════════════════════════════════════════════════════
 # STEP 2 — CHART 1: SAFETY SCORES
@@ -115,23 +191,27 @@ schools  = df['School_short'].tolist()
 fas_vals = df['FAS'].tolist()
 css_vals = df['CSS'].tolist()
 eei_vals = df['EEI'].tolist()
+cys_vals = df['CYS'].tolist()
 x        = np.arange(len(schools))
-width    = 0.22
+width    = 0.18
 
-fig, ax = plt.subplots(figsize=(11, 6))
+fig, ax = plt.subplots(figsize=(12, 6))
 fig.patch.set_facecolor('white')
 ax.set_facecolor('#FAFAFA')
 
-b1 = ax.bar(x - width, fas_vals, width, label='Footpath Score (FAS)',    color='#1A1A1A', edgecolor='white')
-b2 = ax.bar(x,         css_vals, width, label='Crossing Score (CSS)',     color='#666666', edgecolor='white')
-b3 = ax.bar(x + width, eei_vals, width, label='Environment Score (EEI)', color='#AAAAAA', edgecolor='white')
+b1 = ax.bar(x - 1.5*width, fas_vals, width, label='Footpath Score (FAS)',    color='#1A1A1A', edgecolor='white')
+b2 = ax.bar(x - 0.5*width, css_vals, width, label='Crossing Score (CSS)',    color='#666666', edgecolor='white')
+b3 = ax.bar(x + 0.5*width, eei_vals, width, label='Environment Score (EEI)', color='#AAAAAA', edgecolor='white')
+b4 = ax.bar(x + 1.5*width, cys_vals, width, label='Cycling Score (CYS)',     color='#2E86C1', edgecolor='white')
 
-for bars in [b1, b2, b3]:
+for bars in [b1, b2, b3, b4]:
     for bar in bars:
         h = bar.get_height()
+        if np.isnan(h):
+            continue
         ax.text(bar.get_x() + bar.get_width()/2, h + 0.15,
                 f'{h:.1f}', ha='center', va='bottom',
-                fontsize=10, fontweight='bold', color='#1A1A1A')
+                fontsize=9, fontweight='bold', color='#1A1A1A')
 
 ax.axhline(y=6, color='#C0392B', linewidth=1, linestyle='--', alpha=0.7, zorder=0)
 ax.text(len(schools) - 0.05, 6.15, 'Good threshold (6.0)',
@@ -217,32 +297,44 @@ print(f"      Saved -> {out2}")
 # ══════════════════════════════════════════════════════════
 print("\n[4/6] Generating Chart 3 — Score Breakdown...")
 
-metric_labels = ['Footpath\n(FAS)', 'Crossing\n(CSS)', 'Environment\n(EEI)']
+metric_labels = ['Footpath\n(FAS)', 'Crossing\n(CSS)', 'Environment\n(EEI)', 'Cycling\n(CYS)']
 n   = len(df)
-fig, axes = plt.subplots(1, n, figsize=(6*n, 6), sharey=True)
+fig, axes = plt.subplots(1, n, figsize=(7*n, 6), sharey=True)
 fig.patch.set_facecolor('white')
 if n == 1:
     axes = [axes]
 
 for ax, (_, row) in zip(axes, df.iterrows()):
-    vals   = [float(row['FAS']), float(row['CSS']), float(row['EEI'])]
-    school = row['School_short']
-    sev    = row['Sev_clean']
+    raw_vals = [row['FAS'], row['CSS'], row['EEI'], row['CYS']]
+    school   = row['School_short']
+    sev      = row['Sev_clean']
     bar_colours = []
-    for v in vals:
-        if   v < 4: bar_colours.append('#C0392B')
-        elif v < 6: bar_colours.append('#D35400')
-        elif v < 8: bar_colours.append('#888888')
-        else:       bar_colours.append('#1A1A1A')
-    b = ax.bar(metric_labels, vals, color=bar_colours, edgecolor='white', width=0.5)
-    for bar, val in zip(b, vals):
-        ax.text(bar.get_x() + bar.get_width()/2, val + 0.15,
-                f'{val:.1f}', ha='center', va='bottom',
-                fontsize=12, fontweight='bold', color='#1A1A1A')
+    display_vals = []
+    for v in raw_vals:
+        if pd.isna(v):
+            bar_colours.append('#CCCCCC')
+            display_vals.append(None)
+        else:
+            display_vals.append(float(v))
+            if   v < 4: bar_colours.append('#C0392B')
+            elif v < 6: bar_colours.append('#D35400')
+            elif v < 8: bar_colours.append('#888888')
+            else:       bar_colours.append('#1A1A1A')
+    plot_vals = [v if v is not None else 0 for v in display_vals]
+    b = ax.bar(metric_labels, plot_vals, color=bar_colours, edgecolor='white', width=0.5)
+    for bar, val in zip(b, display_vals):
+        if val is None:
+            ax.text(bar.get_x() + bar.get_width()/2, 0.4,
+                    'N/A', ha='center', va='bottom',
+                    fontsize=10, fontweight='bold', color='#999999')
+        else:
+            ax.text(bar.get_x() + bar.get_width()/2, val + 0.15,
+                    f'{val:.1f}', ha='center', va='bottom',
+                    fontsize=11, fontweight='bold', color='#1A1A1A')
     ax.set_ylim(0, 12)
     ax.set_title(school, fontsize=11, fontweight='bold', pad=10)
     ax.axhline(y=6, color='#C0392B', linewidth=0.8, linestyle='--', alpha=0.5)
-    ax.text(2.3, 6.15, '6.0', fontsize=8, color='#C0392B', va='bottom')
+    ax.text(3.3, 6.15, '6.0', fontsize=8, color='#C0392B', va='bottom')
     ax.yaxis.grid(True, color='#DDDDDD', linewidth=0.6)
     ax.set_axisbelow(True)
     ax.spines['top'].set_visible(False)
@@ -366,6 +458,24 @@ def generate_recommendation(row):
             'priority'      : 'Low',
             'cost'          : 'Medium — $20,000 to $200,000',
             'timeframe'     : 'Long-term — 1 to 3 years'
+        })
+
+    # Rule 15 — LOW_CYS (Cycling Safety Score below threshold)
+    if pd.notna(row.get('CYS')) and float(row['CYS']) < 4:
+        recs.append({
+            'hazard'        : f'Poor cycling safety score (CYS {row["CYS"]:.1f}/10) — unsafe conditions for students cycling to school',
+            'recommendation': 'Install separated cycling infrastructure (kerb-protected lane or shared path), improve surface condition, and add wayfinding signage',
+            'priority'      : 'High',
+            'cost'          : 'Medium — $20,000 to $200,000',
+            'timeframe'     : 'Short-term — within 1 year'
+        })
+    elif pd.notna(row.get('CYS')) and float(row['CYS']) < 6:
+        recs.append({
+            'hazard'        : f'Moderate cycling safety score (CYS {row["CYS"]:.1f}/10) — cycling route needs improvement',
+            'recommendation': 'Add painted bike lanes, fix surface defects, and install parking-protected lane or flexible delineators where space allows',
+            'priority'      : 'Medium',
+            'cost'          : 'Low — under $20,000',
+            'timeframe'     : 'Short-term — within 1 year'
         })
 
     # Rule 9 — POOR_LIGHTING
@@ -515,7 +625,8 @@ for _, row in df.iterrows():
       <span style="color:{folium_sev.get(sev,'gray')}">{sev}</span><br>
       <b>FAS:</b> {row['FAS']:.1f} &nbsp;
       <b>CSS:</b> {row['CSS']:.1f} &nbsp;
-      <b>EEI:</b> {row['EEI']:.1f}<br>
+      <b>EEI:</b> {row['EEI']:.1f} &nbsp;
+      <b>CYS:</b> {"N/A" if pd.isna(row['CYS']) else f"{row['CYS']:.1f}"}<br>
       <hr style="margin:5px 0">
       <b>Hazards:</b><br>
       <span style="color:#555;font-size:11px">{hazards}</span><br>
@@ -796,10 +907,12 @@ print("  heatmap.png                 — Static heatmap for QGIS import")
 print("  recommendations.csv         — Auto-generated recommendations")
 print("="*55)
 print("\n  Final scores:")
-print(df[['School_short', 'FAS', 'CSS', 'EEI', 'Sev_clean', 'Overall_score']]
+print(df[['School_short', 'FAS', 'CSS', 'EEI', 'CYS', 'Sev_clean', 'Overall_score']]
       .rename(columns={'School_short': 'School', 'Sev_clean': 'Severity',
                        'Overall_score': 'Overall'})
       .to_string(index=False))
+if df['CYS'].isna().all():
+    print("\n  NOTE: CYS is empty — add 'Cycling Safety Score — CYS (0 to 10)' column to school_data.csv")
 print("\n  To update: replace CSV and re-run python poc_pipeline.py\n")
 
 # ══════════════════════════════════════════════════════════
