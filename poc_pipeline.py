@@ -845,29 +845,35 @@ _net_layers = [
 if os.path.exists(_NETWORKS_GPKG):
     try:
         import geopandas as _gpd
-        import fiona as _fiona
-        _available = _fiona.listlayers(_NETWORKS_GPKG)
+        _net_added = 0
         for _key, _label, _colour, _weight, _opacity, _is_cycling in _net_layers:
-            if _key not in _available:
+            try:
+                _gdf = _gpd.read_file(_NETWORKS_GPKG, layer=_key)
+            except Exception:
                 continue
-            _gdf = _gpd.read_file(_NETWORKS_GPKG, layer=_key)
-            _fg  = folium.FeatureGroup(name=_label, show=(_key.endswith('400m')))
+            _fg = folium.FeatureGroup(name=_label, show=(_key.endswith('400m')))
             for _, _row in _gdf.iterrows():
                 _geom = _row.geometry
                 if _geom is None or _geom.is_empty:
                     continue
-                _coords = list(_geom.coords) if _geom.geom_type == 'LineString' else []
-                if not _coords:
+                if _geom.geom_type == 'LineString':
+                    _parts = [list(_geom.coords)]
+                elif _geom.geom_type == 'MultiLineString':
+                    _parts = [list(g.coords) for g in _geom.geoms]
+                else:
                     continue
-                _latlons = [[c[1], c[0]] for c in _coords]
                 _w = _weight * 2 if (_is_cycling and _row.get('is_protected')) else _weight
                 _c = '#0D4F8B'    if (_is_cycling and _row.get('is_protected')) else _colour
-                folium.PolyLine(
-                    _latlons, color=_c, weight=_w, opacity=_opacity,
-                    tooltip=_row.get('highway', ''),
-                ).add_to(_fg)
+                for _coords in _parts:
+                    folium.PolyLine(
+                        [[c[1], c[0]] for c in _coords],
+                        color=_c, weight=_w, opacity=_opacity,
+                        tooltip=str(_row.get('highway', '')),
+                    ).add_to(_fg)
             _fg.add_to(m)
+            _net_added += 1
         folium.LayerControl(collapsed=False).add_to(m)
+        print(f"      Added {_net_added} network layers to interactive map")
     except Exception as _e:
         print(f"      (Network layers skipped: {_e})")
 else:
