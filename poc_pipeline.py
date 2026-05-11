@@ -831,6 +831,48 @@ if os.path.exists(crash_csv_path):
             crash_count_interactive += 1
         print(f"      Added {crash_count_interactive} crash markers to interactive map")
 
+# ── OSM Network layers (from spatial_features.py output) ──────────────────────
+_NETWORKS_GPKG = os.path.join(OUT_DIR, 'networks.gpkg')
+_net_layers = [
+    ('walk_400m',    'Walk Network 400m',    '#27AE60', 2,   0.75, False),
+    ('walk_800m',    'Walk Network 800m',    '#27AE60', 1.5, 0.5,  False),
+    ('cycling_400m', 'Cycling Network 400m', '#1A8FC1', 2,   0.8,  True),
+    ('cycling_800m', 'Cycling Network 800m', '#1A8FC1', 1.5, 0.6,  True),
+    ('roads_400m',   'Arterial Roads 400m',  '#C0392B', 2.5, 0.7,  False),
+    ('roads_800m',   'Arterial Roads 800m',  '#C0392B', 2,   0.5,  False),
+]
+
+if os.path.exists(_NETWORKS_GPKG):
+    try:
+        import geopandas as _gpd
+        import fiona as _fiona
+        _available = _fiona.listlayers(_NETWORKS_GPKG)
+        for _key, _label, _colour, _weight, _opacity, _is_cycling in _net_layers:
+            if _key not in _available:
+                continue
+            _gdf = _gpd.read_file(_NETWORKS_GPKG, layer=_key)
+            _fg  = folium.FeatureGroup(name=_label, show=(_key.endswith('400m')))
+            for _, _row in _gdf.iterrows():
+                _geom = _row.geometry
+                if _geom is None or _geom.is_empty:
+                    continue
+                _coords = list(_geom.coords) if _geom.geom_type == 'LineString' else []
+                if not _coords:
+                    continue
+                _latlons = [[c[1], c[0]] for c in _coords]
+                _w = _weight * 2 if (_is_cycling and _row.get('is_protected')) else _weight
+                _c = '#0D4F8B'    if (_is_cycling and _row.get('is_protected')) else _colour
+                folium.PolyLine(
+                    _latlons, color=_c, weight=_w, opacity=_opacity,
+                    tooltip=_row.get('highway', ''),
+                ).add_to(_fg)
+            _fg.add_to(m)
+        folium.LayerControl(collapsed=False).add_to(m)
+    except Exception as _e:
+        print(f"      (Network layers skipped: {_e})")
+else:
+    print("      (networks.gpkg not found — run spatial_features.py to add network layers)")
+
 legend_html = """
 <div style="position:fixed;bottom:30px;left:30px;z-index:1000;
      background:white;padding:12px 16px;border-radius:8px;
@@ -842,7 +884,10 @@ legend_html = """
   <span style="color:#1E8449">&#9679;</span> Minor<br>
   <span style="color:#2980B9">&#9679;</span> Road crash (ped/cyc)<br>
   <span style="color:#333">&#9670;</span> School gate<br>
-  &#9711; 400m / 800m buffer<br><br>
+  &#9711; 400m / 800m buffer<br>
+  <span style="color:#27AE60">&#9135;</span> Walk network<br>
+  <span style="color:#1A8FC1">&#9135;</span> Cycling (thick = protected)<br>
+  <span style="color:#C0392B">&#9135;</span> Arterial roads<br><br>
   <span style="color:#999;font-size:10px">Click any point for details</span>
 </div>"""
 m.get_root().html.add_child(folium.Element(legend_html))
