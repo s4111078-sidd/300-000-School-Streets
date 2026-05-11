@@ -22,8 +22,6 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import osmnx as ox
-import requests
-from io import StringIO
 from shapely.geometry import Point
 from pyproj import Transformer
 
@@ -43,8 +41,6 @@ SCHOOL_GATES = {
     'William Ruthven SC': {'lat': -37.69654, 'lon': 145.00299},
     'Preston HS':         {'lat': -37.7417,  'lon': 145.0071},
 }
-
-VIC_BBOX = {'lat_min': -39.2, 'lat_max': -33.9, 'lon_min': 140.9, 'lon_max': 150.0}
 
 _transformer = Transformer.from_crs(CRS_GEO, CRS_METRIC, always_xy=True)
 
@@ -80,55 +76,34 @@ def _parse_speed(val):
         return np.nan
 
 
+SCHOOL_DATA_CSV = 'school_data.csv'
+
 def load_gates():
-    """Try DET school locations; fall back to 3 hardcoded Darebin gates."""
+    """Load gates from school_data.csv (assessed schools only). Falls back to 3 hardcoded gates."""
     fallback = dict(SCHOOL_GATES)
+    if not os.path.exists(SCHOOL_DATA_CSV):
+        print(f'  {SCHOOL_DATA_CSV} not found — using {len(fallback)} hardcoded gates')
+        return fallback
     try:
-        print('  Fetching school locations from DET (data.vic.gov.au)...')
-        pkg = requests.get(
-            'https://www.data.vic.gov.au/api/3/action/package_show',
-            params={'id': 'school-locations-time-series'},
-            timeout=30,
-        )
-        pkg.raise_for_status()
-        resources = pkg.json()['result']['resources']
-        csv_resources = [r for r in resources if r.get('format', '').upper() == 'CSV']
-        if not csv_resources:
-            raise ValueError('No CSV resource found in DET package')
-
-        csv_resources.sort(key=lambda r: r.get('name', ''), reverse=True)
-        url = csv_resources[0]['url']
-        r = requests.get(url, timeout=60)
-        r.raise_for_status()
-
-        schools = pd.read_csv(StringIO(r.text), low_memory=False)
-        schools.columns = schools.columns.str.strip().str.upper()
-
-        mask = (
-            schools.get('SCHOOL_SECTOR_NAME', pd.Series(dtype=str))
-                   .astype(str).str.upper().str.contains('GOVERNMENT', na=False) &
-            schools.get('SCHOOL_TYPE_NAME', pd.Series(dtype=str))
-                   .astype(str).str.upper().str.contains('SECONDARY|COMBINED', na=False) &
-            schools.get('STATUS', pd.Series(dtype=str))
-                   .astype(str).str.upper().str.contains('OPEN', na=False)
-        )
-        schools = schools[mask].dropna(subset=['Y', 'X'])
-        schools = schools[
-            schools['Y'].between(VIC_BBOX['lat_min'], VIC_BBOX['lat_max']) &
-            schools['X'].between(VIC_BBOX['lon_min'], VIC_BBOX['lon_max'])
-        ]
-
+        sd = pd.read_csv(SCHOOL_DATA_CSV)
+        sd.columns = sd.columns.str.strip()
+        name_col = next((c for c in sd.columns if 'school name' in c.lower() or c.lower() == 'school'), None)
+        lat_col  = next((c for c in sd.columns if 'latitude'    in c.lower()), None)
+        lon_col  = next((c for c in sd.columns if 'longitude'   in c.lower()), None)
+        if not all([name_col, lat_col, lon_col]):
+            raise ValueError(f'Could not find name/lat/lon columns. Found: {sd.columns.tolist()}')
         gates = {}
-        for _, row in schools.iterrows():
-            name = str(row.get('SCHOOL_NAME', row.get('SCHOOL_NO', 'Unknown'))).strip()
-            gates[name] = {'lat': float(row['Y']), 'lon': float(row['X'])}
-
+        for _, row in sd.drop_duplicates(subset=[name_col]).iterrows():
+            name = str(row[name_col]).strip()
+            try:
+                gates[name] = {'lat': float(row[lat_col]), 'lon': float(row[lon_col])}
+            except (ValueError, TypeError):
+                pass
         gates.update(fallback)
-        print(f'  Loaded {len(gates):,} school gates')
+        print(f'  Loaded {len(gates)} school gates from {SCHOOL_DATA_CSV}')
         return gates
-
     except Exception as e:
-        print(f'  Warning: DET download failed ({e}) — using {len(fallback)} fallback gates')
+        print(f'  Warning: could not read {SCHOOL_DATA_CSV} ({e}) — using {len(fallback)} hardcoded gates')
         return fallback
 
 
