@@ -195,6 +195,62 @@ def _eei(row):
 
     return min(max(round(pts, 1), 0.0), 10.0)
 
+# ── COMPUTE CYS FROM OSM CYCLING NETWORK (spatial_features.csv) ───────────────
+# Rubric (0–10 total):
+#   cycle_pct_400m       : 0-4 pts  (share of cycling edges in walk network)
+#   protected_400m       : 0-3 pts  (metres of separated / track infrastructure)
+#   signals_400m ≥ 3     : +1 pt    (controlled crossings for cyclists)
+#   crossing_density ≥ 1 : +1 pt    (at-grade crossings per km of walk path)
+#   avg_speed_400m ≤ 40  : +1 pt    (low-speed environment)
+
+_SPATIAL_CSV = os.path.join('outputs', 'spatial_features.csv')
+_school_map  = {
+    'Reservoir High School'            : 'Reservoir HS',
+    'William Ruthven Secondary College': 'William Ruthven SC',
+    'Preston High School'              : 'Preston HS',
+}
+
+def compute_cys(sf_row):
+    score = 0.0
+    pct = sf_row.get('cycle_pct_400m', np.nan)
+    if pd.notna(pct):
+        if   pct >= 40: score += 4
+        elif pct >= 25: score += 3
+        elif pct >= 15: score += 2
+        elif pct >= 5:  score += 1
+    protected = sf_row.get('protected_cycle_length_400m', np.nan)
+    if pd.notna(protected):
+        if   protected >= 300: score += 3
+        elif protected >= 100: score += 2
+        elif protected > 0:    score += 1
+    signals = sf_row.get('signals_400m', np.nan)
+    density = sf_row.get('crossing_density_400m', np.nan)
+    if pd.notna(signals) and signals >= 3:   score += 1
+    if pd.notna(density) and density >= 1.0: score += 1
+    avg_speed = sf_row.get('avg_speed_400m', np.nan)
+    if pd.notna(avg_speed) and avg_speed <= 40: score += 1
+    return round(min(score, 10.0), 1)
+
+def _load_cys(school_full_name):
+    short = _school_map.get(school_full_name, school_full_name)
+    if os.path.exists(_SPATIAL_CSV):
+        try:
+            sf = pd.read_csv(_SPATIAL_CSV)
+            match = sf[sf['school_name'] == short]
+            if not match.empty:
+                return compute_cys(match.iloc[0].to_dict())
+        except Exception:
+            pass
+    return np.nan
+
+_CYS_MANUAL_COL = 'Cycling Safety Score — CYS (0 to 10)'
+if _CYS_MANUAL_COL in df.columns:
+    df['CYS'] = pd.to_numeric(df[_CYS_MANUAL_COL], errors='coerce')
+    print('      CYS: using manual scores from school_data.csv')
+else:
+    df['CYS'] = df['School'].apply(_load_cys)
+    print('      CYS: computed from OSM spatial features')
+
 # ── COMPUTE CIS FROM INFRASTRUCTURE TYPE ──────────────────
 # LTS (Mekuria, Furth & Nixon 2012); VicRoads TEM Vol. 3 Part 218
 CIS_MAP = {
@@ -244,7 +300,7 @@ df['CSS'] = df.apply(_css, axis=1)
 df['EEI'] = df.apply(_eei, axis=1)
 df['CIS'] = df['Cycling_infra'].apply(_cis)
 df['Sev_clean']     = df.apply(_severity, axis=1)
-df['Overall_score'] = (df['FAS'] + df['CSS'] + df['EEI'] + df['CIS']) / 4
+df['Overall_score'] = df[['FAS', 'CSS', 'EEI', 'CIS', 'CYS']].mean(axis=1)
 
 print(f"      Loaded {len(df)} rows from {CSV_FILE}")
 print(f"      Schools: {df['School'].unique().tolist()}")
@@ -268,7 +324,7 @@ for _, row in df.iterrows():
     print(f"      {row['School_short']:<22}: computed={comp:<10} observer={obs}{flag}")
 print()
 print("      FINAL COMPUTED SCORES:")
-print(df[['School_short', 'FAS', 'CSS', 'EEI', 'CIS', 'Sev_clean', 'Overall_score']]
+print(df[['School_short', 'FAS', 'CSS', 'EEI', 'CIS', 'CYS', 'Sev_clean', 'Overall_score']]
       .rename(columns={'School_short': 'School', 'Sev_clean': 'Severity', 'Overall_score': 'Overall'})
       .to_string(index=False))
 
@@ -282,19 +338,21 @@ fas_vals = df['FAS'].tolist()
 css_vals = df['CSS'].tolist()
 eei_vals = df['EEI'].tolist()
 cis_vals = df['CIS'].tolist()
+cys_vals = df['CYS'].tolist()
 x        = np.arange(len(schools))
-width    = 0.18
+width    = 0.15
 
-fig, ax = plt.subplots(figsize=(12, 6))
+fig, ax = plt.subplots(figsize=(13, 6))
 fig.patch.set_facecolor('white')
 ax.set_facecolor('#FAFAFA')
 
-b1 = ax.bar(x - 1.5*width, fas_vals, width, label='Footpath Score (FAS)',    color='#1A1A1A', edgecolor='white')
-b2 = ax.bar(x - 0.5*width, css_vals, width, label='Crossing Score (CSS)',     color='#555555', edgecolor='white')
-b3 = ax.bar(x + 0.5*width, eei_vals, width, label='Environment Score (EEI)', color='#999999', edgecolor='white')
-b4 = ax.bar(x + 1.5*width, cis_vals, width, label='Cycling Infra Score (CIS)', color='#27AE60', edgecolor='white')
+b1 = ax.bar(x - 2*width, fas_vals, width, label='Footpath Score (FAS)',        color='#1A1A1A', edgecolor='white')
+b2 = ax.bar(x - 1*width, css_vals, width, label='Crossing Score (CSS)',         color='#555555', edgecolor='white')
+b3 = ax.bar(x + 0*width, eei_vals, width, label='Environment Score (EEI)',     color='#999999', edgecolor='white')
+b4 = ax.bar(x + 1*width, cis_vals, width, label='Cycling Infra Score (CIS)',   color='#27AE60', edgecolor='white')
+b5 = ax.bar(x + 2*width, cys_vals, width, label='Cycling Safety Score (CYS)', color='#1A8FC1', edgecolor='white')
 
-for bars in [b1, b2, b3, b4]:
+for bars in [b1, b2, b3, b4, b5]:
     for bar in bars:
         h = bar.get_height()
         if np.isnan(h):
@@ -387,34 +445,48 @@ print(f"      Saved -> {out2}")
 # ══════════════════════════════════════════════════════════
 print("\n[4/6] Generating Chart 3 — Score Breakdown...")
 
-metric_labels = ['Footpath\n(FAS)', 'Crossing\n(CSS)', 'Environment\n(EEI)', 'Cycling\n(CIS)']
+metric_labels = ['Footpath\n(FAS)', 'Crossing\n(CSS)', 'Environment\n(EEI)', 'Cycling Infra\n(CIS)', 'Cycling Safety\n(CYS)']
 n   = len(df)
-fig, axes = plt.subplots(1, n, figsize=(7*n, 6), sharey=True)
+fig, axes = plt.subplots(1, n, figsize=(8*n, 6), sharey=True)
 fig.patch.set_facecolor('white')
 if n == 1:
     axes = [axes]
 
 for ax, (_, row) in zip(axes, df.iterrows()):
-    vals   = [float(row['FAS']), float(row['CSS']), float(row['EEI']), float(row['CIS'])]
+    raw_vals = [row['FAS'], row['CSS'], row['EEI'], row['CIS'], row['CYS']]
     school = row['School_short']
     sev    = row['Sev_clean']
     bar_colours = []
-    for i, v in enumerate(vals):
-        if i == 3:  # CIS always uses green palette
-            bar_colours.append('#27AE60' if v >= 6 else '#D35400' if v >= 4 else '#C0392B')
-        elif v < 4: bar_colours.append('#C0392B')
-        elif v < 6: bar_colours.append('#D35400')
-        elif v < 8: bar_colours.append('#888888')
-        else:       bar_colours.append('#1A1A1A')
-    b = ax.bar(metric_labels, vals, color=bar_colours, edgecolor='white', width=0.5)
-    for bar, val in zip(b, vals):
-        ax.text(bar.get_x() + bar.get_width()/2, val + 0.15,
-                f'{val:.1f}', ha='center', va='bottom',
-                fontsize=12, fontweight='bold', color='#1A1A1A')
+    plot_vals   = []
+    for i, v in enumerate(raw_vals):
+        if pd.isna(v):
+            plot_vals.append(0)
+            bar_colours.append('#CCCCCC')
+        else:
+            v = float(v)
+            plot_vals.append(v)
+            if i == 3:   # CIS — green palette
+                bar_colours.append('#27AE60' if v >= 6 else '#D35400' if v >= 4 else '#C0392B')
+            elif i == 4: # CYS — blue palette
+                bar_colours.append('#1A8FC1' if v >= 6 else '#2980B9' if v >= 4 else '#1F618D')
+            elif v < 4: bar_colours.append('#C0392B')
+            elif v < 6: bar_colours.append('#D35400')
+            elif v < 8: bar_colours.append('#888888')
+            else:       bar_colours.append('#1A1A1A')
+    b = ax.bar(metric_labels, plot_vals, color=bar_colours, edgecolor='white', width=0.5)
+    for bar, raw_val, pv in zip(b, raw_vals, plot_vals):
+        if pd.isna(raw_val):
+            ax.text(bar.get_x() + bar.get_width()/2, 0.3,
+                    'N/A', ha='center', va='bottom',
+                    fontsize=10, fontweight='bold', color='#888888')
+        else:
+            ax.text(bar.get_x() + bar.get_width()/2, pv + 0.15,
+                    f'{float(raw_val):.1f}', ha='center', va='bottom',
+                    fontsize=11, fontweight='bold', color='#1A1A1A')
     ax.set_ylim(0, 12)
     ax.set_title(school, fontsize=11, fontweight='bold', pad=10)
     ax.axhline(y=6, color='#C0392B', linewidth=0.8, linestyle='--', alpha=0.5)
-    ax.text(3.3, 6.15, '6.0', fontsize=8, color='#C0392B', va='bottom')
+    ax.text(4.3, 6.15, '6.0', fontsize=8, color='#C0392B', va='bottom')
     ax.yaxis.grid(True, color='#DDDDDD', linewidth=0.6)
     ax.set_axisbelow(True)
     ax.spines['top'].set_visible(False)
