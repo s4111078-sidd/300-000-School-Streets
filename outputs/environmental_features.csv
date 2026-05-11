@@ -1,0 +1,4 @@
+school_name,suburb,lga,aqi_pm25,aqi_category,hs10_base_score,crime_rate_per_100k,hs7_crime_pts,data_date,aqi_source,crime_source
+Reservoir High School,Reservoir,Darebin,8.5,Good,10.0,820,2.0,2026-05-11,Fallback 2023 annual avg,Fallback 2023-24 estimate
+William Ruthven Secondary College,Thornbury,Darebin,7.0,Good,10.0,560,3.0,2026-05-11,Fallback 2023 annual avg,Fallback 2023-24 estimate
+Preston High School,Preston,Darebin,7.8,Good,10.0,710,2.0,2026-05-11,Fallback 2023 annual avg,Fallback 2023-24 estimate

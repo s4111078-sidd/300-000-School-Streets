@@ -185,6 +185,92 @@ def compute_features(name, lat, lon):
         else:
             feat[f'crossing_density_{r}m'] = np.nan
 
+        # ── Healthy Streets extras (HS3/HS4/HS6/HS8) — only at 400m ──────────
+        if r == 400:
+            # HS3: Shade — trees within 100m
+            try:
+                trees_gdf = ox.features_from_point((lat, lon), tags={'natural': 'tree'}, dist=100)
+                feat['tree_count_100m'] = len(trees_gdf)
+            except Exception:
+                feat['tree_count_100m'] = 0
+
+            # HS3: Shelters (bus shelters, covered seating) within 200m
+            try:
+                shelter_gdf = ox.features_from_point(
+                    (lat, lon),
+                    tags={'amenity': ['shelter', 'bus_station'], 'public_transport': 'stop_position'},
+                    dist=200
+                )
+                feat['shelter_count_200m'] = len(shelter_gdf)
+            except Exception:
+                feat['shelter_count_200m'] = 0
+
+            # HS3: Green space percentage (parks, grass, gardens) within 400m
+            try:
+                green_gdf = ox.features_from_point(
+                    (lat, lon),
+                    tags={'leisure': ['park', 'garden', 'playground', 'recreation_ground'],
+                          'landuse': ['grass', 'greenfield', 'recreation_ground']},
+                    dist=400
+                )
+                feat['green_pct_400m'] = min(len(green_gdf) * 5.0, 40.0)  # proxy: count → pct
+            except Exception:
+                feat['green_pct_400m'] = 0.0
+
+            # HS4: Benches within 200m
+            try:
+                bench_gdf = ox.features_from_point((lat, lon), tags={'amenity': 'bench'}, dist=200)
+                feat['bench_count_200m'] = len(bench_gdf)
+            except Exception:
+                feat['bench_count_200m'] = 0
+
+            # HS4 & HS8: Parks within 400m
+            try:
+                park_gdf = ox.features_from_point(
+                    (lat, lon),
+                    tags={'leisure': ['park', 'playground', 'recreation_ground']},
+                    dist=400
+                )
+                feat['park_count_400m'] = len(park_gdf)
+            except Exception:
+                feat['park_count_400m'] = 0
+
+            # HS6: PT stops within 400m (bus stops, tram stops, train stations)
+            try:
+                pt_gdf = ox.features_from_point(
+                    (lat, lon),
+                    tags={'highway': 'bus_stop', 'public_transport': ['stop_position', 'platform'],
+                          'railway': ['tram_stop', 'station']},
+                    dist=400
+                )
+                feat['pt_stops_400m'] = len(pt_gdf)
+            except Exception:
+                feat['pt_stops_400m'] = 0
+
+            # HS8: Amenities (shops, cafes, restaurants, community) within 400m
+            try:
+                amenity_gdf = ox.features_from_point(
+                    (lat, lon),
+                    tags={'amenity': ['cafe', 'restaurant', 'fast_food', 'bar', 'pub',
+                                      'library', 'community_centre', 'pharmacy', 'doctors',
+                                      'supermarket', 'marketplace']},
+                    dist=400
+                )
+                feat['amenity_count_400m'] = len(amenity_gdf)
+            except Exception:
+                feat['amenity_count_400m'] = 0
+
+            # HS8: Cafes specifically (seating proxy)
+            try:
+                cafe_gdf = ox.features_from_point(
+                    (lat, lon),
+                    tags={'amenity': ['cafe', 'restaurant', 'fast_food']},
+                    dist=400
+                )
+                feat['cafe_count_400m'] = len(cafe_gdf)
+            except Exception:
+                feat['cafe_count_400m'] = 0
+
         # ── Cycling network ────────────────────────────────────────────────────
         cycle_length = protected_length = np.nan
         try:
