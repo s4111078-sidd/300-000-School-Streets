@@ -137,7 +137,7 @@ print(f'  Crash aggregates: {crash_agg.to_string(index=False)}')
 
 # ── 4. HS targets ──────────────────────────────────────────────────────────
 print('\n[4/4] Loading HS indicator targets...')
-assert os.path.exists(HS_CSV), f"Run poc_pipeline.py first — {HS_CSV} not found"
+assert os.path.exists(HS_CSV), f"Run main.py first — {HS_CSV} not found"
 hs = pd.read_csv(HS_CSV)
 hs['school'] = hs['School_short']
 hs_sel = hs[['school'] + HS_TARGETS + ['HS_overall']].copy()
