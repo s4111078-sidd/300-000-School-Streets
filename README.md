@@ -53,29 +53,40 @@ Preston HS is flagged **Major** due to HS2 = 0.4 — no formal pedestrian crossi
 ├── demographics_darebin.csv     ← ABS Census 2021 demographic data
 ├── requirements.txt             ← Python dependencies
 │
+├── run_all.py                   ← Master runner — runs all 7 steps in order
+├── main.py                      ← Step 4: HS scoring, charts, maps, recommendations
 ├── crash_analysis.py            ← Step 1: Download Victorian ped/cyc crash data
 ├── spatial_features.py          ← Step 2: OSM features per school (HS3/HS4/HS6/HS8)
 ├── environmental_features.py    ← Step 3: AQI (HS10) + crime rate (HS7)
-├── poc_pipeline.py              ← Step 4: HS scoring, charts, maps, recommendations
 ├── feature_engineering.py       ← Step 5: School-level ML feature matrix
 ├── ml_model.py                  ← Step 6: Predict HS scores from open data (Ridge + LOO-CV)
-└── pyqgis_pipeline.py           ← GIS: KDE heatmap, buffers, layers, PNG exports (QGIS only)
+├── seifa_analysis.py            ← Step 7: SEIFA 2021 disadvantage analysis
+├── config.py                    ← Shared constants (paths, school gates, HS indicators)
+│
+├── src/                         ← Modular source code
+│   ├── scoring/                 ← HS1–HS10 scoring functions (one file per indicator)
+│   │   ├── hs1.py … hs10.py
+│   │   └── severity.py
+│   ├── data/                    ← Data loaders (CSV, crash downloader, OSM extractor)
+│   ├── recommendations/         ← Rule engine + 17 HS-based recommendation rules
+│   ├── ml/                      ← ML training, evaluation, prediction modules
+│   ├── visualisation/           ← Charts, heatmap, interactive map, QGIS export
+│   └── utils/                   ← Geo helpers, IO utilities
 │
 └── outputs/
     ├── crash_data_statewide.csv     ← 7,773 Victorian ped/cyc crashes
     ├── crash_data_darebin.csv       ← Darebin subset within 400m of school gates
-    ├── spatial_features.csv         ← 53 OSM features per school at 200m/400m/800m
+    ├── spatial_features.csv         ← OSM features per school at 200m/400m/800m
     ├── environmental_features.csv   ← AQI + crime rate per school
     ├── hs_scores.csv                ← HS1–HS10 scores per school (input for ML)
     ├── ml_school_features.csv       ← School-level feature matrix (input for ml_model.py)
     ├── ml_predictions.csv           ← LOO-CV predicted vs actual HS scores
     ├── recommendations.csv          ← HS-aligned intervention recommendations
+    ├── seifa_darebin.csv            ← SEIFA disadvantage index by school catchment
     │
     ├── chart1_hs_radar.png          ← 10-indicator radar chart (all schools)
     ├── chart2_hs_scores.png         ← Per-indicator bar comparison
     ├── chart3_hs_breakdown.png      ← Per-school indicator breakdown
-    ├── chart4_severity.png          ← Hazard severity counts
-    ├── chart5_demographics.png      ← Suburb demographic context
     ├── chart_hs_correlation.png     ← Feature × indicator Pearson correlation heatmap
     ├── chart_hs_prediction.png      ← LOO-CV actual vs predicted HS scores
     ├── chart_feature_importance.png ← Ridge regression coefficients per HS indicator
@@ -83,8 +94,8 @@ Preston HS is flagged **Major** due to HS2 = 0.4 — no formal pedestrian crossi
     ├── map_interactive.html         ← Interactive map (open in browser)
     ├── map_heatmap.html             ← Interactive heatmap with crash markers
     │
-    ├── kde_heatmap.tif              ← KDE raster (GeoTIFF, EPSG:7855) — pyqgis
-    ├── map_Preston_HS.png           ← Per-school static map exports — pyqgis
+    ├── kde_heatmap.tif              ← KDE raster (GeoTIFF, EPSG:7855)
+    ├── map_Preston_HS.png           ← Per-school static map exports
     ├── map_Reservoir_HS.png
     ├── map_William_Ruthven_SC.png
     ├── networks.gpkg                ← Walk/cycling/road network geometries
@@ -97,26 +108,26 @@ Preston HS is flagged **Major** due to HS2 = 0.4 — no formal pedestrian crossi
 
 ## How to run
 
-### Full pipeline
+### One command — run everything
+```bash
+python run_all.py
+```
+Skips steps whose outputs already exist. Use `--force` to re-run everything from scratch, or `--from 4` to start from a specific step.
 
+### Step by step
 ```bash
 python crash_analysis.py           # Step 1 — crash data
 python spatial_features.py         # Step 2 — OSM features (takes ~5 min)
 python environmental_features.py   # Step 3 — AQI + crime
-python poc_pipeline.py             # Step 4 — HS scores, charts, maps
+python main.py                     # Step 4 — HS scores, charts, maps, recommendations
 python feature_engineering.py      # Step 5 — ML feature matrix
 python ml_model.py                 # Step 6 — HS score prediction model
+python seifa_analysis.py           # Step 7 — SEIFA disadvantage analysis
 ```
 
-### QGIS maps (after Step 1)
-```python
-# From the QGIS Python Console:
-exec(open('/full/path/to/pyqgis_pipeline.py').read())
-```
-
-### Quick run (charts and maps only)
+### Quick re-run (scores + charts only, after data is downloaded)
 ```bash
-python crash_analysis.py && python poc_pipeline.py
+python main.py
 ```
 
 ---
@@ -183,13 +194,13 @@ python environmental_features.py
 
 ---
 
-## Step 4 — HS scoring, charts, and recommendations (`poc_pipeline.py`)
+## Step 4 — HS scoring, charts, and recommendations (`main.py`)
 
-The main analysis engine. Reads `school_data.csv` + `spatial_features.csv` + `environmental_features.csv` and computes all 10 HS indicator scores.
+The main analysis engine. Reads `school_data.csv` + `spatial_features.csv` + `environmental_features.csv` and computes all 10 HS indicator scores using the modular `src/scoring/` functions.
 
 ```bash
 pip install pandas matplotlib numpy folium rasterio scipy
-python poc_pipeline.py
+python main.py
 ```
 
 **Outputs:**
@@ -199,12 +210,10 @@ python poc_pipeline.py
 | `chart1_hs_radar.png` | 10-indicator radar chart overlaying all 3 schools |
 | `chart2_hs_scores.png` | Per-indicator bar comparison across schools |
 | `chart3_hs_breakdown.png` | Per-school breakdown of all 10 indicators |
-| `chart4_severity.png` | Hazard severity counts |
-| `chart5_demographics.png` | Demographic context (income, car ownership, transport mode) |
 | `heatmap.png` | Static crash density heatmap |
 | `map_interactive.html` | Interactive map — HS scores in popup, crash overlay, network layers |
 | `map_heatmap.html` | Interactive KDE heatmap |
-| `recommendations.csv` | Rule-based interventions per indicator with priority, cost, and expected score delta |
+| `recommendations.csv` | Rule-based interventions per indicator with priority, cost, and timeframe |
 | `hs_scores.csv` | HS1–HS10 scores per school — used by `feature_engineering.py` |
 
 ---
@@ -281,35 +290,29 @@ python ml_model.py
 
 ---
 
-## Step 7 — GIS layers and map exports (`pyqgis_pipeline.py`)
+## Step 7 — SEIFA disadvantage analysis (`seifa_analysis.py`)
 
-Requires **QGIS 3.x** installed. Run Step 1 first so crash data exists.
+Maps ABS SEIFA 2021 Indexes of Relative Socio-Economic Disadvantage onto school catchment areas in Darebin.
 
-**From the QGIS Python Console:**
-```python
-exec(open('/full/path/to/pyqgis_pipeline.py').read())
+```bash
+python seifa_analysis.py
 ```
 
 **Outputs:**
 
 | File | Description |
 |---|---|
-| `kde_heatmap.tif` | KDE raster (GeoTIFF, EPSG:7855) |
-| `school_streets.gpkg` | GeoPackage with all vector layers |
-| `school_streets.qgz` | QGIS project — open directly in QGIS |
-| `map_<School>.png` | Per-school static map image (1200×900 px) |
+| `seifa_darebin.csv` | SEIFA score per school catchment |
+| `seifa_darebin_sa1.csv` | SA1-level SEIFA breakdown |
 
 ---
 
 ## Updating the data
 
 1. Edit `school_data.csv` with new field observations.
-2. Re-run `crash_analysis.py` to refresh crash data (live from data.vic.gov.au).
-3. Re-run `spatial_features.py` to refresh OSM data.
-4. Re-run `environmental_features.py` to refresh AQI and crime data.
-5. Re-run `poc_pipeline.py` → `feature_engineering.py` → `ml_model.py`.
+2. Run `python run_all.py --force` to re-run the full pipeline.
 
-**To add a new school:** add gate coordinates to `SCHOOL_GATES` in `crash_analysis.py` and `spatial_features.py`, add the suburb mapping to `environmental_features.py`, add field observation rows to `school_data.csv`, and re-run the full pipeline.
+**To add a new school:** add gate coordinates to `SCHOOL_GATES` in `config.py`, add the suburb mapping to `environmental_features.py`, add field observation rows to `school_data.csv`, and re-run `python run_all.py`.
 
 ---
 
@@ -320,10 +323,10 @@ exec(open('/full/path/to/pyqgis_pipeline.py').read())
 | `crash_analysis.py` | `pandas`, `numpy`, `requests` |
 | `spatial_features.py` | `geopandas`, `osmnx`, `shapely`, `pyproj`, `networkx` |
 | `environmental_features.py` | `pandas`, `numpy`, `requests` |
-| `poc_pipeline.py` | `pandas`, `matplotlib`, `numpy`, `folium`, `geopandas`, `rasterio`, `scipy` |
+| `main.py` | `pandas`, `matplotlib`, `numpy`, `folium`, `geopandas`, `rasterio`, `scipy` |
 | `feature_engineering.py` | `pandas`, `numpy` |
 | `ml_model.py` | `scikit-learn`, `pandas`, `numpy`, `matplotlib`, `seaborn` |
-| `pyqgis_pipeline.py` | QGIS 3.x (PyQGIS — not pip-installable) |
+| `seifa_analysis.py` | `pandas`, `numpy`, `requests` |
 
 ```bash
 pip install -r requirements.txt

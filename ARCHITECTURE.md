@@ -13,12 +13,13 @@
 This system combines field observation data, open government crash records, OpenStreetMap network data, EPA air quality readings, and Victorian crime statistics to produce:
 
 - Quantified Healthy Streets scores (HS1–HS10) per school gate
-- Auto-generated intervention recommendations ranked by priority, cost, and expected score delta
+- Auto-generated intervention recommendations ranked by priority, cost, and HS indicator
 - Interactive maps and static charts for stakeholder communication
 - A trained Ridge regression model that predicts HS indicator scores from open data
+- SEIFA socio-economic disadvantage analysis for school catchments
 - GIS layers for council planning workflows (QGIS-ready)
 
-The system is designed as a reproducible pipeline — all outputs regenerate from source data by re-running the scripts in order.
+The system is designed as a reproducible pipeline — all outputs regenerate from source data by re-running `python run_all.py`.
 
 ---
 
@@ -49,43 +50,47 @@ The system is designed as a reproducible pipeline — all outputs regenerate fro
 └──────┬───────┘               │                            │
        │                       │                            │
        ▼                       ▼                            ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                          outputs/                                    │
-│  crash_data_statewide.csv  (7,773 crashes)                          │
-│  crash_data_darebin.csv    (400m Darebin subset)                    │
-│  spatial_features.csv      (53 cols × 3 schools)                   │
-│  environmental_features.csv (AQI + crime per school)               │
-│  networks.gpkg              (walk/cycling/road geometries)          │
-└──────┬───────────────────────────────────┬──────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                          outputs/                                │
+│  crash_data_statewide.csv  (7,773 crashes)                      │
+│  crash_data_darebin.csv    (400m Darebin subset)                │
+│  spatial_features.csv      (53 cols × 3 schools)               │
+│  environmental_features.csv (AQI + crime per school)           │
+│  networks.gpkg              (walk/cycling/road geometries)      │
+└──────┬───────────────────────────────────┬──────────────────────┘
        │                                   │
        │       school_data.csv             │
        │       (field observations)        │
        │               │                   │
        │               ▼                   │
-       │    ┌──────────────────────┐        │
-       │    │   poc_pipeline.py    │        │
-       │    │                      │        │
-       │    │  HS1–HS10 scoring    │        │
-       │    │  Charts (5)          │        │
-       │    │  Interactive maps    │        │
-       │    │  Recommendations     │        │
-       │    │  → hs_scores.csv     │        │
-       │    └──────────┬───────────┘        │
-       │               │                   │
-       └───────────────┼───────────────────┘
-                       │
-                       ▼
-            ┌──────────────────────┐
-            │ feature_engineering  │
-            │       .py            │
-            │                      │
-            │ School-level matrix  │
-            │ X: 26 open-data      │
-            │    features          │
-            │ Y: HS1–HS10 scores   │
-            │ → ml_school_         │
-            │   features.csv       │
-            └──────────┬───────────┘
+       │    ┌───────────────────────────────────────────┐
+       │    │   main.py  +  src/                        │
+       │    │                                           │
+       │    │  src/scoring/hs1.py … hs10.py             │
+       │    │  src/scoring/severity.py                  │
+       │    │  src/recommendations/engine.py            │
+       │    │  src/recommendations/rules.py  (17 rules) │
+       │    │  src/visualisation/                       │
+       │    │                                           │
+       │    │  → hs_scores.csv                          │
+       │    │  → recommendations.csv                    │
+       │    │  → chart1_hs_radar.png                    │
+       │    │  → chart2_hs_scores.png                   │
+       │    │  → chart3_hs_breakdown.png                │
+       │    │  → map_interactive.html                   │
+       │    └──────────┬────────────────────────────────┘
+       │               │
+       └───────────────┼──────────────────────────┐
+                       │                          │
+                       ▼                          ▼
+            ┌──────────────────────┐   ┌──────────────────────┐
+            │ feature_engineering  │   │   seifa_analysis.py  │
+            │       .py            │   │                      │
+            │                      │   │  ABS SEIFA 2021      │
+            │ X: 26 open-data      │   │  Darebin school      │
+            │    features          │   │  catchment analysis  │
+            │ Y: HS1–HS10 scores   │   │                      │
+            └──────────┬───────────┘   └──────────────────────┘
                        │
                        ▼
             ┌──────────────────────┐
@@ -98,146 +103,160 @@ The system is designed as a reproducible pipeline — all outputs regenerate fro
             │  Predicts HS1–HS10   │
             │  from open data      │
             └──────────────────────┘
-
-                                        ┌──────────────────────────────┐
-    crash_data_darebin.csv ─────────►   │   pyqgis_pipeline.py         │
-                                        │                              │
-                                        │  KDE heatmap, buffers,       │
-                                        │  styled layers, per-school   │
-                                        │  PNG exports, QGIS project   │
-                                        └──────────────────────────────┘
 ```
 
 ---
 
-## 3. Pipeline Components
+## 3. Modular Source Structure (`src/`)
 
-### `crash_analysis.py`
+```
+src/
+├── scoring/          ← One module per HS indicator
+│   ├── hs1.py        ← Pedestrians from all walks of life
+│   ├── hs2.py        ← Easy to cross
+│   ├── hs3.py        ← Shade and shelter
+│   ├── hs4.py        ← Places to stop and rest
+│   ├── hs5.py        ← Not too noisy
+│   ├── hs6.py        ← People choose to walk / cycle / PT
+│   ├── hs7.py        ← People feel safe
+│   ├── hs8.py        ← Things to see and do
+│   ├── hs9.py        ← People feel relaxed
+│   ├── hs10.py       ← Clean air
+│   └── severity.py   ← Major / Moderate / Minor classification
+│
+├── data/
+│   ├── loader.py             ← load_school_data() — CSV clean + rename
+│   ├── crash_downloader.py   ← VicRoads crash API helpers
+│   └── osm_extractor.py      ← OSM / Overpass API helpers
+│
+├── recommendations/
+│   ├── engine.py    ← run_recommendations() — applies all rules to df
+│   └── rules.py     ← 17 HS-mapped rules (rule_01 … rule_17)
+│
+├── ml/
+│   ├── train.py     ← fit Ridge regression pipeline
+│   ├── evaluate.py  ← LOO-CV, MAE per indicator
+│   └── predict.py   ← score new schools from pkl model
+│
+├── visualisation/
+│   ├── charts.py          ← static PNG charts
+│   ├── heatmap.py         ← KDE heatmap (folium + scipy)
+│   ├── interactive_map.py ← folium hazard + crash + network map
+│   └── qgis_export.py     ← QGIS layer styling helpers
+│
+└── utils/
+    ├── geo.py   ← haversine, buffer, CRS helpers
+    └── io.py    ← CSV / GeoPackage helpers
+```
+
+All shared constants (school gates, HS indicator list, column rename map) live in `config.py` at the project root.
+
+---
+
+## 4. Pipeline Components
+
+### `run_all.py` — Master runner
+Runs all 7 steps in order. Skips steps whose outputs already exist.
+
+```bash
+python run_all.py              # run all, skip existing
+python run_all.py --force      # force re-run everything
+python run_all.py --from 4     # start from step 4
+```
+
+### `crash_analysis.py` — Step 1
 Downloads Victorian road crash data and assigns each crash to its nearest school gate.
 
 | Item | Detail |
 |---|---|
 | Source tables | `accident.csv`, `node.csv`, `person.csv` joined on `ACCIDENT_NO` |
 | Filter | Pedestrian or cyclist involvement · last 5 years · Victoria only |
-| School gates | DET school-locations-time-series API (government / secondary / open) · falls back to 3 hardcoded Darebin gates |
-| Proximity method | Vectorised haversine — iterates over gates, broadcasts over crash rows |
+| School gates | DET school-locations-time-series API · falls back to 3 hardcoded Darebin gates |
+| Proximity method | Vectorised haversine |
 | Outputs | `crash_data_statewide.csv` (7,773 crashes) · `crash_data_darebin.csv` (400m Darebin subset) |
 
-### `spatial_features.py`
-Queries OpenStreetMap for each assessed school at three buffer radii and computes 53 spatial features. Also exports network geometries for map visualisation.
+### `spatial_features.py` — Step 2
+Queries OpenStreetMap for each assessed school at three buffer radii and computes 53 spatial features.
 
 | Item | Detail |
 |---|---|
-| School source | `school_data.csv` only — avoids querying all Victorian schools |
 | Radii | 200m · 400m · 800m |
-| Network types | Walk (`network_type='walk'`) · Drive · Bike |
-| CRS | EPSG:7855 (GDA2020 / MGA zone 55) — accurate metric distances for Victoria |
-| API | Overpass API via `osmnx` · ~1–2 min per school |
+| CRS | EPSG:7855 (GDA2020 / MGA zone 55) |
 | Feature groups | Walking · Roads · Crossings · Cycling · Amenity (trees, shelters, benches, parks, PT, cafes) |
-| Geometry output | `outputs/networks.gpkg` — walk / cycling / arterial road layers |
+| Output | `outputs/spatial_features.csv` · `outputs/networks.gpkg` |
 
-**HS indicator inputs provided by this script:**
+### `environmental_features.py` — Step 3
+Fetches AQI (HS10) and crime rate (HS7) per school suburb.
 
-| HS indicator | Columns |
-|---|---|
-| HS3 — Shade/shelter | `tree_count_100m`, `shelter_count_200m`, `green_pct_400m` |
-| HS4 — Rest places | `bench_count_200m`, `park_count_400m` |
-| HS6 — Active travel | `cycle_pct_400m`, `protected_cycle_length_400m`, `pt_stops_400m` |
-| HS8 — Things to do | `amenity_count_400m`, `cafe_count_400m`, `park_count_400m` |
+| Data | Source | Fallback |
+|---|---|---|
+| PM2.5 (μg/m³) | EPA Victoria AirWatch — Alphington station | Suburb 2023 averages |
+| Crime rate (per 100k) | Crime Statistics Agency Victoria XLSX | 2023-24 suburb estimates |
 
-### `environmental_features.py`
-Fetches or estimates air quality and crime data for each school's suburb.
-
-| Item | Detail |
-|---|---|
-| AQI source | EPA Victoria AirWatch API — Alphington station (site 10102) · falls back to 2023 suburb averages |
-| Crime source | Crime Statistics Agency Victoria XLSX download · falls back to 2023-24 suburb estimates |
-| AQI fallbacks | Reservoir 8.5 μg/m³ · Thornbury 7.0 · Preston 7.8 |
-| Crime fallbacks | Reservoir 820/100k · Thornbury 560 · Preston 710 |
-| Output | `outputs/environmental_features.csv` |
-
-**HS indicator inputs provided:**
-
-| HS indicator | Column |
-|---|---|
-| HS7 — Feel safe | `crime_rate_per_100k` |
-| HS10 — Clean air | `aqi_pm25` |
-
-### `poc_pipeline.py`
-The main scoring and visualisation engine. Reads field data, spatial features, and environmental data to compute all 10 HS indicator scores, generate charts and maps, and produce recommendations.
+### `main.py` — Step 4 (core pipeline)
+Orchestrates HS scoring, chart generation, recommendations, and map output.
 
 | Item | Detail |
 |---|---|
-| Inputs | `school_data.csv` · `spatial_features.csv` · `environmental_features.csv` · `crash_data_darebin.csv` |
-| Scoring | 10 `_hs*()` functions — each maps field + OSM + env columns to a 0–10 score |
-| Severity | Major if HS2 < 3 or HS1 < 3 · Moderate if 2+ core indicators < 5 or overall < 5 |
-| Recommendations | Gap-based rule engine — one rule block per indicator, each with `Expected_Score_Delta` |
-| Maps | Folium interactive map — HS scores in popup, crash overlay, network layer toggle |
-| Key outputs | `hs_scores.csv` · `recommendations.csv` · 5 charts · 2 HTML maps |
+| Inputs | `school_data.csv` + `spatial_features.csv` + `environmental_features.csv` |
+| Scoring | Calls `src/scoring/hs1.py … hs10.py` — one function per indicator |
+| Severity | `src/scoring/severity.py` — Major / Moderate / Minor |
+| Recommendations | `src/recommendations/engine.py` + `rules.py` (17 rules, each tagged to an HS indicator) |
+| Key outputs | `hs_scores.csv` · `recommendations.csv` · 3 charts · 2 HTML maps |
 
-**HS scoring approach (abbreviated):**
+**HS scoring approach:**
 
 | Indicator | Method | Max pts |
 |---|---|---|
-| HS1 | Footpath presence (3) + width (2) + continuity (2) + kerb ramps (2) + obstructions (-1) | 10 |
-| HS2 | Crossing type (3) + distance (2) + visibility (2) + tactile (1) + signals (2) | 10 |
-| HS3 | tree_count_100m (0–4) + shelter_count_200m (0–3) + green_pct_400m (0–3) | 10 |
-| HS4 | bench_count_200m (0–4) + shelter (0–2) + park_count_400m (0–2) + cafe (0–2) | 10 |
-| HS5 | 10 − traffic_volume (0–3) − speed_penalty (0–3) − heavy_vehicles (0–2) − lanes (0–2) | 10 |
-| HS6 | CIS×0.35 + CYS×0.45 + PT_score×0.20 (weighted, NaN-safe) | 10 |
-| HS7 | lighting (0–4) + no_safety_hazard (0–2) + crime_rate (0–4) | 10 |
-| HS8 | amenity_count (0–4) + park_count (0–3) + cafe_count (0–3) | 10 |
-| HS9 | calming (0–3) + school_zone (0–2) + parking (0–2) + lanes (0–2) + FP_condition (0–1) | 10 |
-| HS10 | AQI PM2.5 → base score (0–10) − arterial_pct penalty (0–2) | 10 |
+| HS1 | Footpath presence + width + continuity + kerb ramps + obstructions | 10 |
+| HS2 | Crossing type + distance + visibility + tactile + signals | 10 |
+| HS3 | tree_count_100m + shelter_count_200m + green_pct_400m | 10 |
+| HS4 | bench_count_200m + shelter + park_count_400m + cafe | 10 |
+| HS5 | 10 − traffic_volume − speed_penalty − heavy_vehicles − lanes | 10 |
+| HS6 | CIS×0.35 + CYS×0.45 + PT_score×0.20 (NaN-safe weighted avg) | 10 |
+| HS7 | lighting + no_safety_hazard + crime_rate | 10 |
+| HS8 | amenity_count + park_count + cafe_count | 10 |
+| HS9 | calming + school_zone + parking + lanes + FP_condition | 10 |
+| HS10 | AQI PM2.5 → base score − arterial_pct penalty | 10 |
 
-### `feature_engineering.py`
-Builds the school-level feature matrix for ML training. One row per school.
+### `feature_engineering.py` — Step 5
 
 | Item | Detail |
 |---|---|
-| Inputs | `spatial_features.csv` · `environmental_features.csv` · `crash_data_statewide.csv` · `hs_scores.csv` |
+| Inputs | `spatial_features.csv` + `environmental_features.csv` + `crash_data_statewide.csv` + `hs_scores.csv` |
 | Feature matrix X | 26 columns: 20 OSM spatial + 2 environmental + 4 crash aggregates |
 | Target matrix Y | 10 columns: HS1–HS10 scores |
-| Crash aggregates | `crash_count`, `serious_or_fatal_rate`, `school_hours_pct`, `avg_speed_zone` |
 | Output | `ml_school_features.csv` — 3 rows × 38 columns |
 
-### `ml_model.py`
-Predicts Healthy Streets indicator scores from open data using Ridge regression and Leave-One-Out cross-validation.
+### `ml_model.py` — Step 6
 
 | Item | Detail |
 |---|---|
-| Input | `ml_school_features.csv` |
-| Model | `MultiOutputRegressor(Ridge(alpha=1.0))` wrapped in `StandardScaler` pipeline |
-| Evaluation | Leave-One-Out CV (n=3) — train on 2 schools, predict the left-out school |
-| Purpose | Identify which HS indicators can be estimated from open data vs which require field surveys |
-| Mean LOO-CV MAE | 2.88 across all 10 indicators |
-| Best predicted | HS7 (MAE 0.54), HS10 (MAE 0.92) — crime rate and AQI are strong proxies |
-| Hardest to predict | HS8 (MAE 4.72), HS2 (MAE 4.51) — quality cannot be inferred from OSM |
-| Outputs | `chart_hs_correlation.png` · `chart_hs_prediction.png` · `chart_feature_importance.png` · `ml_predictions.csv` · `hs_predictor.pkl` |
+| Model | `MultiOutputRegressor(Ridge(alpha=1.0))` wrapped in `StandardScaler` |
+| Evaluation | Leave-One-Out CV (n=3) |
+| Mean LOO-CV MAE | 2.88 |
+| Best predicted | HS7 (MAE 0.54) · HS10 (MAE 0.92) |
+| Hardest to predict | HS8 (MAE 4.72) · HS2 (MAE 4.51) |
+| Outputs | `ml_predictions.csv` · `hs_predictor.pkl` · 3 ML charts |
 
-### `pyqgis_pipeline.py`
-GIS automation script. Builds a full QGIS project with styled layers and per-school static map exports.
+### `seifa_analysis.py` — Step 7
+Maps ABS SEIFA 2021 disadvantage scores onto Darebin school catchment areas.
 
-| Item | Detail |
+| Output | Description |
 |---|---|
-| Requires | QGIS 3.x installed (not pip-installable) |
-| Run method | QGIS Python Console (recommended) or standalone with `QGIS_PREFIX` set |
-| Layers (bottom → top) | OSM basemap · KDE heatmap · 800m/400m buffers · walk/cycling/road networks · crash points · assessment points · school gates |
-| CRS | EPSG:7855 for raster/buffer · EPSG:4326 for vector storage |
-| Outputs | `school_streets.gpkg` · `school_streets.qgz` · `map_<School>.png` (1200×900 px per school) |
+| `seifa_darebin.csv` | SEIFA score per school catchment |
+| `seifa_darebin_sa1.csv` | SA1-level SEIFA breakdown |
 
 ---
 
-## 4. Healthy Streets Scoring Framework
-
-### 10 Indicators — Data sources
+## 5. Healthy Streets Scoring Framework
 
 | Code | Indicator | Primary source | Open-data proxy |
 |---|---|---|---|
 | HS1 | Pedestrians from all walks of life | Field observation | `footpath_pct_*` |
 | HS2 | Easy to cross | Field observation | `crossing_density_*`, `signals_*` |
 | HS3 | Shade and shelter | OSM | `tree_count_100m`, `shelter_count_200m`, `green_pct_400m` |
-| HS4 | Places to stop and rest | OSM | `bench_count_200m`, `park_count_400m`, `cafe_count_400m` |
+| HS4 | Places to stop and rest | OSM | `bench_count_200m`, `park_count_400m` |
 | HS5 | Not too noisy | Field observation | `avg_speed_400m`, `arterial_pct_400m` |
 | HS6 | People choose active travel | Field + OSM | `cycle_pct_400m`, `pt_stops_400m` |
 | HS7 | People feel safe | Field + CSA Victoria | `crime_rate_per_100k` |
@@ -255,27 +274,7 @@ GIS automation script. Builds a full QGIS project with styled layers and per-sch
 
 ---
 
-## 5. ML Model — HS Score Prediction
-
-### Research question
-Can Healthy Streets indicator scores be predicted from freely available open data (OSM, AQI, crime statistics, crash records) without requiring field surveys?
-
-### Feature → indicator mapping
-
-| Feature group | Features | Proxies for |
-|---|---|---|
-| Footpath | `footpath_pct_200m`, `footpath_pct_400m` | HS1 |
-| Crossings | `crossings_400m`, `signals_400m`, `crossing_density_400m` | HS2 |
-| Green / shade | `tree_count_100m`, `shelter_count_200m`, `green_pct_400m` | HS3 |
-| Rest | `bench_count_200m`, `park_count_400m` | HS4 |
-| Traffic stress | `avg_speed_400m`, `arterial_pct_400m`, `high_speed_road_400m`, `road_count_400m` | HS5 / HS9 |
-| Active travel | `cycle_pct_400m`, `protected_cycle_length_400m`, `pt_stops_400m` | HS6 |
-| Crime | `crime_rate_per_100k` | HS7 |
-| Amenity | `amenity_count_400m`, `cafe_count_400m` | HS8 |
-| Air quality | `aqi_pm25` | HS10 |
-| Crash context | `crash_count`, `serious_or_fatal_rate`, `school_hours_pct`, `avg_speed_zone` | general |
-
-### LOO-CV results (n=3)
+## 6. ML Results — HS Score Prediction
 
 | Indicator | MAE | Automated? |
 |---|---|---|
@@ -283,46 +282,29 @@ Can Healthy Streets indicator scores be predicted from freely available open dat
 | HS10 — Clean air | 0.92 | Yes — AQI maps directly |
 | HS9 — Feel relaxed | 1.72 | Largely — speed/arterial captures most variance |
 | HS3 — Shade/shelter | 2.17 | Partial — OSM tree data is incomplete |
-| HS6 — Active travel | 3.08 | Partial — infrastructure coverage adequate, quality not |
-| HS1 — Pedestrians | 3.27 | Partial — footpath presence/coverage measurable, condition not |
-| HS5 — Not too noisy | 3.68 | Partial — OSM speed data underestimates traffic volume |
+| HS6 — Active travel | 3.08 | Partial — coverage adequate, quality not |
+| HS1 — Pedestrians | 3.27 | Partial — footpath presence measurable, condition not |
+| HS5 — Not too noisy | 3.68 | Partial — OSM speed data underestimates volume |
 | HS4 — Rest places | 4.19 | No — OSM bench/park data poorly maintained |
 | HS2 — Easy to cross | 4.51 | No — crossing presence ≠ crossing quality |
 | HS8 — Things to do | 4.72 | No — activity quality not captured by POI counts |
 
-**Mean LOO-CV MAE: 2.88**
-
-> **Note:** n=3 schools — results are illustrative of the framework. Adding more schools will improve model generalisability.
+**Mean LOO-CV MAE: 2.88** (n=3 — results are illustrative; generalisability improves with more schools)
 
 ---
 
-## 6. Key Design Decisions
+## 7. Key Design Decisions
 
 | Decision | Rationale |
 |---|---|
-| Healthy Streets framework (HS1–HS10) over custom scores | Internationally recognised, TfL-adopted framework provides comparability with other cities and a published evidence base for each indicator. |
-| School-level ML (not crash-level) | HS scores are per-school not per-crash. The research question is "can open data predict HS scores?" — this requires school-level features and targets, not crash rows. |
-| Ridge regression over Random Forest | Only 3 training samples. Ridge regression is regularised, works reliably with small n, and produces interpretable coefficients. Random Forest would overfit immediately. |
-| LOO-CV over train/test split | Train/test split is meaningless with n=3. LOO-CV (train on 2, test on 1) is the only valid evaluation strategy and gives 3 independent predictions. |
-| EPSG:7855 for all metric operations | GDA2020 / MGA zone 55 is the standard geodetic datum for Victoria, used by VicRoads and DSE. Provides sub-metre accuracy for buffer and distance operations in Melbourne. |
-| `spatial_features.py` scoped to `school_data.csv` | Running OSM queries for all ~500 Victorian government secondary schools would take hours. Scoped to assessed schools only; `crash_analysis.py` handles the full DET gate list for proximity assignment. |
-| Separate `environmental_features.py` | AQI and crime data have their own API/download cadence. Separating them from the spatial pipeline means they can be refreshed independently without re-querying OSM. |
-| Networks saved to `networks.gpkg` in `spatial_features.py` | Geometry export is separated from visualisation to avoid re-running Overpass API calls every time charts or maps are regenerated. |
-| Gap-based recommendations with `Expected_Score_Delta` | Provides actionable, auditable interventions that stakeholders can prioritise by cost and expected improvement — more useful for council than a black-box prediction. |
-
----
-
-## 7. Limitations
-
-| Limitation | Impact |
-|---|---|
-| n=3 schools | ML results are illustrative; LOO-CV MAE values are high-variance with 3 samples. Adding schools to reach 5–10 is the highest-priority improvement. |
-| HS2 and HS8 cannot be automated | Crossing quality and activity/amenity quality require physical observation. Open-data proxies have MAE > 4.0 for these indicators. |
-| OSM amenity data is incomplete | Benches, trees, and shelters are sparsely tagged in OSM for Melbourne suburban areas. HS3/HS4 scores may understate reality. |
-| Crime rate is suburb-level | The CSA Victoria data is at suburb granularity, not street level. Crimes near a school may differ from the suburb average. |
-| AQI uses a single monitoring station | The Alphington station is the closest EPA site, but PM2.5 readings may not reflect localised traffic exposure at individual school gates. |
-| DET gate coordinates are school centroids | Actual pedestrian gate may differ by up to ~100m from the school centroid used as the gate location. |
-| Field observations are point-in-time | `school_data.csv` reflects conditions at one visit; infrastructure changes are not automatically detected. |
+| Modular `src/` structure | Each HS indicator in its own file — easy to update one indicator without touching others; aligns with team-based development |
+| Healthy Streets framework | Internationally recognised, TfL-adopted — comparable with other cities and has a published evidence base |
+| School-level ML (not crash-level) | HS scores are per-school; the question is "can open data predict HS scores?" |
+| Ridge regression over Random Forest | Only 3 training samples — Ridge is regularised and doesn't overfit; RF would immediately |
+| LOO-CV over train/test split | Meaningless with n=3; LOO gives 3 independent predictions |
+| EPSG:7855 for metric operations | GDA2020 / MGA zone 55 — Victorian standard, sub-metre accuracy for buffers in Melbourne |
+| `config.py` as single source of truth | All paths, school gates, HS indicator list in one place — any script can import rather than hardcode |
+| `run_all.py` master runner | New team members run one command; skip logic means OSM queries don't re-run unnecessarily |
 
 ---
 
@@ -330,41 +312,28 @@ Can Healthy Streets indicator scores be predicted from freely available open dat
 
 | Priority | Enhancement |
 |---|---|
-| High | Add 2 more schools (scope is 3–5) to strengthen ML generalisability |
-| High | Build `scenario_engine.py` — impact matrix per recommendation → before/after HS radar → mode shift projections |
-| High | Update `generate_report.py` and `generate_ppt.py` to reflect HS framework, new charts, and ML results |
-| Medium | Run `spatial_features.py` for all Victorian government secondary schools — enables statewide HS score prediction |
-| Medium | Expand field observations to more locations per school (currently one gate per school) |
-| Medium | Add pedestrian count data (morning/afternoon peak volumes) as a crash exposure variable |
+| High | Build `scenario_engine.py` — select an intervention → model predicts resulting HS score changes |
+| High | Add 2+ more schools to strengthen ML generalisability |
+| Medium | Run `spatial_features.py` for all Victorian government secondary schools — enables statewide prediction |
+| Medium | Expand field observations to more gate locations per school |
 | Low | Deploy interactive map as a hosted web app for council access |
-| Low | Automate quarterly re-run on new crash data releases from data.vic.gov.au |
+| Low | Automate quarterly re-run on new crash data releases |
 
 ---
 
 ## 9. Run Order
 
 ```bash
-# Step 1 — Download crash data and assign nearest school
-python crash_analysis.py
+python run_all.py           # recommended — runs all 7 steps, skips existing outputs
 
-# Step 2 — Compute OSM spatial features + save network geometries (~5 min)
-python spatial_features.py
-
-# Step 3 — Fetch AQI and crime data
-python environmental_features.py
-
-# Step 4 — HS scoring, charts, interactive maps, recommendations
-python poc_pipeline.py
-
-# Step 5 — Build school-level ML feature matrix
-python feature_engineering.py
-
-# Step 6 — Train HS score prediction model (LOO-CV)
-python ml_model.py
-
-# GIS layers and QGIS project (requires QGIS installed)
-# Run from QGIS Python Console:
-exec(open('/full/path/to/pyqgis_pipeline.py').read())
+# or step by step:
+python crash_analysis.py        # Step 1
+python spatial_features.py      # Step 2
+python environmental_features.py # Step 3
+python main.py                  # Step 4
+python feature_engineering.py   # Step 5
+python ml_model.py              # Step 6
+python seifa_analysis.py        # Step 7
 ```
 
 ---
@@ -374,12 +343,12 @@ exec(open('/full/path/to/pyqgis_pipeline.py').read())
 | Script | Key packages |
 |---|---|
 | `crash_analysis.py` | `pandas`, `numpy`, `requests` |
-| `spatial_features.py` | `geopandas`, `osmnx`, `shapely`, `pyproj`, `networkx`, `fiona` |
+| `spatial_features.py` | `geopandas`, `osmnx`, `shapely`, `pyproj`, `networkx` |
 | `environmental_features.py` | `pandas`, `numpy`, `requests` |
-| `poc_pipeline.py` | `pandas`, `matplotlib`, `numpy`, `folium`, `geopandas`, `fiona`, `rasterio`, `scipy` |
+| `main.py` | `pandas`, `matplotlib`, `numpy`, `folium`, `geopandas`, `rasterio`, `scipy` |
 | `feature_engineering.py` | `pandas`, `numpy` |
 | `ml_model.py` | `scikit-learn`, `pandas`, `numpy`, `matplotlib`, `seaborn` |
-| `pyqgis_pipeline.py` | QGIS 3.x (PyQGIS — not pip-installable) |
+| `seifa_analysis.py` | `pandas`, `numpy`, `requests` |
 
 ```bash
 pip install -r requirements.txt
