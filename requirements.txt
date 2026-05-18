@@ -1,26 +1,27 @@
-# ── crash_analysis.py ────────────────────────────────────────────────────────
+# ── Core data ─────────────────────────────────────────────────────────────────
 pandas
 numpy
 requests
+openpyxl          # crime_fetcher.py — reads CSA Victoria .xlsx files
 
-# ── spatial_features.py ──────────────────────────────────────────────────────
+# ── Spatial / OSM ─────────────────────────────────────────────────────────────
 geopandas
 osmnx
 shapely
 pyproj
 networkx
 
-# ── poc_pipeline.py ──────────────────────────────────────────────────────────
+# ── Visualisation ─────────────────────────────────────────────────────────────
 matplotlib
 folium
-rasterio           # saves KDE heatmap as georeferenced GeoTIFF for PyQGIS
+rasterio          # saves KDE heatmap as georeferenced GeoTIFF
 scipy
-
-# ── ML pipeline (feature_engineering.py + ml_model.py) ──────────────────────
-scikit-learn
-xgboost
 seaborn
 
-# ── pyqgis_pipeline.py ───────────────────────────────────────────────────────
+# ── ML pipeline ───────────────────────────────────────────────────────────────
+scikit-learn
+xgboost
+
+# ── QGIS ──────────────────────────────────────────────────────────────────────
 # Requires QGIS 3.x installed on the system — not pip-installable.
 # Run via the QGIS Python Console or the standalone QGIS Python interpreter.
