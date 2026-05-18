@@ -92,23 +92,58 @@ df['is_dark']              = (df['light_condition_code'] > 1).astype(int)  # 1=D
 df['dist_to_gate_m']   = pd.to_numeric(df.get('DIST_TO_GATE_M', pd.Series(dtype=str)), errors='coerce')
 df['near_school_400m'] = (df['dist_to_gate_m'] <= 400).astype(int)
 
-# ── CYS — join from school_data.csv if available ──────────────────────────────
-# CYS is a field-observation score per school; join by nearest_school name
+# ── CYS — 3-tier loading ───────────────────────────────────────────────────────
+# Tier 1: manual column in school_data.csv
+# Tier 2: compute from spatial_features.csv using same rubric as poc_pipeline.py
+# Tier 3: NaN
 SCHOOL_DATA_CSV = 'school_data.csv'
+df['cys_score'] = np.nan
+
 if os.path.exists(SCHOOL_DATA_CSV):
     sd = pd.read_csv(SCHOOL_DATA_CSV)
     sd.columns = sd.columns.str.strip()
-    _cys_col = next((c for c in sd.columns if 'CYS' in c.upper() or 'CYCLING SAFETY' in c.upper()), None)
+    _cys_col  = next((c for c in sd.columns if 'CYS' in c.upper() or 'CYCLING SAFETY' in c.upper()), None)
     _name_col = next((c for c in sd.columns if 'SCHOOL' in c.upper() and 'NAME' in c.upper()), None) or \
                 next((c for c in sd.columns if 'SCHOOL' in c.upper()), None)
     if _cys_col and _name_col:
         cys_map = sd.groupby(_name_col)[_cys_col].mean().to_dict()
         df['cys_score'] = df['nearest_school'].map(cys_map)
-        print(f'  CYS scores joined from {SCHOOL_DATA_CSV}')
-    else:
-        df['cys_score'] = np.nan
-else:
-    df['cys_score'] = np.nan
+        print(f'  CYS: manual scores joined from {SCHOOL_DATA_CSV}')
+
+if df['cys_score'].isna().all() and os.path.exists(SPATIAL_CSV):
+    def _compute_cys(row):
+        score = 0.0
+        pct = row.get('cycle_pct_400m', np.nan)
+        if pd.notna(pct):
+            if   pct >= 40: score += 4
+            elif pct >= 25: score += 3
+            elif pct >= 15: score += 2
+            elif pct >= 5:  score += 1
+        protected = row.get('protected_cycle_length_400m', np.nan)
+        if pd.notna(protected):
+            if   protected >= 300: score += 3
+            elif protected >= 100: score += 2
+            elif protected > 0:    score += 1
+        if pd.notna(row.get('signals_400m'))          and row['signals_400m']          >= 3:   score += 1
+        if pd.notna(row.get('crossing_density_400m')) and row['crossing_density_400m'] >= 1.0: score += 1
+        if pd.notna(row.get('avg_speed_400m'))        and row['avg_speed_400m']        <= 40:  score += 1
+        return round(min(score, 10.0), 1)
+
+    sf = pd.read_csv(SPATIAL_CSV)
+    _short_map = {
+        'Reservoir High School':             'Reservoir HS',
+        'William Ruthven Secondary College': 'William Ruthven SC',
+        'Preston High School':               'Preston HS',
+    }
+    cys_map = {}
+    for _, srow in sf.iterrows():
+        cys_map[srow['school_name']] = _compute_cys(srow.to_dict())
+    # map by short name (spatial_features uses short names)
+    df['cys_score'] = df['nearest_school'].map(
+        lambda n: cys_map.get(_short_map.get(n, n), np.nan)
+    )
+    filled = df['cys_score'].notna().sum()
+    print(f'  CYS: computed from spatial_features.csv ({filled:,} crashes matched)')
 
 # ── Assemble base feature matrix ──────────────────────────────────────────────
 BASE_FEATURES = [

@@ -16,16 +16,17 @@ A pedestrian safety assessment and machine learning risk prediction tool for wal
 
 ## Scoring system
 
-Each assessed location is scored across four dimensions (0 = worst, 10 = best):
+Each assessed location is scored across five dimensions (0 = worst, 10 = best):
 
-| Score | Meaning |
-|---|---|
-| **FAS** — Footpath Accessibility Score | Footpath presence, width, continuity, and condition |
-| **CSS** — Crossing Safety Score | Crossing type, distance, visibility, and signals |
-| **EEI** — Environmental Exposure Indicator | Traffic volume, speed, lighting, and school zone |
-| **CIS** — Cycling Infrastructure Score | Type of cycling infrastructure present on the school frontage road |
+| Score | Meaning | Source |
+|---|---|---|
+| **FAS** — Footpath Accessibility Score | Footpath presence, width, continuity, and condition | Manual field observation |
+| **CSS** — Crossing Safety Score | Crossing type, distance, visibility, and signals | Manual field observation |
+| **EEI** — Environmental Exposure Indicator | Traffic volume, speed, lighting, and school zone | Manual field observation |
+| **CIS** — Cycling Infrastructure Score | Type of cycling infrastructure on the school frontage road | Manual field observation |
+| **CYS** — Cycling Safety Score | Cycling network coverage, protected infrastructure, and speed environment within 400m | Auto-computed from OSM |
 
-Overall score = average of FAS + CSS + EEI + CIS. A score of **6.0 or above** is considered good.
+Overall score = NaN-safe mean of FAS + CSS + EEI + CIS + CYS. A score of **6.0 or above** is considered good.
 
 CIS is derived from the observed cycling infrastructure type, scored against two published frameworks:
 
@@ -250,12 +251,12 @@ python poc_pipeline.py
 
 | File | Description |
 |---|---|
-| `chart1_safety_scores.png` | FAS / CSS / EEI / CYS scores per school (4 bars) |
+| `chart1_safety_scores.png` | FAS / CSS / EEI / CIS / CYS scores per school (5 bars) |
 | `chart2_hazard_severity.png` | Hazard severity counts per school |
 | `chart3_score_breakdown.png` | Per-location score breakdown including CYS |
 | `chart4_demographics.png` | Demographic context (income, car ownership, transport mode) |
 | `heatmap.png` | Static heatmap of assessment point scores |
-| `map_interactive.html` | Interactive map — click markers for FAS / CSS / EEI / CYS and crash data |
+| `map_interactive.html` | Interactive map — click markers for FAS / CSS / EEI / CIS / CYS and crash data |
 | `map_heatmap.html` | Interactive heatmap with crash markers overlay |
 | `recommendations.csv` | Auto-generated rule-based intervention list (15 rules including CYS thresholds) |
 

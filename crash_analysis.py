@@ -63,9 +63,9 @@ def fetch_school_gates():
     Falls back to the original 3 Darebin gates on any error."""
     fallback = dict(SCHOOL_GATES)
     try:
-        print('  Fetching school locations from DET (data.vic.gov.au)...')
+        print('  Fetching school locations from DET (discover.data.vic.gov.au)...')
         pkg = requests.get(
-            'https://www.data.vic.gov.au/api/3/action/package_show',
+            'https://discover.data.vic.gov.au/api/3/action/package_show',
             params={'id': 'school-locations-time-series'},
             timeout=30,
         )
@@ -85,25 +85,29 @@ def fetch_school_gates():
         schools = pd.read_csv(StringIO(r.text), low_memory=False)
         schools.columns = schools.columns.str.strip().str.upper()
 
+        def _col_mask(df, col, pattern):
+            if col in df.columns:
+                return df[col].astype(str).str.upper().str.contains(pattern, na=False)
+            return pd.Series(True, index=df.index)
+
         mask = (
-            schools.get('SCHOOL_SECTOR_NAME', pd.Series(dtype=str))
-                   .astype(str).str.upper().str.contains('GOVERNMENT', na=False) &
-            schools.get('SCHOOL_TYPE_NAME', pd.Series(dtype=str))
-                   .astype(str).str.upper().str.contains('SECONDARY|COMBINED', na=False) &
-            schools.get('STATUS', pd.Series(dtype=str))
-                   .astype(str).str.upper().str.contains('OPEN', na=False)
+            _col_mask(schools, 'SCHOOL_SECTOR_NAME', 'GOVERNMENT') &
+            _col_mask(schools, 'SCHOOL_TYPE_NAME',   'SECONDARY|COMBINED') &
+            _col_mask(schools, 'STATUS',              'OPEN')
         )
-        schools = schools[mask].dropna(subset=['Y', 'X'])
+        coord_cols = ['Y', 'X'] if 'Y' in schools.columns else ['LATITUDE', 'LONGITUDE']
+        schools = schools[mask].dropna(subset=coord_cols)
+        lat_col, lon_col = coord_cols
 
         schools = schools[
-            schools['Y'].between(VIC_BBOX['lat_min'], VIC_BBOX['lat_max']) &
-            schools['X'].between(VIC_BBOX['lon_min'], VIC_BBOX['lon_max'])
+            schools[lat_col].between(VIC_BBOX['lat_min'], VIC_BBOX['lat_max']) &
+            schools[lon_col].between(VIC_BBOX['lon_min'], VIC_BBOX['lon_max'])
         ]
 
         gates = {}
         for _, row in schools.iterrows():
             name = str(row.get('SCHOOL_NAME', row.get('SCHOOL_NO', 'Unknown'))).strip()
-            gates[name] = {'lat': float(row['Y']), 'lon': float(row['X'])}
+            gates[name] = {'lat': float(row[lat_col]), 'lon': float(row[lon_col])}
 
         gates.update(fallback)  # ensure original 3 Darebin gates are always present
         print(f'  Loaded {len(gates):,} school gates ({len(gates) - len(fallback)} from DET + {len(fallback)} Darebin fallback)')
