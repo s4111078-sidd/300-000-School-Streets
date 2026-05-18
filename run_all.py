@@ -51,7 +51,7 @@ STEPS = [
         'n'      : 4,
         'script' : 'main.py',
         'label'  : 'HS scoring, charts, maps, recommendations',
-        'checks' : ['outputs/hs_scores.csv', 'outputs/chart1_hs_radar.png'],
+        'checks' : ['outputs/hs_scores.csv', 'outputs/chart1_safety_scores.png'],
         'note'   : 'Core pipeline — HS1–HS10 indicator scoring.',
     },
     {

@@ -4,9 +4,9 @@
 Run:  python main.py
 
 Outputs (all in outputs/):
-  chart1_hs_radar.png        — Healthy Streets 10-indicator radar chart
-  chart2_hs_scores.png       — Per-indicator bar chart comparison
-  chart3_hs_breakdown.png    — Per-school HS score breakdown
+  chart1_safety_scores.png   — Healthy Streets 10-indicator radar chart
+  chart2_hazard_severity.png — Per-indicator bar chart comparison
+  chart3_score_breakdown.png — Per-school HS score breakdown
   map_interactive.html        — Interactive hazard map (open in browser)
   map_heatmap.html            — KDE heatmap (open in browser)
   heatmap.png                 — Static heatmap for QGIS import
@@ -178,7 +178,7 @@ ax.legend(loc='upper right', bbox_to_anchor=(1.35, 1.15), fontsize=11,
 ax.set_title('Healthy Streets Assessment\n10-Indicator Radar Chart',
              fontsize=14, fontweight='bold', pad=24, color='#1A476E')
 plt.figtext(0.99, 0.01, _FOOTER, ha='right', fontsize=8, color='#888888')
-out_radar = os.path.join(OUT_DIR_STR, 'chart1_hs_radar.png')
+out_radar = os.path.join(OUT_DIR_STR, 'chart1_safety_scores.png')
 plt.savefig(out_radar, dpi=150, bbox_inches='tight')
 plt.close()
 print(f"      Saved -> {out_radar}")
@@ -225,7 +225,7 @@ fig.suptitle('Healthy Streets — 10-Indicator Score Comparison by School',
              fontsize=14, fontweight='bold', y=1.01)
 plt.figtext(0.99, 0.01, _FOOTER, ha='right', fontsize=8, color='#888888')
 plt.tight_layout()
-out_bar = os.path.join(OUT_DIR_STR, 'chart2_hs_scores.png')
+out_bar = os.path.join(OUT_DIR_STR, 'chart2_hazard_severity.png')
 plt.savefig(out_bar, dpi=150, bbox_inches='tight')
 plt.close()
 print(f"      Saved -> {out_bar}")
@@ -268,7 +268,7 @@ for ax, (_, row) in zip(axes, school_hs.iterrows()):
 axes[0].set_ylabel('Score  (0 = worst  |  10 = best)', fontsize=11)
 plt.figtext(0.99, 0.01, _FOOTER, ha='right', fontsize=8, color='#888888')
 plt.tight_layout()
-out_breakdown = os.path.join(OUT_DIR_STR, 'chart3_hs_breakdown.png')
+out_breakdown = os.path.join(OUT_DIR_STR, 'chart3_score_breakdown.png')
 plt.savefig(out_breakdown, dpi=150, bbox_inches='tight')
 plt.close()
 print(f"      Saved -> {out_breakdown}")
@@ -308,9 +308,9 @@ except Exception as e:
 print("\n" + "="*60)
 print("  ALL OUTPUTS SAVED TO outputs/")
 print("="*60)
-print("  chart1_hs_radar.png      — HS radar chart")
-print("  chart2_hs_scores.png     — per-indicator comparison")
-print("  chart3_hs_breakdown.png  — per-school breakdown")
+print("  chart1_safety_scores.png   — HS radar chart")
+print("  chart2_hazard_severity.png — per-indicator comparison")
+print("  chart3_score_breakdown.png — per-school breakdown")
 print("  map_interactive.html      — interactive hazard map")
 print("  map_heatmap.html          — KDE heatmap")
 print("  recommendations.csv       — HS-based recommendations")
