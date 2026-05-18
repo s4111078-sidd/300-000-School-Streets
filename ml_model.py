@@ -1,14 +1,20 @@
 """
-ML Model — School Streets Crash Risk Classification
-Trains Random Forest and XGBoost classifiers on ml_features.csv to predict
-serious or fatal crash risk near school gates.
+ML Model — Predict Healthy Streets Indicator Scores
+Trains a Ridge regression on ml_school_features.csv to predict
+HS1–HS10 indicator scores from open spatial/environmental/crash data.
 
-Target: serious_or_fatal  (1 = fatal or serious injury, 0 = other injury)
-Positive rate: ~43%
+Purpose: demonstrate that HS scores can be estimated from freely
+available OSM, AQI, crime, and crash data without field surveys.
+
+Evaluation: Leave-One-Out CV (LOO-CV) — appropriate for 3 schools.
+            Train on 2 schools, predict the left-out school.
 
 Run:    python ml_model.py
-Output: outputs/chart_feature_importance.png
-        outputs/crash_risk_model.pkl   (best model by ROC-AUC)
+Output: outputs/chart_hs_correlation.png   — feature × indicator heatmap
+        outputs/chart_hs_prediction.png    — actual vs predicted (LOO-CV)
+        outputs/chart_feature_importance.png — top features per indicator
+        outputs/ml_predictions.csv         — LOO-CV predictions table
+        outputs/hs_predictor.pkl           — model trained on all 3 schools
 """
 
 import os
@@ -18,186 +24,322 @@ warnings.filterwarnings('ignore')
 
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
 
-from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.impute import SimpleImputer
-from sklearn.metrics import (
-    classification_report, roc_auc_score, confusion_matrix, ConfusionMatrixDisplay
-)
-from sklearn.pipeline import Pipeline
+from sklearn.linear_model  import Ridge
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline      import Pipeline
+from sklearn.multioutput   import MultiOutputRegressor
+from sklearn.model_selection import LeaveOneOut
+from sklearn.metrics       import mean_absolute_error
 
-IN_CSV  = os.path.join('outputs', 'ml_features.csv')
+IN_CSV  = os.path.join('outputs', 'ml_school_features.csv')
 OUT_DIR = 'outputs'
-OUT_FIG = os.path.join(OUT_DIR, 'chart_feature_importance.png')
-OUT_PKL = os.path.join(OUT_DIR, 'crash_risk_model.pkl')
+os.makedirs(OUT_DIR, exist_ok=True)
 
-# ── 1. Load ────────────────────────────────────────────────────────────────────
+NAVY  = '#0A2342'
+TEAL  = '#1A8FC1'
+AMBER = '#E8A838'
+RED   = '#C0392B'
+GREEN = '#27AE60'
+GREY  = '#888888'
+WHITE = '#FFFFFF'
+
+HS_TARGETS = ['HS1','HS2','HS3','HS4','HS5','HS6','HS7','HS8','HS9','HS10']
+HS_LABELS  = [
+    'HS1\nPedestrians',
+    'HS2\nCrossings',
+    'HS3\nShade/Shelter',
+    'HS4\nRest Places',
+    'HS5\nNot Noisy',
+    'HS6\nActive Travel',
+    'HS7\nFeel Safe',
+    'HS8\nThings To Do',
+    'HS9\nFeel Relaxed',
+    'HS10\nClean Air',
+]
+
+# colour each feature group to match its HS indicator
+FEAT_GROUP_COLOUR = {
+    'footpath':    GREEN,   # HS1
+    'crossings':   TEAL,    # HS2
+    'signals':     TEAL,
+    'crossing_density': TEAL,
+    'tree':        '#2ECC71',  # HS3
+    'shelter':     '#2ECC71',
+    'green_pct':   '#2ECC71',
+    'bench':       AMBER,   # HS4
+    'park':        AMBER,
+    'avg_speed':   RED,     # HS5/9
+    'arterial':    RED,
+    'high_speed':  RED,
+    'road_count':  RED,
+    'cycle':       '#3498DB',  # HS6
+    'protected':   '#3498DB',
+    'pt_stops':    '#3498DB',
+    'amenity':     '#9B59B6',  # HS8
+    'cafe':        '#9B59B6',
+    'walk_length': GREY,
+    'crime':       '#E74C3C',  # HS7
+    'aqi':         '#1ABC9C',  # HS10
+    'crash':       '#E67E22',
+    'serious':     '#E67E22',
+    'school_hours':'#E67E22',
+    'avg_speed_zone': '#E67E22',
+}
+
+def feat_colour(name):
+    for key, col in FEAT_GROUP_COLOUR.items():
+        if key in name:
+            return col
+    return GREY
+
+
 print('\n' + '='*60)
-print('  ML Model — Crash Risk Classification')
+print('  ML Model — HS Score Prediction')
 print('='*60)
+
+# ── 1. Load data ───────────────────────────────────────────────────────────────
 print(f'\nLoading {IN_CSV}...')
+df = pd.read_csv(IN_CSV)
+print(f'  {len(df)} schools  |  {len(df.columns)} columns')
 
-df = pd.read_csv(IN_CSV, low_memory=False)
-print(f'  {len(df):,} rows  |  {len(df.columns)} columns')
+schools = df['school'].tolist()
+X = df[df.columns.difference(['school'] + HS_TARGETS + ['HS_overall'])].copy()
+X = X[sorted(X.columns)]   # deterministic column order
+Y = df[HS_TARGETS].copy()
 
-# ── 2. Prepare features and target ────────────────────────────────────────────
-DROP_COLS = ['ACCIDENT_NO', 'nearest_school', 'serious_or_fatal']
-TARGET    = 'serious_or_fatal'
+print(f'  Feature matrix X: {X.shape}')
+print(f'  Target matrix  Y: {Y.shape}')
 
-y = df[TARGET].astype(int)
-X = df.drop(columns=[c for c in DROP_COLS if c in df.columns])
+# ── 2. LOO-CV predictions ──────────────────────────────────────────────────────
+print('\n[LOO-CV] Leave-One-Out cross-validation (n=3)...')
 
-# Drop columns that are entirely NaN — imputer can't fill these and RF will skip them
-all_nan = X.columns[X.isna().all()].tolist()
-if all_nan:
-    print(f'  Dropping all-NaN columns: {all_nan}')
-    X = X.drop(columns=all_nan)
+loo    = LeaveOneOut()
+preds  = np.full_like(Y.values, np.nan, dtype=float)
 
-print(f'  Target balance: {y.sum():,} serious/fatal ({y.mean()*100:.1f}%)')
-print(f'  Features: {X.shape[1]}')
+for train_idx, test_idx in loo.split(X):
+    X_tr, X_te = X.iloc[train_idx], X.iloc[test_idx]
+    y_tr        = Y.iloc[train_idx]
 
-# ── 3. Train / test split (stratified) ────────────────────────────────────────
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
-print(f'\n  Train: {len(X_train):,}  |  Test: {len(X_test):,}')
+    pipe = Pipeline([
+        ('scaler', StandardScaler()),
+        ('model',  MultiOutputRegressor(Ridge(alpha=1.0))),
+    ])
+    pipe.fit(X_tr, y_tr)
+    preds[test_idx] = np.clip(pipe.predict(X_te), 0, 10)
 
-# ── 4. Define models ───────────────────────────────────────────────────────────
-imputer = SimpleImputer(strategy='median')
+pred_df = pd.DataFrame(preds, columns=[f'{c}_pred' for c in HS_TARGETS])
+pred_df.insert(0, 'school', schools)
+for c in HS_TARGETS:
+    pred_df[f'{c}_actual'] = Y[c].values
 
-rf = Pipeline([
-    ('imputer', SimpleImputer(strategy='median')),
-    ('model',   RandomForestClassifier(
-        n_estimators=300,
-        max_depth=10,
-        class_weight='balanced',
-        random_state=42,
-        n_jobs=-1,
-    )),
+# per-indicator MAE
+mae = {c: mean_absolute_error(Y[c], pred_df[f'{c}_pred']) for c in HS_TARGETS}
+print(f'\n  LOO-CV MAE per indicator:')
+for c, v in mae.items():
+    bar = '█' * int(round(v))
+    print(f'    {c}   {v:.2f}  {bar}')
+
+pred_out = os.path.join(OUT_DIR, 'ml_predictions.csv')
+pred_df.to_csv(pred_out, index=False)
+print(f'\n  Predictions saved -> {pred_out}')
+
+# ── 3. Full model (train on all 3 schools) ─────────────────────────────────────
+full_pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('model',  MultiOutputRegressor(Ridge(alpha=1.0))),
 ])
+full_pipe.fit(X, Y)
 
-models = {'Random Forest': rf}
+# extract ridge coefficients per target
+scaler = full_pipe.named_steps['scaler']
+estimators = full_pipe.named_steps['model'].estimators_
+coef_matrix = np.vstack([e.coef_ for e in estimators])   # (10, n_features)
+coef_df = pd.DataFrame(coef_matrix, index=HS_TARGETS, columns=X.columns)
 
-# ── 5. Train and evaluate ──────────────────────────────────────────────────────
-results = {}
-print('\n' + '-'*60)
+# ── 4. Feature-Indicator Correlation Heatmap ──────────────────────────────────
+print('\n[Chart 1/3] Feature-indicator Pearson correlation heatmap...')
 
-for name, pipe in models.items():
-    print(f'\n  Training {name}...')
-    pipe.fit(X_train, y_train)
-
-    y_pred  = pipe.predict(X_test)
-    y_proba = pipe.predict_proba(X_test)[:, 1]
-    auc     = roc_auc_score(y_test, y_proba)
-
-    print(f'\n  {name} — ROC-AUC: {auc:.4f}')
-    print(f'\n{classification_report(y_test, y_pred, target_names=["Other injury", "Serious/Fatal"])}')
-
-    cv_auc = cross_val_score(pipe, X_train, y_train, cv=StratifiedKFold(5),
-                             scoring='roc_auc', n_jobs=-1)
-    print(f'  5-fold CV AUC: {cv_auc.mean():.4f} ± {cv_auc.std():.4f}')
-
-    results[name] = {
-        'pipe': pipe, 'auc': auc, 'y_pred': y_pred, 'y_proba': y_proba,
-    }
-
-# ── 6. Pick best model ─────────────────────────────────────────────────────────
-best_name = max(results, key=lambda n: results[n]['auc'])
-best      = results[best_name]
-print(f'\n  Best model: {best_name}  (AUC {best["auc"]:.4f})')
-
-# ── 7. Confusion matrices ──────────────────────────────────────────────────────
-fig, axes = plt.subplots(1, len(results), figsize=(6 * len(results), 5))
-if len(results) == 1:
-    axes = [axes]
-fig.patch.set_facecolor('white')
-fig.suptitle('Confusion Matrix — Test Set', fontsize=14, fontweight='bold')
-
-for ax, (name, res) in zip(axes, results.items()):
-    cm = confusion_matrix(y_test, res['y_pred'])
-    disp = ConfusionMatrixDisplay(cm, display_labels=['Other', 'Serious/Fatal'])
-    disp.plot(ax=ax, colorbar=False, cmap='Blues')
-    ax.set_title(f'{name}\nAUC = {res["auc"]:.4f}', fontsize=11, fontweight='bold')
-
-plt.tight_layout()
-cm_path = os.path.join(OUT_DIR, 'chart_confusion_matrix.png')
-plt.savefig(cm_path, dpi=150, bbox_inches='tight')
-plt.close()
-print(f'\n  Saved -> {cm_path}')
-
-# ── 8. Feature importance chart ────────────────────────────────────────────────
-print('\n  Building feature importance chart...')
-
-fig, axes = plt.subplots(1, len(results), figsize=(9 * len(results), 10))
-if len(results) == 1:
-    axes = [axes]
-fig.patch.set_facecolor('white')
-fig.suptitle('Top 20 Feature Importances', fontsize=14, fontweight='bold', y=1.01)
-
-for ax, (name, res) in zip(axes, results.items()):
-    model     = res['pipe'].named_steps['model']
-    imp       = model.feature_importances_
-    feat_names = X.columns.tolist()
-
-    fi = pd.Series(imp, index=feat_names).sort_values(ascending=False).head(20)
-
-    colours = []
-    for f in fi.index:
-        if any(k in f for k in ('cycle', 'cys')):
-            colours.append('#1A8FC1')   # blue — cycling
-        elif any(k in f for k in ('walk', 'foot', 'crossing', 'signal')):
-            colours.append('#27AE60')   # green — pedestrian
-        elif any(k in f for k in ('speed', 'arterial', 'road', 'high_speed')):
-            colours.append('#C0392B')   # red — road danger
-        elif any(k in f for k in ('hour', 'day', 'month', 'weekend', 'school_hours')):
-            colours.append('#8E44AD')   # purple — time
+feat_target_corr = pd.DataFrame(index=X.columns, columns=HS_TARGETS, dtype=float)
+for f in X.columns:
+    for t in HS_TARGETS:
+        if X[f].std() == 0 or Y[t].std() == 0:
+            feat_target_corr.loc[f, t] = 0.0
         else:
-            colours.append('#555555')   # grey — other
+            feat_target_corr.loc[f, t] = np.corrcoef(X[f], Y[t])[0, 1]
 
-    ax.barh(fi.index[::-1], fi.values[::-1], color=colours[::-1], edgecolor='white')
-    ax.set_title(name, fontsize=12, fontweight='bold')
-    ax.set_xlabel('Feature Importance', fontsize=10)
+feat_target_corr = feat_target_corr.astype(float)
+
+fig, ax = plt.subplots(figsize=(13, 9))
+fig.patch.set_facecolor(WHITE)
+
+sns.heatmap(
+    feat_target_corr,
+    ax=ax,
+    cmap='RdYlGn',
+    vmin=-1, vmax=1,
+    center=0,
+    annot=True,
+    fmt='.2f',
+    annot_kws={'size': 7},
+    linewidths=0.4,
+    linecolor='#EEEEEE',
+    cbar_kws={'label': 'Pearson r', 'shrink': 0.7},
+)
+ax.set_title(
+    'Open-Data Feature vs Healthy Streets Indicator — Pearson Correlation\n'
+    '(n=3 schools; values show direction of alignment between feature and HS score)',
+    fontsize=11, fontweight='bold', pad=12,
+)
+ax.set_xlabel('Healthy Streets Indicator', fontsize=10, labelpad=8)
+ax.set_ylabel('Open-data Feature', fontsize=10, labelpad=8)
+ax.set_xticklabels(HS_LABELS, fontsize=8, rotation=0)
+ax.set_yticklabels(ax.get_yticklabels(), fontsize=7, rotation=0)
+
+# colour y-tick labels by feature group
+for label in ax.get_yticklabels():
+    label.set_color(feat_colour(label.get_text()))
+
+plt.figtext(0.99, 0.01, '300,000 Streets  |  Regen Melbourne × RMIT University',
+            ha='right', fontsize=7, color=GREY)
+plt.tight_layout()
+corr_path = os.path.join(OUT_DIR, 'chart_hs_correlation.png')
+plt.savefig(corr_path, dpi=150, bbox_inches='tight')
+plt.close()
+print(f'  Saved -> {corr_path}')
+
+# ── 5. Actual vs Predicted — LOO-CV bar chart ──────────────────────────────────
+print('\n[Chart 2/3] Actual vs predicted HS scores (LOO-CV)...')
+
+fig, axes = plt.subplots(1, 3, figsize=(16, 5), sharey=True)
+fig.patch.set_facecolor(WHITE)
+fig.suptitle(
+    'Predicted vs Actual Healthy Streets Scores — LOO-CV\n'
+    '(Each school predicted by model trained on the other two)',
+    fontsize=12, fontweight='bold', y=1.02,
+)
+
+x_pos = np.arange(len(HS_TARGETS))
+w = 0.38
+
+for ax, school in zip(axes, schools):
+    row = pred_df[pred_df['school'] == school].iloc[0]
+    actuals = [row[f'{c}_actual'] for c in HS_TARGETS]
+    predictd = [row[f'{c}_pred']   for c in HS_TARGETS]
+
+    b1 = ax.bar(x_pos - w/2, actuals,  w, label='Actual',    color=NAVY,  alpha=0.85, edgecolor='white')
+    b2 = ax.bar(x_pos + w/2, predictd, w, label='Predicted', color=TEAL,  alpha=0.85, edgecolor='white')
+
+    for bar, val in zip(b1, actuals):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.15,
+                f'{val:.1f}', ha='center', va='bottom', fontsize=6.5, color=NAVY)
+    for bar, val in zip(b2, predictd):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.15,
+                f'{val:.1f}', ha='center', va='bottom', fontsize=6.5, color=TEAL)
+
+    school_mae = np.mean([abs(a - p) for a, p in zip(actuals, predictd)])
+    ax.set_title(f'{school}\nMean MAE: {school_mae:.2f}', fontsize=10, fontweight='bold')
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels([c for c in HS_TARGETS], fontsize=8)
+    ax.set_ylim(0, 12)
+    ax.set_ylabel('Score (0–10)', fontsize=9)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.xaxis.grid(True, color='#DDDDDD', linewidth=0.6)
+    ax.yaxis.grid(True, color='#EEEEEE', linewidth=0.6)
     ax.set_axisbelow(True)
 
-legend_els = [
-    mpatches.Patch(color='#C0392B', label='Road / speed'),
-    mpatches.Patch(color='#27AE60', label='Pedestrian / crossing'),
-    mpatches.Patch(color='#1A8FC1', label='Cycling'),
-    mpatches.Patch(color='#8E44AD', label='Time'),
-    mpatches.Patch(color='#555555', label='Other'),
-]
-fig.legend(handles=legend_els, loc='lower center', ncol=5,
-           fontsize=9, framealpha=0.8, bbox_to_anchor=(0.5, -0.03))
-plt.figtext(0.99, 0.01, '300,000 Streets  |  Regen Melbourne x RMIT University',
-            ha='right', fontsize=8, color='#888888')
+handles = [mpatches.Patch(color=NAVY, label='Actual'),
+           mpatches.Patch(color=TEAL, label='Predicted (LOO-CV)')]
+fig.legend(handles=handles, loc='lower center', ncol=2, fontsize=9,
+           framealpha=0.9, bbox_to_anchor=(0.5, -0.04))
+
+plt.figtext(0.99, 0.01, '300,000 Streets  |  Regen Melbourne × RMIT University',
+            ha='right', fontsize=7, color=GREY)
 plt.tight_layout()
-plt.savefig(OUT_FIG, dpi=150, bbox_inches='tight')
+pred_path = os.path.join(OUT_DIR, 'chart_hs_prediction.png')
+plt.savefig(pred_path, dpi=150, bbox_inches='tight')
 plt.close()
-print(f'  Saved -> {OUT_FIG}')
+print(f'  Saved -> {pred_path}')
 
-# ── 9. Save best model ─────────────────────────────────────────────────────────
-with open(OUT_PKL, 'wb') as f:
-    pickle.dump({'model': best['pipe'], 'features': X.columns.tolist(),
-                 'model_name': best_name}, f)
-print(f'  Saved -> {OUT_PKL}  ({best_name})')
+# ── 6. Top features per indicator (Ridge coefficients) ────────────────────────
+print('\n[Chart 3/3] Top features per HS indicator (Ridge coefficients)...')
 
-# ── 10. Summary ────────────────────────────────────────────────────────────────
-print('\n' + '='*60)
-print('  RESULTS SUMMARY')
-print('='*60)
-for name, res in results.items():
-    print(f'  {name:<20}  ROC-AUC: {res["auc"]:.4f}')
-print(f'\n  Best model : {best_name}')
-print(f'  Saved to   : {OUT_PKL}')
+fig, axes = plt.subplots(2, 5, figsize=(18, 9))
+fig.patch.set_facecolor(WHITE)
+fig.suptitle(
+    'Top Open-Data Predictors per Healthy Streets Indicator\n'
+    '(Ridge regression coefficients — model trained on all 3 schools)',
+    fontsize=12, fontweight='bold', y=1.01,
+)
+
+for ax, indicator in zip(axes.flatten(), HS_TARGETS):
+    coefs = coef_df.loc[indicator].sort_values(key=abs, ascending=False).head(8)
+    colours = [GREEN if v >= 0 else RED for v in coefs.values]
+    ax.barh(coefs.index[::-1], coefs.values[::-1], color=colours[::-1], edgecolor='white', height=0.6)
+    ax.axvline(0, color='black', linewidth=0.6)
+    ax.set_title(indicator, fontsize=10, fontweight='bold')
+    ax.set_xlabel('Coefficient', fontsize=7)
+    ax.tick_params(axis='y', labelsize=7)
+    ax.tick_params(axis='x', labelsize=7)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+pos_patch = mpatches.Patch(color=GREEN, label='Positive (feature ↑ → score ↑)')
+neg_patch = mpatches.Patch(color=RED,   label='Negative (feature ↑ → score ↓)')
+fig.legend(handles=[pos_patch, neg_patch], loc='lower center', ncol=2,
+           fontsize=9, framealpha=0.9, bbox_to_anchor=(0.5, -0.03))
+
+plt.figtext(0.99, 0.01, '300,000 Streets  |  Regen Melbourne × RMIT University',
+            ha='right', fontsize=7, color=GREY)
+plt.tight_layout()
+fi_path = os.path.join(OUT_DIR, 'chart_feature_importance.png')
+plt.savefig(fi_path, dpi=150, bbox_inches='tight')
+plt.close()
+print(f'  Saved -> {fi_path}')
+
+# ── 7. Save model ──────────────────────────────────────────────────────────────
+pkl_path = os.path.join(OUT_DIR, 'hs_predictor.pkl')
+with open(pkl_path, 'wb') as f:
+    pickle.dump({
+        'model':    full_pipe,
+        'features': X.columns.tolist(),
+        'targets':  HS_TARGETS,
+        'schools':  schools,
+    }, f)
+print(f'\n  Model saved -> {pkl_path}')
+
+# ── 8. Summary ─────────────────────────────────────────────────────────────────
+mean_mae = np.mean(list(mae.values()))
+best_ind  = min(mae, key=mae.get)
+worst_ind = max(mae, key=mae.get)
+
+print(f'\n{"="*60}')
+print(f'  RESULTS SUMMARY')
+print(f'{"="*60}')
+print(f'  Model:        Ridge regression (multi-output)')
+print(f'  Evaluation:   LOO-CV  (n=3 schools)')
+print(f'  Features:     {X.shape[1]}  (spatial + environmental + crash stats)')
+print(f'  Targets:      10  (HS1–HS10)')
+print(f'\n  Mean LOO-CV MAE across all indicators: {mean_mae:.2f}')
+print(f'  Best predicted:  {best_ind}  (MAE {mae[best_ind]:.2f})')
+print(f'  Hardest to predict: {worst_ind}  (MAE {mae[worst_ind]:.2f})')
+print(f'\n  Note: n=3 schools — results are illustrative.')
+print(f'  Adding more schools will improve generalisability.')
 print(f'\n  Outputs:')
-print(f'    {OUT_FIG}')
-print(f'    {cm_path}')
-print(f'    {OUT_PKL}')
-print('='*60)
+print(f'    {corr_path}')
+print(f'    {pred_path}')
+print(f'    {fi_path}')
+print(f'    {pred_out}')
+print(f'    {pkl_path}')
+print(f'{"="*60}')
+print(f'\n  Prediction table:')
+summary_cols = ['school'] + [f'{c}_actual' for c in HS_TARGETS]
+print(pred_df[summary_cols].rename(columns={f'{c}_actual': c for c in HS_TARGETS}).to_string(index=False))
+print()
+pred_cols = ['school'] + [f'{c}_pred' for c in HS_TARGETS]
+print(pred_df[pred_cols].rename(columns={f'{c}_pred': f'{c}ₚ' for c in HS_TARGETS}).to_string(index=False))

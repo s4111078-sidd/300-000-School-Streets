@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm src/scoring/fas.py src/scoring/css.py src/scoring/eei.py src/scoring/cis.py src/scoring/cys.py src/scoring/severity.py)",
+      "Bash(rm -rf src/scoring/__pycache__ src/ml/__pycache__ src/data/__pycache__ src/features/__pycache__ src/recommendations/__pycache__ src/visualisation/__pycache__ src/utils/__pycache__ src/__pycache__)"
+    ]
+  }
+}
