@@ -19,6 +19,7 @@ scipy
 # ── ML pipeline (feature_engineering.py + ml_model.py) ──────────────────────
 scikit-learn
 xgboost
+seaborn
 
 # ── pyqgis_pipeline.py ───────────────────────────────────────────────────────
 # Requires QGIS 3.x installed on the system — not pip-installable.

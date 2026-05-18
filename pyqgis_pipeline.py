@@ -579,13 +579,39 @@ project.setCrs(CRS_WGS84)
 
 osm_layer = build_osm_layer()
 
-# Layer order: OSM → KDE → buffers → crashes → points → gates
-for lyr in [osm_layer, kde_layer, buf_800, buf_400, crash_layer, assess_layer, gates_layer]:
+# ── Load OSM network layers from networks.gpkg (produced by spatial_features.py) ──
+NETWORKS_GPKG = os.path.join(OUT_DIR, 'networks.gpkg')
+_net_cfg = [
+    ('walk_400m',    'Walk Network 400m',    QColor('#27AE60'), 1.5),
+    ('walk_800m',    'Walk Network 800m',    QColor('#5DBB82'), 1.0),
+    ('cycling_400m', 'Cycling Network 400m', QColor('#1A8FC1'), 2.0),
+    ('cycling_800m', 'Cycling Network 800m', QColor('#5BAFD4'), 1.5),
+    ('roads_400m',   'Arterial Roads 400m',  QColor('#C0392B'), 2.5),
+    ('roads_800m',   'Arterial Roads 800m',  QColor('#D46A5B'), 2.0),
+]
+network_layers = []
+if os.path.exists(NETWORKS_GPKG):
+    for _key, _label, _colour, _width in _net_cfg:
+        _lyr = QgsVectorLayer(f'{NETWORKS_GPKG}|layername={_key}', _label, 'ogr')
+        if _lyr.isValid():
+            _sym = _lyr.renderer().symbol()
+            _sym.setColor(_colour)
+            _sym.setWidth(_width)
+            network_layers.append(_lyr)
+    if network_layers:
+        print(f'      Loaded {len(network_layers)} network layers from networks.gpkg')
+else:
+    print('      networks.gpkg not found — run spatial_features.py to add network layers')
+
+# Layer order (bottom to top): OSM → KDE → buffers → network layers → crashes → points → gates
+for lyr in ([osm_layer, kde_layer, buf_800, buf_400]
+            + network_layers
+            + [crash_layer, assess_layer, gates_layer]):
     if lyr and lyr.isValid():
         project.addMapLayer(lyr)
 
 print('      Layers added (bottom to top):')
-print('        OSM → KDE Heatmap → 800m/400m Zone')
+print('        OSM → KDE → 800m/400m Zone → Walk/Cycling/Roads networks')
 print('        Road Crashes → Safety Assessment Points → School Gates')
 
 # Refresh the QGIS canvas so all layers appear immediately

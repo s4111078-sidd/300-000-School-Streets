@@ -1,22 +1,19 @@
 """
-Feature Engineering — School Streets ML Pipeline
-Reads crash_data_statewide.csv and produces ml_features.csv for model training.
+Feature Engineering — School-level HS Score Prediction
+Builds a school-level feature matrix from open data so that
+ML can predict Healthy Streets indicator scores (HS1–HS10)
+without requiring field surveys at new schools.
 
-Base features (20 across 6 groups):
-  Time:       hour, day_of_week, month, is_weekend, is_school_hours
-  Speed:      speed_zone_num, is_high_speed_zone
-  Road class: road_geometry_code
-  Geometry:   no_of_vehicles
-  Lighting:   light_condition_code, is_dark
-  School:     dist_to_gate_m, near_school_400m
+Feature groups (X):
+  Spatial    — OSM-derived at 200m/400m buffers (spatial_features.csv)
+  Environmental — AQI (PM2.5) + crime rate  (environmental_features.csv)
+  Crash stats   — count, severity rate, peak-hour fraction (crash_data_statewide.csv)
 
-Spatial features (from spatial_features.csv if present):
-  ~36 OSM-derived features per school at 200m / 400m / 800m buffers
-
-Target: serious_or_fatal (SEVERITY == 1 fatal or 2 serious injury)
+Targets (y):
+  HS1–HS10 individual indicator scores    (hs_scores.csv)
 
 Run:    python feature_engineering.py
-Output: outputs/ml_features.csv
+Output: outputs/ml_school_features.csv   (1 row per school)
 """
 
 import os
@@ -26,127 +23,162 @@ warnings.filterwarnings('ignore')
 import numpy as np
 import pandas as pd
 
-IN_CSV      = os.path.join('outputs', 'crash_data_statewide.csv')
 SPATIAL_CSV = os.path.join('outputs', 'spatial_features.csv')
-OUT_CSV     = os.path.join('outputs', 'ml_features.csv')
+ENV_CSV     = os.path.join('outputs', 'environmental_features.csv')
+CRASH_CSV   = os.path.join('outputs', 'crash_data_statewide.csv')
+HS_CSV      = os.path.join('outputs', 'hs_scores.csv')
+OUT_CSV     = os.path.join('outputs', 'ml_school_features.csv')
 
-# ── Load ───────────────────────────────────────────────────────────────────────
-print('\n' + '='*60)
-print('  Feature Engineering — ML Pipeline')
-print('='*60)
-print(f'\nReading {IN_CSV}...')
-df = pd.read_csv(IN_CSV, low_memory=False)
-df.columns = df.columns.str.strip().str.upper()
-# Remap columns added by crash_analysis.py (uppercased but expected lowercase downstream)
-if 'NEAREST_SCHOOL' in df.columns:
-    df['nearest_school'] = df['NEAREST_SCHOOL']
-if 'DIST_TO_GATE_M' in df.columns:
-    df['dist_to_gate_m'] = df['DIST_TO_GATE_M']
-print(f'  {len(df):,} crashes loaded')
+# canonical short names used in crash data and spatial_features short rows
+SHORT_NAMES = {'Reservoir HS', 'William Ruthven SC', 'Preston HS'}
 
-# ── Target variable ────────────────────────────────────────────────────────────
-df['SEVERITY'] = pd.to_numeric(df['SEVERITY'], errors='coerce')
-df['serious_or_fatal'] = df['SEVERITY'].isin([1, 2]).astype(int)
-print(f'  Target: {df["serious_or_fatal"].sum():,} serious/fatal ({df["serious_or_fatal"].mean()*100:.1f}%)')
+# maps full name → short name for normalisation
+FULL_TO_SHORT = {
+    'Reservoir High School':             'Reservoir HS',
+    'William Ruthven Secondary College': 'William Ruthven SC',
+    'Preston High School':               'Preston HS',
+}
 
-# ── Time features ──────────────────────────────────────────────────────────────
-df['ACCIDENT_DATE'] = pd.to_datetime(df['ACCIDENT_DATE'], dayfirst=True, errors='coerce')
+HS_TARGETS = ['HS1','HS2','HS3','HS4','HS5','HS6','HS7','HS8','HS9','HS10']
 
-
-def parse_hour(t):
-    t = str(t).strip().zfill(4)
-    try:
-        if ':' in t:
-            return int(t.split(':')[0])
-        return int(t[:2])
-    except Exception:
-        return np.nan
-
-
-if 'ACCIDENT_TIME' in df.columns:
-    df['hour'] = df['ACCIDENT_TIME'].apply(parse_hour)
-else:
-    df['hour'] = np.nan
-
-df['day_of_week']     = df['ACCIDENT_DATE'].dt.dayofweek  # 0=Mon … 6=Sun
-df['month']           = df['ACCIDENT_DATE'].dt.month
-df['is_weekend']      = (df['day_of_week'] >= 5).astype(int)
-df['is_school_hours'] = (
-    (df['day_of_week'] < 5) &
-    (df['hour'].between(7, 9) | df['hour'].between(14, 17))
-).astype(int)
-
-# ── Speed zone ─────────────────────────────────────────────────────────────────
-df['speed_zone_num']     = pd.to_numeric(df.get('SPEED_ZONE', pd.Series(dtype=str)), errors='coerce')
-df['is_high_speed_zone'] = (df['speed_zone_num'] >= 60).astype(int)
-
-# ── Road class and geometry ────────────────────────────────────────────────────
-df['road_geometry_code'] = pd.to_numeric(df.get('ROAD_GEOMETRY', pd.Series(dtype=str)), errors='coerce')
-df['no_of_vehicles']     = pd.to_numeric(df.get('NO_OF_VEHICLES', pd.Series(dtype=str)), errors='coerce')
-
-# ── Lighting ───────────────────────────────────────────────────────────────────
-df['light_condition_code'] = pd.to_numeric(df.get('LIGHT_CONDITION', pd.Series(dtype=str)), errors='coerce')
-df['is_dark']              = (df['light_condition_code'] > 1).astype(int)  # 1=Day; 2-6=night/dusk
-
-# ── School proximity ───────────────────────────────────────────────────────────
-df['dist_to_gate_m']   = pd.to_numeric(df.get('DIST_TO_GATE_M', pd.Series(dtype=str)), errors='coerce')
-df['near_school_400m'] = (df['dist_to_gate_m'] <= 400).astype(int)
-
-# ── CYS — join from school_data.csv if available ──────────────────────────────
-# CYS is a field-observation score per school; join by nearest_school name
-SCHOOL_DATA_CSV = 'school_data.csv'
-if os.path.exists(SCHOOL_DATA_CSV):
-    sd = pd.read_csv(SCHOOL_DATA_CSV)
-    sd.columns = sd.columns.str.strip()
-    _cys_col = next((c for c in sd.columns if 'CYS' in c.upper() or 'CYCLING SAFETY' in c.upper()), None)
-    _name_col = next((c for c in sd.columns if 'SCHOOL' in c.upper() and 'NAME' in c.upper()), None) or \
-                next((c for c in sd.columns if 'SCHOOL' in c.upper()), None)
-    if _cys_col and _name_col:
-        cys_map = sd.groupby(_name_col)[_cys_col].mean().to_dict()
-        df['cys_score'] = df['nearest_school'].map(cys_map)
-        print(f'  CYS scores joined from {SCHOOL_DATA_CSV}')
-    else:
-        df['cys_score'] = np.nan
-else:
-    df['cys_score'] = np.nan
-
-# ── Assemble base feature matrix ──────────────────────────────────────────────
-BASE_FEATURES = [
-    'hour', 'day_of_week', 'month', 'is_weekend', 'is_school_hours',
-    'speed_zone_num', 'is_high_speed_zone',
-    'road_geometry_code',
-    'no_of_vehicles',
-    'light_condition_code', 'is_dark',
-    'dist_to_gate_m', 'near_school_400m',
-    'cys_score',
+# OSM spatial features selected as open-data proxies for each HS indicator
+SPATIAL_FEATURES = [
+    # HS1 — pedestrian infrastructure
+    'footpath_pct_200m',
+    'footpath_pct_400m',
+    # HS2 — crossings
+    'crossings_400m',
+    'signals_400m',
+    'crossing_density_400m',
+    # HS3 — shade + shelter
+    'tree_count_100m',
+    'shelter_count_200m',
+    'green_pct_400m',
+    # HS4 — rest places
+    'bench_count_200m',
+    'park_count_400m',
+    # HS5 / HS9 — traffic stress
+    'avg_speed_400m',
+    'arterial_pct_400m',
+    'high_speed_road_400m',
+    'road_count_400m',
+    # HS6 — active travel infrastructure
+    'cycle_pct_400m',
+    'protected_cycle_length_400m',
+    'pt_stops_400m',
+    # HS8 — things to see and do
+    'amenity_count_400m',
+    'cafe_count_400m',
+    # context
+    'walk_length_400m',
 ]
 
-id_cols = ['ACCIDENT_NO', 'nearest_school', 'serious_or_fatal']
-ml = df[id_cols + BASE_FEATURES].copy()
+ENV_FEATURES = [
+    'crime_rate_per_100k',   # HS7 proxy
+    'aqi_pm25',              # HS10 proxy
+]
 
-# ── Optional: merge spatial features ──────────────────────────────────────────
-SPATIAL_FEATURE_COLS = []
-if os.path.exists(SPATIAL_CSV):
-    print(f'\nMerging spatial features from {SPATIAL_CSV}...')
-    sf = pd.read_csv(SPATIAL_CSV)
-    SPATIAL_FEATURE_COLS = [c for c in sf.columns if c not in {'school_name', 'gate_lat', 'gate_lon'}]
-    ml = ml.merge(
-        sf.rename(columns={'school_name': 'nearest_school'}),
-        on='nearest_school',
-        how='left',
-    )
-    ml.drop(columns=['gate_lat', 'gate_lon'], inplace=True, errors='ignore')
-    print(f'  Added {len(SPATIAL_FEATURE_COLS)} spatial features')
-else:
-    print(f'\n  (spatial_features.csv not found — run spatial_features.py first for richer features)')
+print('\n' + '='*60)
+print('  Feature Engineering — School-level HS Score Prediction')
+print('='*60)
 
-# ── Save ───────────────────────────────────────────────────────────────────────
+# ── 1. Spatial features (one row per school, short names only) ─────────────
+print('\n[1/4] Loading spatial features...')
+assert os.path.exists(SPATIAL_CSV), f"Run spatial_features.py first — {SPATIAL_CSV} not found"
+sf_raw = pd.read_csv(SPATIAL_CSV)
+# keep only short-name rows (deduplicate full-name duplicates)
+sf = sf_raw[sf_raw['school_name'].isin(SHORT_NAMES)].copy()
+sf = sf.rename(columns={'school_name': 'school'})
+missing_sp = [c for c in SPATIAL_FEATURES if c not in sf.columns]
+if missing_sp:
+    print(f'  Warning: missing spatial columns: {missing_sp}')
+sf_sel = sf[['school'] + [c for c in SPATIAL_FEATURES if c in sf.columns]].copy()
+print(f'  {len(sf_sel)} schools × {len(sf_sel.columns)-1} spatial features')
+
+# ── 2. Environmental features ──────────────────────────────────────────────
+print('\n[2/4] Loading environmental features...')
+assert os.path.exists(ENV_CSV), f"Run environmental_features.py first — {ENV_CSV} not found"
+ef_raw = pd.read_csv(ENV_CSV)
+ef_raw['school'] = ef_raw['school_name'].map(FULL_TO_SHORT).fillna(ef_raw['school_name'])
+ef_sel = ef_raw[['school'] + ENV_FEATURES].copy()
+print(f'  {len(ef_sel)} schools × {len(ENV_FEATURES)} environmental features')
+
+# ── 3. Crash statistics aggregated per school ──────────────────────────────
+print('\n[3/4] Aggregating crash statistics...')
+assert os.path.exists(CRASH_CSV), f"Run crash_analysis.py first — {CRASH_CSV} not found"
+cr = pd.read_csv(CRASH_CSV, low_memory=False)
+cr.columns = cr.columns.str.strip().str.upper()
+
+cr['school'] = cr['NEAREST_SCHOOL']
+cr['SEVERITY'] = pd.to_numeric(cr['SEVERITY'], errors='coerce')
+cr['serious_or_fatal'] = cr['SEVERITY'].isin([1, 2]).astype(int)
+cr['ACCIDENT_TIME_RAW'] = cr['ACCIDENT_TIME'].astype(str).str.strip().str.zfill(4)
+cr['hour'] = cr['ACCIDENT_TIME_RAW'].apply(
+    lambda t: int(t.split(':')[0]) if ':' in t else int(t[:2]) if t[:2].isdigit() else np.nan
+)
+cr['is_school_hours'] = (
+    (pd.to_datetime(cr['ACCIDENT_DATE'], dayfirst=True, errors='coerce').dt.dayofweek < 5) &
+    (cr['hour'].between(7, 9) | cr['hour'].between(14, 17))
+).astype(int)
+
+crash_agg = (cr.groupby('school')
+               .agg(
+                   crash_count          = ('ACCIDENT_NO', 'count'),
+                   serious_or_fatal_rate= ('serious_or_fatal', 'mean'),
+                   school_hours_pct     = ('is_school_hours', 'mean'),
+                   avg_speed_zone       = ('SPEED_ZONE',
+                                           lambda x: pd.to_numeric(x, errors='coerce')
+                                                       .where(lambda v: v < 200)   # drop sentinel codes 777/888/999
+                                                       .mean()),
+               )
+               .round(4)
+               .reset_index())
+print(f'  Crash aggregates: {crash_agg.to_string(index=False)}')
+
+# ── 4. HS targets ──────────────────────────────────────────────────────────
+print('\n[4/4] Loading HS indicator targets...')
+assert os.path.exists(HS_CSV), f"Run poc_pipeline.py first — {HS_CSV} not found"
+hs = pd.read_csv(HS_CSV)
+hs['school'] = hs['School_short']
+hs_sel = hs[['school'] + HS_TARGETS + ['HS_overall']].copy()
+print(f'  {len(hs_sel)} schools × {len(HS_TARGETS)} HS targets')
+
+# ── Join all sources on school ─────────────────────────────────────────────
+ml = (sf_sel
+      .merge(ef_sel,    on='school', how='left')
+      .merge(crash_agg, on='school', how='left')
+      .merge(hs_sel,    on='school', how='left'))
+
+FEATURE_COLS = (
+    [c for c in SPATIAL_FEATURES if c in ml.columns] +
+    [c for c in ENV_FEATURES if c in ml.columns] +
+    ['crash_count', 'serious_or_fatal_rate', 'school_hours_pct', 'avg_speed_zone']
+)
+
+# ── Save ───────────────────────────────────────────────────────────────────
 os.makedirs('outputs', exist_ok=True)
-ml.to_csv(OUT_CSV, index=False)
+col_order = ['school'] + FEATURE_COLS + HS_TARGETS + ['HS_overall']
+ml[col_order].to_csv(OUT_CSV, index=False)
 
-all_features = BASE_FEATURES + SPATIAL_FEATURE_COLS
 print(f'\n{"="*60}')
-print(f'  Feature matrix saved -> {OUT_CSV}')
-print(f'  Rows: {len(ml):,}  |  Base features: {len(BASE_FEATURES)}  |  Spatial: {len(SPATIAL_FEATURE_COLS)}')
-print(f'  Target balance: {df["serious_or_fatal"].mean()*100:.1f}% serious/fatal')
+print(f'  School-level feature matrix saved -> {OUT_CSV}')
+print(f'  Schools:  {len(ml)}')
+print(f'  Features: {len(FEATURE_COLS)}')
+print(f'    Spatial:       {len([c for c in SPATIAL_FEATURES if c in ml.columns])}')
+print(f'    Environmental: {len([c for c in ENV_FEATURES if c in ml.columns])}')
+print(f'    Crash stats:   4  (count, severity rate, peak-hour %, avg speed zone)')
+print(f'  Targets:  {len(HS_TARGETS)}  (HS1–HS10)')
 print(f'{"="*60}')
+print()
+print('  Feature → HS indicator mapping:')
+print('    footpath_pct_*         → HS1  (pedestrians)')
+print('    crossings/signals      → HS2  (easy to cross)')
+print('    tree/shelter/green     → HS3  (shade + shelter)')
+print('    bench/park             → HS4  (rest places)')
+print('    avg_speed/arterial_pct → HS5  (not too noisy) + HS9 (feel relaxed)')
+print('    cycle/pt_stops         → HS6  (active travel choice)')
+print('    crime_rate_per_100k    → HS7  (feel safe)')
+print('    amenity/cafe           → HS8  (things to do)')
+print('    aqi_pm25               → HS10 (clean air)')
+print()
+print('  Next: python ml_model.py')

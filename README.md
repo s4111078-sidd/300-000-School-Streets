@@ -1,71 +1,47 @@
 # 300,000 Streets of Melbourne — School Streets Safety Analysis
 
-A pedestrian safety assessment and machine learning risk prediction tool for walking routes around secondary schools in Melbourne. Built in collaboration between **Regen Melbourne** and **RMIT University**.
+A pedestrian and cyclist safety assessment tool for walking routes around secondary schools in Melbourne, grounded in the **Healthy Streets framework** (Lucy Saunders / Transport for London). Built in collaboration between **Regen Melbourne** and **RMIT University**.
 
 ---
 
-## Schools assessed (field observations)
+## Schools assessed
 
-| School | Address | Gate coordinates |
-|---|---|---|
-| Reservoir High School | 855 Plenty Rd, Reservoir VIC 3073 | -37.7224, 145.0294 |
-| William Ruthven Secondary College | 60 Merrilands Rd, Reservoir VIC 3073 | -37.69654, 145.00299 |
-| Preston High School | 2-16 Cooma St, Preston VIC 3072 | -37.7417, 145.0071 |
-
----
-
-## Scoring system
-
-Each assessed location is scored across four dimensions (0 = worst, 10 = best):
-
-| Score | Meaning |
-|---|---|
-| **FAS** — Footpath Accessibility Score | Footpath presence, width, continuity, and condition |
-| **CSS** — Crossing Safety Score | Crossing type, distance, visibility, and signals |
-| **EEI** — Environmental Exposure Indicator | Traffic volume, speed, lighting, and school zone |
-| **CIS** — Cycling Infrastructure Score | Type of cycling infrastructure present on the school frontage road |
-
-Overall score = average of FAS + CSS + EEI + CIS. A score of **6.0 or above** is considered good.
-
-CIS is derived from the observed cycling infrastructure type, scored against two published frameworks:
-
-- **Level of Traffic Stress (LTS)** — Mekuria, Furth & Nixon (2012), Mineta Transportation Institute, San José State University. LTS 1 = low stress, suitable for children. LTS 4 = high stress, suitable only for experienced adults.
-- **VicRoads TEM Vol. 3 Part 218** — facility selection hierarchy for strategically important cycling corridors. Off-road or physically separated facilities are the preferred provision on school routes.
-
-Scores below 6.0 indicate infrastructure not considered appropriate for school-age cyclists.
-
-| Cycling infrastructure | LTS | VicRoads preference | CIS |
+| School | Address | Suburb | Gate coordinates |
 |---|---|---|---|
-| Separated bike lane (physically protected) | LTS 1 | Tier 1 — preferred | 9.0 |
-| Shared path or greenway (off-road) | LTS 1 | Tier 1 — preferred | 8.0 |
-| Painted bike lane (on-road, no separation) | LTS 2–3 | Tier 2–3 | 4.5 |
-| Advisory lane / shared road marking | LTS 3–4 | Tier 4 | 2.0 |
-| No cycling infrastructure | LTS 4 equivalent | Not recommended | 1.0 |
+| Reservoir High School | 855 Plenty Rd | Reservoir VIC 3073 | -37.7224, 145.0294 |
+| William Ruthven Secondary College | 60 Merrilands Rd | Thornbury VIC 3071 | -37.69654, 145.00299 |
+| Preston High School | 2-16 Cooma St | Preston VIC 3072 | -37.7417, 145.0071 |
 
-> Note: the commonly cited "Austroads LoS A–F" for cycling does not exist as an Austroads standard — that framing derives from the US Highway Capacity Manual BLOS model. The Austroads cycling tool is a 100-point numeric instrument (AP-R724-25). LTS and VicRoads TEM Part 218 are the appropriate cited standards for this project.
+---
 
-Hazard severity is classified as **Major**, **Moderate**, or **Minor**.
+## Scoring system — Healthy Streets framework
 
-### CYS — how it is computed
+Each school gate is scored across **10 Healthy Streets indicators** (0 = worst, 10 = best), as defined by Lucy Saunders and adopted by Transport for London. The overall score is the NaN-safe mean across all 10 indicators.
 
-CYS is derived automatically from OpenStreetMap cycling network data by `spatial_features.py` and scored inside `poc_pipeline.py`. No manual data entry is required.
-
-| Component | Data source | Points |
+| Code | Indicator | Data source |
 |---|---|---|
-| Cycling network coverage (`cycle_pct_400m`) | OSM bike network length ÷ walk network length within 400m | 0–4 |
-| Protected infrastructure (`protected_cycle_length_400m`) | Length of dedicated cycleways or separated tracks within 400m | 0–3 |
-| Crossing safety (`signals_400m` + `crossing_density_400m`) | Traffic signals ≥ 3 → +1 · crossing density ≥ 1/km → +1 | 0–2 |
-| Speed environment (`avg_speed_400m`) | Average road speed ≤ 40 km/h within 400m | 0–1 |
+| **HS1** | Pedestrians from all walks of life | Field observation — footpath presence, width, continuity, kerb ramps |
+| **HS2** | Easy to cross | Field observation — crossing type, distance, visibility, tactile pavers, signals |
+| **HS3** | Shade and shelter | OSM — tree count (100m), shelters (200m), green space % (400m) |
+| **HS4** | Places to stop and rest | OSM — benches (200m), parks and cafes (400m) |
+| **HS5** | Not too noisy | Field observation — traffic volume, speed, heavy vehicles, lanes |
+| **HS6** | People choose to walk, cycle, or PT | OSM + field — cycling infrastructure coverage, PT stops (400m) |
+| **HS7** | People feel safe | Field observation + Crime Statistics Agency Victoria — lighting, crime rate |
+| **HS8** | Things to see and do | OSM — amenities and cafes (400m), parks (400m) |
+| **HS9** | People feel relaxed | Field observation — traffic calming, school zone signage, parking |
+| **HS10** | Clean air | EPA Victoria AirWatch — PM2.5 annual average (μg/m³) |
 
-**Current scores (computed from OSM):**
+Hazard severity is classified as **Major**, **Moderate**, or **Minor** based on rule thresholds applied to HS1, HS2, HS5, and HS9.
 
-| School | CYS | Key reason |
-|---|---|---|
-| Reservoir HS | 8.0 | 43% cycling coverage + 202m of protected lanes within 400m |
-| Preston HS | 6.0 | 45% cycling coverage, good signals and crossings, but no protected lanes |
-| William Ruthven SC | 5.0 | 39% cycling coverage, zero protected infrastructure, high average road speed (70 km/h) |
+### Current scores
 
-> **To override with field data:** add a column `Cycling Safety Score — CYS (0 to 10)` to `school_data.csv`. `poc_pipeline.py` will use the manual value if present, otherwise falls back to the OSM-computed score.
+| School | HS1 | HS2 | HS3 | HS4 | HS5 | HS6 | HS7 | HS8 | HS9 | HS10 | Overall | Severity |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Reservoir HS | 4.2 | 5.7 | 5.0 | 6.0 | 5.0 | 6.0 | 8.0 | 6.8 | 5.2 | 9.0 | 6.1 | Minor |
+| William Ruthven SC | 9.5 | 6.8 | 3.0 | 3.3 | 10.0 | 4.2 | 7.5 | 4.3 | 8.0 | 10.0 | 6.7 | Minor |
+| Preston HS | 9.1 | 0.4 | 5.0 | 8.0 | 7.0 | 7.8 | 8.0 | 10.0 | 7.6 | 9.0 | 7.2 | **Major** |
+
+Preston HS is flagged **Major** due to HS2 = 0.4 — no formal pedestrian crossing adjacent to the school gate.
 
 ---
 
@@ -74,91 +50,80 @@ CYS is derived automatically from OpenStreetMap cycling network data by `spatial
 ```
 300-000-School-Streets/
 ├── school_data.csv              ← Field observation data (update to refresh outputs)
-├── demographics_darebin.csv     ← ABS Census 2021 demographic data for Reservoir & Preston
+├── demographics_darebin.csv     ← ABS Census 2021 demographic data
 ├── requirements.txt             ← Python dependencies
 │
-├── crash_analysis.py            ← Downloads Victorian statewide ped/cyc crash data
-├── spatial_features.py          ← OSM walking network, roads, crossings per school (optional)
-├── feature_engineering.py       ← Builds ML training matrix from crash + spatial data
-├── poc_pipeline.py              ← Charts, interactive maps, and recommendations
-├── pyqgis_pipeline.py           ← GIS automation: KDE heatmap, buffers, layers, PNG exports
+├── crash_analysis.py            ← Step 1: Download Victorian ped/cyc crash data
+├── spatial_features.py          ← Step 2: OSM features per school (HS3/HS4/HS6/HS8)
+├── environmental_features.py    ← Step 3: AQI (HS10) + crime rate (HS7)
+├── poc_pipeline.py              ← Step 4: HS scoring, charts, maps, recommendations
+├── feature_engineering.py       ← Step 5: School-level ML feature matrix
+├── ml_model.py                  ← Step 6: Predict HS scores from open data (Ridge + LOO-CV)
+└── pyqgis_pipeline.py           ← GIS: KDE heatmap, buffers, layers, PNG exports (QGIS only)
 │
 └── outputs/
-    ├── crash_data_statewide.csv     ← All Victorian ped/cyc crashes (last 5 yrs)
-    ├── crash_data_darebin.csv       ← Darebin subset within 400m of 3 school gates
-    ├── spatial_features.csv         ← OSM features per school at 200m/400m/800m
-    ├── ml_features.csv              ← Feature matrix ready for model training
+    ├── crash_data_statewide.csv     ← 7,773 Victorian ped/cyc crashes
+    ├── crash_data_darebin.csv       ← Darebin subset within 400m of school gates
+    ├── spatial_features.csv         ← 53 OSM features per school at 200m/400m/800m
+    ├── environmental_features.csv   ← AQI + crime rate per school
+    ├── hs_scores.csv                ← HS1–HS10 scores per school (input for ML)
+    ├── ml_school_features.csv       ← School-level feature matrix (input for ml_model.py)
+    ├── ml_predictions.csv           ← LOO-CV predicted vs actual HS scores
+    ├── recommendations.csv          ← HS-aligned intervention recommendations
     │
-    ├── chart1_safety_scores.png     ← Produced by poc_pipeline.py
-    ├── chart2_hazard_severity.png
-    ├── chart3_score_breakdown.png
-    ├── chart4_demographics.png
-    ├── heatmap.png
+    ├── chart1_hs_radar.png          ← 10-indicator radar chart (all schools)
+    ├── chart2_hs_scores.png         ← Per-indicator bar comparison
+    ├── chart3_hs_breakdown.png      ← Per-school indicator breakdown
+    ├── chart4_severity.png          ← Hazard severity counts
+    ├── chart5_demographics.png      ← Suburb demographic context
+    ├── chart_hs_correlation.png     ← Feature × indicator Pearson correlation heatmap
+    ├── chart_hs_prediction.png      ← LOO-CV actual vs predicted HS scores
+    ├── chart_feature_importance.png ← Ridge regression coefficients per HS indicator
+    ├── heatmap.png                  ← Static crash heatmap
     ├── map_interactive.html         ← Interactive map (open in browser)
     ├── map_heatmap.html             ← Interactive heatmap with crash markers
-    ├── recommendations.csv
     │
-    ├── kde_heatmap.tif              ← Produced by pyqgis_pipeline.py (GeoTIFF raster)
-    ├── map_Preston_HS.png           ← Per-school static map exports
+    ├── kde_heatmap.tif              ← KDE raster (GeoTIFF, EPSG:7855) — pyqgis
+    ├── map_Preston_HS.png           ← Per-school static map exports — pyqgis
     ├── map_Reservoir_HS.png
     ├── map_William_Ruthven_SC.png
-    ├── school_streets.gpkg          ← GeoPackage with all vector layers
-    └── school_streets.qgz           ← QGIS project file (open directly in QGIS)
+    ├── networks.gpkg                ← Walk/cycling/road network geometries
+    ├── school_streets.gpkg          ← All GIS vector layers
+    ├── school_streets.qgz           ← QGIS project file
+    └── hs_predictor.pkl             ← Trained Ridge regression model
 ```
-
----
-
-## Input data files
-
-### `school_data.csv`
-Field observation data collected at each assessed location. One row per location. Key columns:
-
-| Column | Description |
-|---|---|
-| School name | One of the three schools |
-| Latitude / Longitude | Decimal degrees |
-| FAS / CSS / EEI | Scores 0–10 |
-| Overall hazard severity | Major / Moderate / Minor |
-| Street or location being assessed | Free text |
-| Approximate distance from school gate (metres) | Numeric |
-| (30+ additional columns) | Footpath, crossing, traffic, lighting details |
-
-### `demographics_darebin.csv`
-ABS Census 2021 demographic data for the suburbs surrounding each school. Columns: suburb, nearby school, total population, median household income, car ownership, transport mode shares, workforce participation, proportion of children aged 5–17.
 
 ---
 
 ## How to run
 
-### Full pipeline (recommended — runs everything in order)
+### Full pipeline
 
-```
-crash_analysis.py  →  spatial_features.py  →  poc_pipeline.py  →  pyqgis_pipeline.py
-                                          ↘  feature_engineering.py
-```
-
-> `spatial_features.py` is now a key step — it computes the **CYS cycling score** used by `poc_pipeline.py` in addition to OSM features for the ML pipeline. Run it before `poc_pipeline.py` to get cycling scores in your charts and maps.
-
-### Quick run (charts and maps only, no cycling score or ML)
-
-```
-crash_analysis.py  →  poc_pipeline.py  →  pyqgis_pipeline.py
+```bash
+python crash_analysis.py           # Step 1 — crash data
+python spatial_features.py         # Step 2 — OSM features (takes ~5 min)
+python environmental_features.py   # Step 3 — AQI + crime
+python poc_pipeline.py             # Step 4 — HS scores, charts, maps
+python feature_engineering.py      # Step 5 — ML feature matrix
+python ml_model.py                 # Step 6 — HS score prediction model
 ```
 
-### ML pipeline only
-
+### QGIS maps (after Step 1)
+```python
+# From the QGIS Python Console:
+exec(open('/full/path/to/pyqgis_pipeline.py').read())
 ```
-crash_analysis.py  →  spatial_features.py  →  feature_engineering.py
+
+### Quick run (charts and maps only)
+```bash
+python crash_analysis.py && python poc_pipeline.py
 ```
 
 ---
 
 ## Step 1 — Download crash data (`crash_analysis.py`)
 
-Downloads Victorian road crash data from [data.vic.gov.au](https://data.vic.gov.au) and filters for:
-- Statewide pedestrian or cyclist involvement
-- Last 5 years
-- All Victorian government secondary schools as proximity targets (downloaded from DET; falls back to 3 Darebin gates if unavailable)
+Downloads Victorian road crash data from [data.vic.gov.au](https://data.vic.gov.au) and filters for pedestrian or cyclist involvement over the last 5 years, assigning each crash to its nearest school gate.
 
 ```bash
 pip install pandas numpy requests
@@ -169,115 +134,163 @@ python crash_analysis.py
 
 | File | Description |
 |---|---|
-| `outputs/crash_data_statewide.csv` | All Victorian ped/cyc crashes with `nearest_school` and `dist_to_gate_m` |
-| `outputs/crash_data_darebin.csv` | Darebin subset within 400m of the original 3 school gates (backward compat) |
+| `outputs/crash_data_statewide.csv` | 7,773 Victorian ped/cyc crashes with `nearest_school` and `dist_to_gate_m` |
+| `outputs/crash_data_darebin.csv` | Darebin subset within 400m of the 3 school gates |
 
-Key columns: `ACCIDENT_NO`, `ACCIDENT_DATE`, `SEVERITY`, `SPEED_ZONE`, `LATITUDE`, `LONGITUDE`, `LGA_NAME`, `nearest_school`, `dist_to_gate_m`, `PED_OR_CYC`.
-
-> Downloads three tables from the Victorian Open Data portal (`accident.csv`, `node.csv`, `person.csv`) joined on `ACCIDENT_NO`. School gates are fetched from the DET school-locations-time-series dataset (government, secondary/combined, open status) with a Victoria bounding-box validity check.
+Key columns: `ACCIDENT_NO`, `ACCIDENT_DATE`, `SEVERITY`, `SPEED_ZONE`, `LATITUDE`, `LONGITUDE`, `nearest_school`, `dist_to_gate_m`.
 
 ---
 
-## Step 1b — OSM spatial features + CYS source data (`spatial_features.py`)
+## Step 2 — OSM spatial features (`spatial_features.py`)
 
-Computes OpenStreetMap-based spatial features for each school gate at **200m, 400m, and 800m** buffer radii. Uses **EPSG:7855** (GDA2020 / MGA zone 55) for accurate metric distances.
-
-**This step is required to auto-compute the CYS cycling score in `poc_pipeline.py`.** It is also used by `feature_engineering.py` for the ML pipeline.
+Queries OpenStreetMap for each school gate at **200m, 400m, and 800m** buffers. Provides the open-data inputs for **HS3** (shade/shelter), **HS4** (rest places), **HS6** (active travel), and **HS8** (things to do).
 
 ```bash
 pip install geopandas osmnx shapely pyproj networkx
 python spatial_features.py
 ```
 
-> Makes ~4 Overpass API calls per school per radius (walk, drive, crossings, signals, bike network). Expect **1–2 minutes per school**. Individual failures fall back to `NaN` rather than crashing.
+> Makes ~6 Overpass API calls per school per radius. Expect **1–2 minutes per school**. Uses **EPSG:7855** (GDA2020 / MGA zone 55) for accurate metric distances.
 
-**Feature groups (per radius — 15 features × 3 radii = 45 total):**
+**Feature groups (53 total):**
 
 | Group | Features |
 |---|---|
 | Walking network | `walk_edges`, `walk_length_m`, `footpath_length_m`, `footpath_pct` |
 | Road network | `road_count`, `arterial_count`, `arterial_pct`, `avg_speed_kmh`, `high_speed_road_count` |
-| Crossings | `crossings`, `signals` |
+| Crossings | `crossings`, `signals`, `crossing_density` |
 | Cycling network | `cycle_length_m`, `protected_cycle_length_m`, `cycle_pct` |
-| Derived | `crossing_density` (crossings per km of walkable path) |
+| Amenity (HS3/HS4/HS8) | `tree_count_100m`, `shelter_count_200m`, `green_pct_400m`, `bench_count_200m`, `park_count_400m`, `pt_stops_400m`, `amenity_count_400m`, `cafe_count_400m` |
 
-**Output:** `outputs/spatial_features.csv` — 45 features per school gate.
-
-> **Cycling columns** (`cycle_length_*`, `protected_cycle_length_*`, `cycle_pct_*`) are what `poc_pipeline.py` reads to compute the CYS score. If this file is missing or the cycling columns are absent, CYS will show as N/A in all charts.
+**Output:** `outputs/spatial_features.csv`
 
 ---
 
-## Step 1c — Build ML feature matrix (`feature_engineering.py`)
+## Step 3 — Environmental features (`environmental_features.py`)
 
-Reads `crash_data_statewide.csv` and engineers features for model training. Automatically merges `spatial_features.csv` if it exists.
+Fetches **AQI** (HS10) and **crime rate** (HS7) per school. Tries live APIs first, falls back to hardcoded 2023-24 values if unavailable.
+
+```bash
+python environmental_features.py
+```
+
+| Data | Source | Fallback |
+|---|---|---|
+| PM2.5 (μg/m³) | EPA Victoria AirWatch — Alphington station (site 10102) | Suburb-level 2023 annual averages |
+| Crime rate (per 100k) | Crime Statistics Agency Victoria XLSX | 2023-24 suburb estimates |
+
+**Output:** `outputs/environmental_features.csv`
+
+---
+
+## Step 4 — HS scoring, charts, and recommendations (`poc_pipeline.py`)
+
+The main analysis engine. Reads `school_data.csv` + `spatial_features.csv` + `environmental_features.csv` and computes all 10 HS indicator scores.
+
+```bash
+pip install pandas matplotlib numpy folium rasterio scipy
+python poc_pipeline.py
+```
+
+**Outputs:**
+
+| File | Description |
+|---|---|
+| `chart1_hs_radar.png` | 10-indicator radar chart overlaying all 3 schools |
+| `chart2_hs_scores.png` | Per-indicator bar comparison across schools |
+| `chart3_hs_breakdown.png` | Per-school breakdown of all 10 indicators |
+| `chart4_severity.png` | Hazard severity counts |
+| `chart5_demographics.png` | Demographic context (income, car ownership, transport mode) |
+| `heatmap.png` | Static crash density heatmap |
+| `map_interactive.html` | Interactive map — HS scores in popup, crash overlay, network layers |
+| `map_heatmap.html` | Interactive KDE heatmap |
+| `recommendations.csv` | Rule-based interventions per indicator with priority, cost, and expected score delta |
+| `hs_scores.csv` | HS1–HS10 scores per school — used by `feature_engineering.py` |
+
+---
+
+## Step 5 — ML feature matrix (`feature_engineering.py`)
+
+Builds a **school-level** feature matrix (one row per school) combining open data as predictors of HS indicator scores.
 
 ```bash
 python feature_engineering.py
 ```
 
-**Base features (13):**
+**Features (26 total):**
 
-| Group | Features |
-|---|---|
-| Time | `hour`, `day_of_week`, `month`, `is_weekend`, `is_school_hours` |
-| Speed | `speed_zone_num`, `is_high_speed_zone` |
-| Road | `road_geometry_code` |
-| Geometry | `no_of_vehicles` |
-| Lighting | `light_condition_code`, `is_dark` |
-| School proximity | `dist_to_gate_m`, `near_school_400m` |
+| Group | Features | HS indicator proxied |
+|---|---|---|
+| Footpath coverage | `footpath_pct_200m`, `footpath_pct_400m` | HS1 |
+| Crossings | `crossings_400m`, `signals_400m`, `crossing_density_400m` | HS2 |
+| Green / shade | `tree_count_100m`, `shelter_count_200m`, `green_pct_400m` | HS3 |
+| Rest places | `bench_count_200m`, `park_count_400m` | HS4 |
+| Traffic stress | `avg_speed_400m`, `arterial_pct_400m`, `high_speed_road_400m`, `road_count_400m` | HS5 / HS9 |
+| Active travel | `cycle_pct_400m`, `protected_cycle_length_400m`, `pt_stops_400m` | HS6 |
+| Safety / crime | `crime_rate_per_100k` | HS7 |
+| Amenity | `amenity_count_400m`, `cafe_count_400m` | HS8 |
+| Air quality | `aqi_pm25` | HS10 |
+| Crash statistics | `crash_count`, `serious_or_fatal_rate`, `school_hours_pct`, `avg_speed_zone` | context |
 
-**Target variable:** `serious_or_fatal` — 1 if SEVERITY is fatal (1) or serious injury (2), else 0.
+**Target:** HS1–HS10 scores (from `hs_scores.csv`)
 
-**Output:** `outputs/ml_features.csv` — one row per crash, ready for model training.
+**Output:** `outputs/ml_school_features.csv` — 3 rows × 38 columns (26 features + 10 targets + 1 overall + school label)
 
 ---
 
-## Step 2 — Charts, interactive maps, and recommendations (`poc_pipeline.py`)
+## Step 6 — HS score prediction model (`ml_model.py`)
 
-Reads `school_data.csv`, `demographics_darebin.csv`, and optionally `outputs/crash_data_darebin.csv` and `outputs/spatial_features.csv`.
+Trains a Ridge regression to predict HS indicator scores from open data — demonstrating that Healthy Streets assessments can be estimated without field surveys.
 
 ```bash
-pip install pandas matplotlib numpy folium rasterio
-python poc_pipeline.py
+pip install scikit-learn seaborn
+python ml_model.py
 ```
 
-**CYS score loading priority:**
-1. Manual field data — `Cycling Safety Score — CYS (0 to 10)` column in `school_data.csv` (if present)
-2. Auto-computed from OSM — reads `spatial_features.csv` and applies the CYS scoring rubric
-3. N/A — if neither source is available (charts show grey N/A bar)
+**Approach:**
+- **Model:** Multi-output Ridge regression (`alpha=1.0`)
+- **Evaluation:** Leave-One-Out CV (LOO-CV) — appropriate for 3 schools
+- **Purpose:** Which open-data features predict which HS indicators? Which indicators require ground-truthing?
 
-**Outputs saved to `outputs/`:**
+**LOO-CV MAE per indicator:**
+
+| Indicator | MAE | Interpretation |
+|---|---|---|
+| HS7 — Feel safe | 0.54 | Crime rate is a strong proxy — little survey needed |
+| HS10 — Clean air | 0.92 | AQI maps directly — no survey needed |
+| HS9 — Feel relaxed | 1.72 | Speed/arterial data works well |
+| HS3 — Shade/shelter | 2.17 | OSM tree/shelter data reasonably predictive |
+| HS6 — Active travel | 3.08 | Cycling coverage adequate but quality matters |
+| HS1 — Pedestrians | 3.27 | Footpath % is a rough proxy; condition needs survey |
+| HS5 — Not too noisy | 3.68 | Traffic volume from OSM is incomplete |
+| HS4 — Rest places | 4.19 | Bench/park counts unreliable in OSM |
+| HS2 — Easy to cross | 4.51 | Crossing presence ≠ crossing quality |
+| HS8 — Things to do | 4.72 | OSM amenity count doesn't capture activity quality |
+
+> **Research finding:** HS2 and HS8 have the highest prediction error — these indicators cannot be reliably estimated from open data and require field observation. HS7 and HS10 can be fully automated.
+
+**Outputs:**
 
 | File | Description |
 |---|---|
-| `chart1_safety_scores.png` | FAS / CSS / EEI / CYS scores per school (4 bars) |
-| `chart2_hazard_severity.png` | Hazard severity counts per school |
-| `chart3_score_breakdown.png` | Per-location score breakdown including CYS |
-| `chart4_demographics.png` | Demographic context (income, car ownership, transport mode) |
-| `heatmap.png` | Static heatmap of assessment point scores |
-| `map_interactive.html` | Interactive map — click markers for FAS / CSS / EEI / CYS and crash data |
-| `map_heatmap.html` | Interactive heatmap with crash markers overlay |
-| `recommendations.csv` | Auto-generated rule-based intervention list (15 rules including CYS thresholds) |
-
-Open HTML files by double-clicking in Finder, or drag into any browser.
+| `chart_hs_correlation.png` | Pearson correlation heatmap — feature × HS indicator |
+| `chart_hs_prediction.png` | LOO-CV actual vs predicted per school |
+| `chart_feature_importance.png` | Ridge coefficients per HS indicator (top 8 predictors) |
+| `ml_predictions.csv` | Actual and predicted HS scores for all 3 schools |
+| `hs_predictor.pkl` | Trained model (all 3 schools) — use to score new schools |
 
 ---
 
-## Step 3 — GIS layers and map exports (`pyqgis_pipeline.py`)
+## Step 7 — GIS layers and map exports (`pyqgis_pipeline.py`)
 
-Requires **QGIS 3.x** installed. Run Step 1 first so `outputs/crash_data_darebin.csv` exists (the crash layer is skipped gracefully if the file is missing).
+Requires **QGIS 3.x** installed. Run Step 1 first so crash data exists.
 
-**From the QGIS Python Console** (recommended):
+**From the QGIS Python Console:**
 ```python
 exec(open('/full/path/to/pyqgis_pipeline.py').read())
 ```
 
-**Standalone** (edit `QGIS_PREFIX` at the top of the script to match your QGIS install path):
-```bash
-python pyqgis_pipeline.py
-```
-
-**Outputs saved to `outputs/`:**
+**Outputs:**
 
 | File | Description |
 |---|---|
@@ -286,35 +299,17 @@ python pyqgis_pipeline.py
 | `school_streets.qgz` | QGIS project — open directly in QGIS |
 | `map_<School>.png` | Per-school static map image (1200×900 px) |
 
-**Layers created in QGIS (bottom to top):**
-
-| Layer | Style |
-|---|---|
-| OpenStreetMap | XYZ tile base map |
-| Hazard Heatmap (KDE) | Green → yellow → red gradient, 65% opacity |
-| 800m Walking Zone | Light grey buffer ring |
-| 400m Walking Zone | Dark grey buffer ring |
-| Road Crashes (ped/cyc) | Blue diamond markers — from `crash_data_darebin.csv` |
-| Safety Assessment Points | Circles coloured by severity (red / orange / green) |
-| School Gates | Black star markers |
-
-Buffers use **EPSG:7855** (GDA2020 / MGA zone 55) for accurate metric distances.
-
-Only schools with rows in `school_data.csv` get a gate marker and buffers. Schools with no data are automatically skipped.
-
 ---
 
 ## Updating the data
 
 1. Edit `school_data.csv` with new field observations.
-2. Re-run `crash_analysis.py` to refresh crash data (downloads live from data.vic.gov.au).
-3. Re-run `spatial_features.py` to refresh OSM cycling and spatial data (updates CYS scores).
-4. Re-run `feature_engineering.py` to rebuild the ML feature matrix.
-5. Re-run `poc_pipeline.py` → `pyqgis_pipeline.py` to regenerate all charts, maps, and QGIS outputs.
+2. Re-run `crash_analysis.py` to refresh crash data (live from data.vic.gov.au).
+3. Re-run `spatial_features.py` to refresh OSM data.
+4. Re-run `environmental_features.py` to refresh AQI and crime data.
+5. Re-run `poc_pipeline.py` → `feature_engineering.py` → `ml_model.py`.
 
-**To add a new school:** add its gate coordinates to `SCHOOL_GATES` in both `crash_analysis.py` and `spatial_features.py`, add field observation rows to `school_data.csv`, and re-run the full pipeline.
-
-**To override CYS with field data:** add a column `Cycling Safety Score — CYS (0 to 10)` to `school_data.csv`. The pipeline will use this instead of the OSM-computed value.
+**To add a new school:** add gate coordinates to `SCHOOL_GATES` in `crash_analysis.py` and `spatial_features.py`, add the suburb mapping to `environmental_features.py`, add field observation rows to `school_data.csv`, and re-run the full pipeline.
 
 ---
 
@@ -324,166 +319,37 @@ Only schools with rows in `school_data.csv` get a gate marker and buffers. Schoo
 |---|---|
 | `crash_analysis.py` | `pandas`, `numpy`, `requests` |
 | `spatial_features.py` | `geopandas`, `osmnx`, `shapely`, `pyproj`, `networkx` |
+| `environmental_features.py` | `pandas`, `numpy`, `requests` |
+| `poc_pipeline.py` | `pandas`, `matplotlib`, `numpy`, `folium`, `geopandas`, `rasterio`, `scipy` |
 | `feature_engineering.py` | `pandas`, `numpy` |
-| `poc_pipeline.py` | `pandas`, `matplotlib`, `numpy`, `folium`, `rasterio`, `scipy` |
+| `ml_model.py` | `scikit-learn`, `pandas`, `numpy`, `matplotlib`, `seaborn` |
 | `pyqgis_pipeline.py` | QGIS 3.x (PyQGIS — not pip-installable) |
 
-Install pip dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-> `pyqgis_pipeline.py` requires QGIS 3.x to be installed separately. It cannot be installed via pip.
+---
+
+## Data sources
+
+| Data | Source |
+|---|---|
+| Victorian road crash records | [data.vic.gov.au — Victoria Road Crash Data](https://www.data.vic.gov.au/data/dataset/victoria-road-crash-data) |
+| School gate locations | [data.vic.gov.au — School Locations Time Series](https://www.data.vic.gov.au/data/dataset/school-locations-time-series) |
+| OSM spatial data | OpenStreetMap via `osmnx` / Overpass API |
+| Air quality (PM2.5) | EPA Victoria AirWatch — Alphington monitoring station (site 10102) |
+| Crime rate | Crime Statistics Agency Victoria — suburb-level offences per 100k |
+| Demographics | ABS Census 2021 — `demographics_darebin.csv` |
 
 ---
 
-## Crash data source
+## Healthy Streets framework reference
 
-Victorian Road Crash Data is published by the Department of Transport and Planning:
-[https://www.data.vic.gov.au/data/dataset/victoria-road-crash-data](https://www.data.vic.gov.au/data/dataset/victoria-road-crash-data)
+Saunders, L. (2015). *Healthy Streets for London: Prioritising walking, cycling and public transport to create a healthy city.* Transport for London / Lucy Saunders Public Health Consulting.
 
-Tables used: `accident.csv`, `node.csv` (coordinates + LGA), `person.csv` (road user type).
-
-School gate locations sourced from the DET School Locations Time Series dataset:
-[https://www.data.vic.gov.au/data/dataset/school-locations-time-series](https://www.data.vic.gov.au/data/dataset/school-locations-time-series)
+The 10 Healthy Streets indicators describe the human experience of streets and are designed to be assessed both through observation and open data. A score ≥ 6.0 across all indicators is the target threshold for a school street.
 
 ---
 
-## Dataset reference
-
-### `outputs/crash_data_statewide.csv`
-
-Produced by `crash_analysis.py`. One row per pedestrian or cyclist crash in Victoria over the last 5 years.
-
-**Current snapshot:** 7,809 crashes · May 2021 – Dec 2025
-
-**Severity breakdown:**
-
-| SEVERITY value | Meaning | Count |
-|---|---|---|
-| 1 | Fatal | 201 |
-| 2 | Serious injury | 3,170 |
-| 3 | Other injury | 4,438 |
-
-**All columns:**
-
-| Column | Type | Description |
-|---|---|---|
-| `ACCIDENT_NO` | string | Unique crash identifier (e.g. `T20210000001`) |
-| `ACCIDENT_DATE` | date | Date of crash (parsed to YYYY-MM-DD) |
-| `ACCIDENT_TIME` | string | Time of crash (HHMM format) |
-| `ACCIDENT_TYPE` | integer | Crash type code |
-| `ACCIDENT_TYPE_DESC` | string | Crash type description (e.g. `Collision with vehicle`) |
-| `DAY_OF_WEEK` | integer | Day code (1 = Monday … 7 = Sunday) |
-| `DAY_WEEK_DESC` | string | Day name |
-| `DCA_CODE` | integer | Crash configuration code |
-| `DCA_DESC` | string | Crash configuration description |
-| `LIGHT_CONDITION` | integer | 1 = Day · 2 = Dusk/dawn · 3–6 = Various night conditions |
-| `NODE_ID` | integer | Road node identifier |
-| `NO_OF_VEHICLES` | integer | Number of vehicles involved |
-| `NO_PERSONS_KILLED` | integer | Number of fatalities |
-| `NO_PERSONS_INJ_2` | integer | Number of serious injuries |
-| `NO_PERSONS_INJ_3` | integer | Number of other injuries |
-| `NO_PERSONS_NOT_INJ` | integer | Number of people not injured |
-| `NO_PERSONS` | integer | Total persons involved |
-| `POLICE_ATTEND` | integer | 1 = Police attended |
-| `ROAD_GEOMETRY` | integer | Road geometry code (1 = Cross intersection · 2 = T-intersection · etc.) |
-| `ROAD_GEOMETRY_DESC` | string | Road geometry description |
-| `SEVERITY` | integer | Crash severity: 1 Fatal · 2 Serious · 3 Other injury |
-| `SPEED_ZONE` | integer | Posted speed limit at crash location (km/h) |
-| `RMA` | string | Road management authority |
-| `LGA_NAME` | string | Local Government Area name |
-| `LATITUDE` | float | Crash latitude (WGS84) |
-| `LONGITUDE` | float | Crash longitude (WGS84) |
-| `POSTCODE_CRASH` | integer | Postcode of crash location |
-| `PED_OR_CYC` | boolean | True if crash involved a pedestrian or cyclist |
-| `nearest_school` | string | Name of the closest Victorian government secondary school gate |
-| `dist_to_gate_m` | float | Haversine distance in metres to the nearest school gate |
-
----
-
-### `outputs/ml_features.csv`
-
-Produced by `feature_engineering.py` (after running `crash_analysis.py` and optionally `spatial_features.py`). One row per crash — the training-ready feature matrix for the ML model.
-
-**Current snapshot:** 7,809 rows · 52 columns · 43.2% serious/fatal (target positive rate)
-
-#### Identifier columns
-
-| Column | Description |
-|---|---|
-| `ACCIDENT_NO` | Crash identifier — links back to `crash_data_statewide.csv` |
-| `nearest_school` | Name of the nearest school gate — links to `spatial_features.csv` |
-
-#### Target variable
-
-| Column | Description |
-|---|---|
-| `serious_or_fatal` | **1** if SEVERITY is 1 (fatal) or 2 (serious injury) · **0** otherwise |
-
-#### Time features
-
-| Column | Description |
-|---|---|
-| `hour` | Hour of crash (0–23) |
-| `day_of_week` | Day of week (0 = Monday … 6 = Sunday) |
-| `month` | Month (1–12) |
-| `is_weekend` | 1 if Saturday or Sunday |
-| `is_school_hours` | 1 if weekday and hour is 7–9 or 14–17 |
-
-#### Speed and road features
-
-| Column | Description |
-|---|---|
-| `speed_zone_num` | Posted speed limit (km/h) as a number |
-| `is_high_speed_zone` | 1 if speed zone ≥ 60 km/h |
-| `road_geometry_code` | Road geometry code from the crash record |
-| `no_of_vehicles` | Number of vehicles involved in the crash |
-
-#### Lighting features
-
-| Column | Description |
-|---|---|
-| `light_condition_code` | Raw light condition code (1 = Day · 2–6 = Night/dusk) |
-| `is_dark` | 1 if light condition code > 1 |
-
-#### School proximity features
-
-| Column | Description |
-|---|---|
-| `dist_to_gate_m` | Distance in metres to the nearest school gate |
-| `near_school_400m` | 1 if crash is within 400m of a school gate |
-
-#### OSM spatial features — per buffer radius (200m / 400m / 800m)
-
-These are merged from `spatial_features.csv`. Only present if `spatial_features.py` has been run.
-
-| Column pattern | Description |
-|---|---|
-| `walk_edges_{r}m` | Number of walkable path segments within radius |
-| `walk_length_{r}m` | Total length of walkable network (metres) |
-| `footpath_length_{r}m` | Length of dedicated footpaths only (metres) |
-| `footpath_pct_{r}m` | Footpaths as a percentage of total walkable network |
-| `road_count_{r}m` | Number of driveable road segments within radius |
-| `arterial_count_{r}m` | Number of arterial/trunk road segments |
-| `arterial_pct_{r}m` | Arterial roads as a percentage of total road network |
-| `avg_speed_{r}m` | Average posted speed limit across road segments (km/h) |
-| `high_speed_road_{r}m` | Number of road segments with speed limit ≥ 60 km/h |
-| `crossings_{r}m` | Number of OSM-tagged pedestrian crossings |
-| `signals_{r}m` | Number of OSM-tagged traffic signals |
-| `crossing_density_{r}m` | Crossings per kilometre of walkable path |
-| `cycle_length_{r}m` | Total length of OSM bikeable network within radius (metres) |
-| `protected_cycle_length_{r}m` | Length of dedicated cycleways and physically separated tracks (metres) |
-| `cycle_pct_{r}m` | Cycling network as a percentage of the walkable network |
-
-> **Note on nulls:** `signals_200m` is null for ~84% of crashes because most school gates have no traffic signals within 200m. `avg_speed_200m` and `high_speed_road_200m` are null for ~20% where OSM road data is incomplete. Treat nulls as informative — impute with 0 or median before training.
-
-#### CYS score feature
-
-| Column | Description |
-|---|---|
-| `cys_score` | Cycling Safety Score (0–10) averaged per school, joined from `school_data.csv` if the CYS column is present, otherwise NaN |
-
----
-
-*300,000 Streets of Melbourne — Regen Melbourne x RMIT University*
+*300,000 Streets of Melbourne — Regen Melbourne × RMIT University*
