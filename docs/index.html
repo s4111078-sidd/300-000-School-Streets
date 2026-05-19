@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>300,000 Streets — School Safety Dashboard</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-gray-50 text-gray-700 font-sans">
+
+  <!-- ── NAVBAR ──────────────────────────────────────────────── -->
+  <nav id="navbar" class="sticky top-0 z-50 w-full" style="background:#1A1A1A;">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+
+      <a href="#" class="text-white font-bold text-lg tracking-tight">
+        300,000 Streets
+      </a>
+
+      <!-- Desktop nav -->
+      <ul class="hidden md:flex gap-6 text-sm text-white">
+        <li><a href="#map-section"             class="nav-link">Map</a></li>
+        <li><a href="#schools-section"         class="nav-link">Schools</a></li>
+        <li><a href="#analysis-section"        class="nav-link">Analysis</a></li>
+        <li><a href="#recommendations-section" class="nav-link">Recommendations</a></li>
+      </ul>
+
+      <!-- Hamburger (mobile) -->
+      <button id="hamburger" class="md:hidden text-white focus:outline-none" aria-label="Menu">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path id="ham-open"   stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16"/>
+          <path id="ham-close" class="hidden" stroke-linecap="round" stroke-linejoin="round"
+                stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile dropdown -->
+    <div id="mobile-menu" class="hidden md:hidden px-4 pb-3 flex flex-col gap-3 text-sm text-white border-t border-gray-700">
+      <a href="#map-section"             class="nav-link py-1">Map</a>
+      <a href="#schools-section"         class="nav-link py-1">Schools</a>
+      <a href="#analysis-section"        class="nav-link py-1">Analysis</a>
+      <a href="#recommendations-section" class="nav-link py-1">Recommendations</a>
+    </div>
+  </nav>
+
+  <!-- ── ERROR BANNER (hidden by default) ─────────────────── -->
+  <div id="error-banner" class="hidden bg-red-100 border border-red-300 text-red-800 rounded mx-4 mt-4 p-4 text-sm">
+    <strong>Failed to load dashboard data.</strong>
+    <span id="error-msg"></span>
+    <p class="mt-1 text-xs">Make sure you have run <code>python prepare_data.py</code> and are serving the dashboard
+      from a local server (not opening as file://).</p>
+  </div>
+
+  <!-- ── LOADING STATE ────────────────────────────────────── -->
+  <div id="loading" class="flex items-center justify-center py-20 text-gray-500 text-sm">
+    Loading dashboard data…
+  </div>
+
+  <!-- ── MAIN CONTENT (hidden until data loads) ────────────── -->
+  <main id="main-content" class="hidden">
+
+    <!-- ── SECTION 1 — MAP ──────────────────────────────────── -->
+    <section id="map-section" class="w-full">
+      <div id="map"></div>
+    </section>
+
+    <!-- ── SECTION 2 — SCHOOLS ──────────────────────────────── -->
+    <section id="schools-section" class="max-w-7xl mx-auto px-4 py-12">
+      <h2 class="section-heading">School Assessments</h2>
+      <p class="section-sub">
+        Healthy Streets framework — 10 indicators, 0–10 scale.
+        Minimum acceptable score: <strong>6.0</strong>
+      </p>
+
+      <!-- Tab buttons -->
+      <div id="school-tabs" class="flex gap-2 mt-6 overflow-x-auto pb-1"></div>
+
+      <!-- Tab content -->
+      <div id="school-content" class="mt-4"></div>
+    </section>
+
+    <!-- ── SECTION 3 — ANALYSIS ─────────────────────────────── -->
+    <section id="analysis-section" class="bg-white py-12">
+      <div class="max-w-7xl mx-auto px-4">
+        <h2 class="section-heading">Data Analysis</h2>
+
+        <!-- 3a: Chart images -->
+        <h3 class="subsection-heading mt-8">Healthy Streets Indicator Charts</h3>
+        <div id="hs-charts" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4"></div>
+
+        <!-- 3b: ML results -->
+        <h3 class="subsection-heading mt-12">
+          Which indicators can be predicted from open data?
+        </h3>
+        <p class="text-sm text-gray-500 mt-1">
+          Ridge regression trained on OSM, EPA air quality, and Crime Statistics data.
+          Evaluated using Leave-One-Out Cross-Validation (n=3 schools).
+        </p>
+        <div class="mt-6 card p-6">
+          <canvas id="ml-chart" height="320"></canvas>
+          <div class="ml-legend mt-4 flex flex-wrap gap-4 text-xs text-gray-600">
+            <span class="flex items-center gap-1">
+              <span class="inline-block w-3 h-3 rounded-sm" style="background:#1E8449"></span>
+              Can automate (MAE &lt; 1.5)
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="inline-block w-3 h-3 rounded-sm" style="background:#D35400"></span>
+              Partially automatable (MAE 1.5–3.0)
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="inline-block w-3 h-3 rounded-sm" style="background:#C0392B"></span>
+              Needs field survey (MAE &gt; 3.0)
+            </span>
+          </div>
+          <p class="text-xs text-gray-400 italic mt-3">
+            n=3 schools — results are illustrative.
+            Model accuracy will improve as more schools are added.
+          </p>
+        </div>
+
+        <!-- ML chart images -->
+        <div id="ml-chart-images" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6"></div>
+
+        <!-- 3c: SEIFA -->
+        <h3 class="subsection-heading mt-12">Socioeconomic Context</h3>
+        <p class="text-sm text-gray-500 mt-1">
+          ABS SEIFA 2021 — Index of Relative Socio-Economic Disadvantage.
+          Lower score = more disadvantaged.
+        </p>
+        <div id="seifa-cards" class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4"></div>
+
+        <!-- Key finding -->
+        <div class="mt-6 rounded-lg p-6 text-white text-sm leading-relaxed"
+             style="background:#1A1A1A;">
+          <strong class="block mb-1">Key finding:</strong>
+          The school catchments with the worst pedestrian safety conditions also serve communities
+          with above-average socioeconomic disadvantage. This strengthens the case for prioritised
+          infrastructure investment under the Regen Melbourne 300,000 Streets initiative.
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 4 — RECOMMENDATIONS ─────────────────────── -->
+    <section id="recommendations-section" class="max-w-7xl mx-auto px-4 py-12">
+      <h2 class="section-heading">Prioritised Interventions</h2>
+      <p class="section-sub">
+        Generated automatically from field observations. 17 rules applied per location.
+      </p>
+
+      <!-- Filters -->
+      <div class="flex flex-wrap items-center gap-3 mt-6">
+        <select id="filter-school" class="filter-select">
+          <option value="">All Schools</option>
+        </select>
+        <select id="filter-priority" class="filter-select">
+          <option value="">All Priorities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <span id="rec-count" class="text-sm text-gray-500 ml-1"></span>
+        <div class="ml-auto">
+          <button id="download-csv" class="btn-teal text-sm px-4 py-2 rounded">
+            Download CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Desktop table -->
+      <div class="hidden md:block mt-4 overflow-x-auto">
+        <table id="rec-table" class="rec-table w-full text-sm">
+          <thead>
+            <tr>
+              <th>School</th>
+              <th>Indicator</th>
+              <th>Hazard description</th>
+              <th>Recommended intervention</th>
+              <th>Priority</th>
+              <th>Cost estimate</th>
+              <th>Timeframe</th>
+            </tr>
+          </thead>
+          <tbody id="rec-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Mobile cards -->
+      <div id="rec-cards" class="md:hidden mt-4 space-y-3"></div>
+    </section>
+
+  </main>
+
+  <!-- ── FOOTER ──────────────────────────────────────────────── -->
+  <footer class="w-full py-8 text-center text-sm text-gray-300" style="background:#1A1A1A;">
+    <p class="font-semibold text-white">300,000 Streets of Melbourne</p>
+    <p class="mt-1">Regen Melbourne &times; RMIT University &times; City of Darebin</p>
+    <p class="mt-1">2026</p>
+    <p class="mt-3">
+      <a href="https://github.com/s4111078-sidd/300-000-School-Streets"
+         class="underline hover:text-white transition"
+         target="_blank" rel="noopener">
+        GitHub — s4111078-sidd/300-000-School-Streets
+      </a>
+    </p>
+  </footer>
+
+  <!-- ── LIGHTBOX ──────────────────────────────────────────────── -->
+  <div id="lightbox" role="dialog" aria-modal="true" aria-label="Chart enlarged view">
+    <button id="lightbox-close" aria-label="Close">&times;</button>
+    <img id="lightbox-img" src="" alt="" />
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- App -->
+  <script src="app.js"></script>
+</body>
+</html>

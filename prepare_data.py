@@ -1,5 +1,5 @@
 """
-prepare_data.py — build dashboard/data/data.json from pipeline outputs.
+prepare_data.py — build docs/data/data.json from pipeline outputs.
 
 Run this after python run_all.py to refresh the dashboard.
 """
@@ -16,7 +16,7 @@ import numpy as np
 # ── Paths ─────────────────────────────────────────────────────────────────────
 ROOT       = Path(__file__).parent
 OUTPUTS    = ROOT / 'outputs'
-DASH_DATA  = ROOT / 'dashboard' / 'data'
+DASH_DATA  = ROOT / 'docs' / 'data'
 CHARTS_DIR = DASH_DATA / 'charts'
 
 REQUIRED_FILES = {
@@ -242,7 +242,7 @@ def main():
     print(f'[OK] data.json written  -> {out_path}')
 
     copied, missing = copy_charts()
-    print(f'[OK] Charts copied      -> {len(copied)} files to dashboard/data/charts/')
+    print(f'[OK] Charts copied      -> {len(copied)} files to docs/data/charts/')
     if missing:
         print(f'[WARN] Charts not found -> {", ".join(missing)}')
 
@@ -255,9 +255,9 @@ def main():
             f"  overall={s['overall_score']}  recs={rec_count}"
         )
     print(f'  ML indicators evaluated: {len(ml_results)}')
-    print(f'  Charts in dashboard/data/charts/: {len(copied)}')
+    print(f'  Charts in docs/data/charts/: {len(copied)}')
     print('-' * 60)
-    print('Done. Open dashboard/index.html in a browser.')
+    print('Done. Open docs/index.html in a browser.')
     print('-' * 60)
 
 
