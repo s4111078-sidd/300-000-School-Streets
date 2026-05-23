@@ -68,6 +68,7 @@ Hazard severity is classified as **Major**, **Moderate**, or **Minor** based on 
 ├── equity_analysis.py           ← Step 8:  Equity overlay — SEIFA × HS safety scores
 ├── crash_trend_analysis.py      ← Step 9:  Crash trends, school-hours breakdown, time-of-day
 ├── demographics_chart.py        ← Step 10: ABS Census demographics chart
+├── scenario_analyzer.py         ← Scenario CLI: what-if intervention analysis
 │
 ├── src/                         ← Modular source code
 │   ├── scoring/                 ← HS1–HS10 scoring functions (one file per indicator)
@@ -76,6 +77,9 @@ Hazard severity is classified as **Major**, **Moderate**, or **Minor** based on 
 │   ├── data/                    ← Data loaders (CSV, crash downloader, OSM extractor)
 │   ├── recommendations/         ← Rule engine + 17 HS-based recommendation rules
 │   ├── ml/                      ← ML training, evaluation, prediction modules
+│   ├── scenarios/               ← What-if scenario engine
+│   │   ├── engine.py            ← Delta-method prediction engine
+│   │   └── interventions.py     ← 10 intervention templates with feature deltas
 │   ├── visualisation/           ← Charts, heatmap, interactive map, QGIS export
 │   └── utils/                   ← Geo helpers, IO utilities
 │
@@ -108,7 +112,10 @@ Hazard severity is classified as **Major**, **Moderate**, or **Minor** based on 
     ├── networks.gpkg                ← Walk/cycling/road network geometries
     ├── school_streets.gpkg          ← All GIS vector layers
     ├── school_streets.qgz           ← QGIS project file
-    └── hs_predictor.pkl             ← Trained Ridge regression model
+    ├── hs_predictor.pkl             ← Trained Ridge regression model
+    │
+    ├── scenario_<school>_<keys>.png      ← Before/after HS chart per scenario run
+    └── scenario_ranking_<school>.png     ← Intervention ranking chart (--rank-all)
 ```
 
 ---
@@ -143,6 +150,15 @@ python main.py
 ### Run only the new analysis steps
 ```bash
 python run_all.py --from 8
+```
+
+### Run what-if scenario analysis (requires steps 1–6 completed)
+```bash
+python scenario_analyzer.py --list                                              # list schools + interventions
+python scenario_analyzer.py --school "Preston HS" --interventions pedestrian_crossing
+python scenario_analyzer.py --school "Reservoir HS" --interventions footpath speed_reduction
+python scenario_analyzer.py --school "Preston HS" --rank-all                   # rank all 10 interventions
+python scenario_analyzer.py --all-schools --rank-all                           # all schools × all interventions
 ```
 
 ---
@@ -384,6 +400,74 @@ python demographics_chart.py
 
 ---
 
+## Scenario analysis — What-if interventions (`scenario_analyzer.py`)
+
+After running the full pipeline (steps 1–6), use `scenario_analyzer.py` to model the effect of physical street interventions on HS indicator scores and severity classification.
+
+```bash
+pip install scikit-learn pandas numpy matplotlib
+```
+
+### How it works
+
+The engine uses the **delta method**:
+
+```
+scenario_score[i] = actual_score[i] + (model(X_scenario)[i] − model(X_baseline)[i])
+```
+
+Actual HS scores are used as the baseline — matching ground truth exactly. The Ridge model contributes the predicted *change* only. Results are clamped to [0, 10] and severity is recomputed.
+
+### CLI examples
+
+```bash
+# List all available interventions
+python scenario_analyzer.py --list
+
+# Single intervention — saves before/after chart to outputs/
+python scenario_analyzer.py --school "Preston HS" --interventions pedestrian_crossing
+
+# Combine multiple interventions
+python scenario_analyzer.py --school "Reservoir HS" \
+    --interventions pedestrian_crossing speed_reduction footpath
+
+# Rank all 10 interventions by impact for one school
+python scenario_analyzer.py --school "Preston HS" --rank-all
+
+# Run across all schools
+python scenario_analyzer.py --all-schools --rank-all
+
+# Custom output path / suppress chart
+python scenario_analyzer.py --school "Preston HS" --interventions bike_lane \
+    --out outputs/my_scenario.png --no-chart
+```
+
+### Available interventions (10)
+
+| Key | Label | Cost | Timeframe | Target indicator |
+|---|---|---|---|---|
+| `pedestrian_crossing` | Install signalised pedestrian crossing | ~$80k–$200k | < 1 year | HS2 |
+| `bike_lane` | Install protected bike lane | ~$500k–$1.5M/km | 1–3 years | HS6 |
+| `speed_reduction` | Reduce speed limit to 40 km/h school zone | ~$5k–$20k | < 6 months | HS5 |
+| `traffic_calming` | Install traffic calming (speed humps / raised crossing) | ~$50k–$150k | < 1 year | HS9 |
+| `footpath` | Build / extend continuous footpath | ~$100k–$300k | < 1 year | HS1 |
+| `street_trees` | Plant street trees | ~$20k–$60k | < 1 year | HS3 |
+| `benches` | Add street benches / seating | ~$5k–$15k | < 6 months | HS4 |
+| `pt_stop` | Add / improve public transport stop | ~$50k–$200k | 1–2 years | HS6 |
+| `shelter` | Install covered shelter / bus shelter | ~$15k–$40k | < 6 months | HS3 |
+| `remove_arterial` | Reroute heavy vehicles / reduce arterial traffic | Council decision | 2–5 years | HS5 |
+
+### Outputs
+
+| File | Description |
+|---|---|
+| `outputs/scenario_<school>_<keys>.png` | 2-panel chart: before/after HS bars + delta bars |
+| `outputs/scenario_ranking_<school>.png` | Intervention ranking chart (--rank-all mode) |
+
+> **Note on rank-all results:** The Ridge model was trained on n=3 schools. Severity changes in rank-all mode may reflect model noise for some interventions. Focus on **ΔHS overall** for comparison across interventions.
+
+---
+
 ## Updating the data
 
 1. Edit `school_data.csv` with new field observations.
@@ -407,6 +491,7 @@ python demographics_chart.py
 | `equity_analysis.py` | `pandas`, `numpy`, `matplotlib` |
 | `crash_trend_analysis.py` | `pandas`, `numpy`, `matplotlib` |
 | `demographics_chart.py` | `pandas`, `matplotlib` |
+| `scenario_analyzer.py` | `scikit-learn`, `pandas`, `numpy`, `matplotlib` |
 
 ```bash
 pip install -r requirements.txt

@@ -20,6 +20,7 @@ This system combines field observation data, open government crash records, Open
 - Equity analysis linking disadvantage to safety outcomes
 - Crash trend analysis (2021–2025) with school-hours breakdown
 - ABS Census 2021 demographic context per catchment
+- What-if scenario engine — models the effect of physical interventions on HS scores and severity
 - GIS layers for council planning workflows (QGIS-ready)
 
 The system is designed as a reproducible pipeline — all outputs regenerate from source data by re-running `python run_all.py`.
@@ -111,7 +112,27 @@ The system is designed as a reproducible pipeline — all outputs regenerate fro
 │                      │        │ share per suburb     │
 │  → hs_predictor.pkl  │        └──────────────────────┘
 │  → ML charts         │
-└──────────────────────┘
+└──────────┬───────────┘
+           │  hs_predictor.pkl
+           │  ml_school_features.csv
+           │  hs_scores.csv
+           ▼
+┌──────────────────────────────────────┐
+│         scenario_analyzer.py          │
+│         src/scenarios/               │
+│                                      │
+│  engine.py — delta method:           │
+│    actual_score + Δmodel prediction  │
+│                                      │
+│  interventions.py — 10 templates:    │
+│    pedestrian_crossing, bike_lane,   │
+│    speed_reduction, traffic_calming, │
+│    footpath, street_trees, benches,  │
+│    pt_stop, shelter, remove_arterial │
+│                                      │
+│  → scenario_<school>_<keys>.png      │
+│  → scenario_ranking_<school>.png     │
+└──────────────────────────────────────┘
 ```
 
 ---
@@ -148,6 +169,11 @@ src/
 │   ├── train.py     ← fit Ridge regression pipeline
 │   ├── evaluate.py  ← LOO-CV, MAE per indicator
 │   └── predict.py   ← score new schools from pkl model (stub — not yet implemented)
+│
+├── scenarios/
+│   ├── __init__.py        ← exports run_scenario, INTERVENTIONS, list_interventions
+│   ├── engine.py          ← run_scenario() — loads model, applies deltas, returns before/after dict
+│   └── interventions.py   ← INTERVENTIONS dict — 10 keys, each with label, deltas, cost, timeframe
 │
 ├── visualisation/
 │   ├── charts.py          ← static PNG charts (chart1–chart4)
@@ -296,6 +322,41 @@ Calls `src/visualisation/charts.plot_demographics()` using `demographics_darebin
 |---|---|
 | `chart4_demographics.png` | 4-panel bar: median income · no-car households · PT mode share · full-time work rate |
 
+### `scenario_analyzer.py` — What-if scenario analysis (post-pipeline)
+
+Standalone CLI for modelling the effect of physical street interventions. **Prerequisite:** steps 1–6 must have been run (needs `hs_predictor.pkl`, `ml_school_features.csv`, `hs_scores.csv`).
+
+| Item | Detail |
+|---|---|
+| Inputs | `hs_predictor.pkl` · `ml_school_features.csv` · `hs_scores.csv` |
+| Method | Delta method — `actual_score + (model(X_scenario) − model(X_baseline))` |
+| Baseline | Actual HS scores (ground truth) — model provides the delta only |
+| Clamp | All scenario scores clamped to [0, 10] |
+| Severity | `src.scoring.severity.compute_severity()` applied to both baseline and scenario |
+| CLI flags | `--list` · `--school` · `--interventions` · `--rank-all` · `--all-schools` · `--no-chart` · `--out` |
+
+**Interventions and feature deltas:**
+
+| Key | Feature changed | Delta | Cost |
+|---|---|---|---|
+| `pedestrian_crossing` | `crossings_400m`, `signals_400m`, `crossing_density_400m` | +1, +1, +0.15 | ~$80k–$200k |
+| `bike_lane` | `cycle_pct_400m`, `protected_cycle_length_400m` | +12%, +200m | ~$500k–$1.5M/km |
+| `speed_reduction` | `avg_speed_400m`, `avg_speed_zone` | −10 km/h | ~$5k–$20k |
+| `traffic_calming` | `avg_speed_400m`, `crash_count`, `serious_or_fatal_rate` | −5 km/h, −2, −0.10 | ~$50k–$150k |
+| `footpath` | `footpath_pct_200m`, `footpath_pct_400m`, `walk_length_400m` | +10%, +10%, +500m | ~$100k–$300k |
+| `street_trees` | `tree_count_100m`, `green_pct_400m` | +12, +5% | ~$20k–$60k |
+| `benches` | `bench_count_200m` | +6 | ~$5k–$15k |
+| `pt_stop` | `pt_stops_400m` | +1 | ~$50k–$200k |
+| `shelter` | `shelter_count_200m` | +2 | ~$15k–$40k |
+| `remove_arterial` | `arterial_pct_400m`, `high_speed_road_400m`, `avg_speed_400m` | −10%, −3, −5 km/h | Council |
+
+**Outputs:**
+
+| File | Description |
+|---|---|
+| `outputs/scenario_<school>_<keys>.png` | 2-panel: horizontal before/after HS bars (left) + delta bars (right) |
+| `outputs/scenario_ranking_<school>.png` | Intervention ranking chart sorted by ΔHS overall |
+
 ---
 
 ## 5. Healthy Streets Scoring Framework
@@ -394,11 +455,15 @@ Peak crash hour across Darebin LGA: **17:00** (school pickup).
 
 | Priority | Enhancement |
 |---|---|
-| High | Build `scenario_engine.py` — load `hs_predictor.pkl`, modify a feature value (e.g. `cycle_pct_400m`), call `pipe.predict()`, show before/after HS scores and severity change |
-| High | Add 2+ more schools to strengthen ML generalisability |
-| Medium | Run `spatial_features.py` for all Victorian government secondary schools — enables statewide HS prediction |
+| ~~Done~~ | ~~Build scenario engine~~ — `scenario_analyzer.py` + `src/scenarios/` delivered |
+| High | **Web UI / Dashboard** — school selector, intervention checkboxes, before/after chart in browser; custom intervention builder for non-technical collaborators |
+| High | **Scale to all Darebin schools** — ~30+ schools; more training data → better ML generalisability (n=3 is the core weakness) |
+| High | Add 2+ more schools to strengthen ML (same pipeline, just add to `config.py` + `school_data.csv`) |
+| Medium | **Safe Routes to School** — network analysis using `networks.gpkg` + `osmnx` routing; map safest walking/cycling paths from residential catchments |
+| Medium | Run `spatial_features.py` for all Victorian government secondary schools — enables statewide HS prediction from open data |
+| Medium | **Before/after validation** — re-run analysis after a physical intervention is built; compare predicted ΔHS vs actual ΔHS |
 | Medium | Expand field observations to more gate locations per school |
-| Medium | Add Safe Routes to School map using `networks.gpkg` and `osmnx` routing |
+| Low | **Cost-benefit analysis engine** — map HS improvement to health outcomes (ABS/AIHW coefficients); gives councils a dollar-figure ROI per intervention |
 | Low | Deploy interactive map as a hosted web app for council access |
 | Low | Automate quarterly re-run on new crash data releases |
 | Low | Sentiment analysis on community feedback (surveys, Engage Victoria) using VADER or DistilBERT |
@@ -424,6 +489,12 @@ python demographics_chart.py     # Step 10 — ABS Census demographics chart
 
 # Re-run only analysis steps (data already downloaded):
 python run_all.py --from 8
+
+# What-if scenario analysis (after steps 1–6 complete):
+python scenario_analyzer.py --list
+python scenario_analyzer.py --school "Preston HS" --interventions pedestrian_crossing
+python scenario_analyzer.py --school "Preston HS" --rank-all
+python scenario_analyzer.py --all-schools --rank-all
 ```
 
 ---
