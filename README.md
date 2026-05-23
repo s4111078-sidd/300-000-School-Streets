@@ -9,7 +9,7 @@ A pedestrian and cyclist safety assessment tool for walking routes around second
 | School | Address | Suburb | Gate coordinates |
 |---|---|---|---|
 | Reservoir High School | 855 Plenty Rd | Reservoir VIC 3073 | -37.7224, 145.0294 |
-| William Ruthven Secondary College | 60 Merrilands Rd | Thornbury VIC 3071 | -37.69654, 145.00299 |
+| William Ruthven Secondary College | 60 Merrilands Rd | Reservoir VIC 3073 | -37.69654, 145.00299 |
 | Preston High School | 2-16 Cooma St | Preston VIC 3072 | -37.7417, 145.0071 |
 
 ---
@@ -31,17 +31,19 @@ Each school gate is scored across **10 Healthy Streets indicators** (0 = worst, 
 | **HS9** | People feel relaxed | Field observation — traffic calming, school zone signage, parking |
 | **HS10** | Clean air | EPA Victoria AirWatch — PM2.5 annual average (μg/m³) |
 
-Hazard severity is classified as **Major**, **Moderate**, or **Minor** based on rule thresholds applied to HS1, HS2, HS5, and HS9.
+Hazard severity is classified as **Major**, **Moderate**, or **Minor** based on rule thresholds applied to HS1, HS2, HS5, and the count of indicators below 6.0.
 
 ### Current scores
 
 | School | HS1 | HS2 | HS3 | HS4 | HS5 | HS6 | HS7 | HS8 | HS9 | HS10 | Overall | Severity |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Reservoir HS | 4.2 | 5.7 | 5.0 | 6.0 | 5.0 | 6.0 | 8.0 | 6.8 | 5.2 | 9.0 | 6.1 | Minor |
-| William Ruthven SC | 9.5 | 6.8 | 3.0 | 3.3 | 10.0 | 4.2 | 7.5 | 4.3 | 8.0 | 10.0 | 6.7 | Minor |
+| Reservoir HS | 4.2 | 5.7 | 5.0 | 6.0 | 5.0 | 6.0 | 8.0 | 6.8 | 5.2 | 9.0 | 6.1 | **Moderate** |
+| William Ruthven SC | 9.5 | 6.8 | 3.0 | 3.3 | 10.0 | 4.2 | 7.5 | 4.3 | 8.0 | 10.0 | 6.7 | **Moderate** |
 | Preston HS | 9.1 | 0.4 | 5.0 | 8.0 | 7.0 | 7.8 | 8.0 | 10.0 | 7.6 | 9.0 | 7.2 | **Major** |
 
-Preston HS is flagged **Major** due to HS2 = 0.4 — no formal pedestrian crossing adjacent to the school gate.
+- **Preston HS** is flagged **Major** due to HS2 = 0.4 — no formal pedestrian crossing adjacent to the school gate.
+- **Reservoir HS** is flagged **Moderate** — 5 indicators below 6.0 (HS1, HS2, HS3, HS5, HS9).
+- **William Ruthven SC** is flagged **Moderate** — 4 indicators below 6.0 (HS3, HS4, HS6, HS8).
 
 ---
 
@@ -53,15 +55,19 @@ Preston HS is flagged **Major** due to HS2 = 0.4 — no formal pedestrian crossi
 ├── demographics_darebin.csv     ← ABS Census 2021 demographic data
 ├── requirements.txt             ← Python dependencies
 │
-├── run_all.py                   ← Master runner — runs all 7 steps in order
-├── main.py                      ← Step 4: HS scoring, charts, maps, recommendations
-├── crash_analysis.py            ← Step 1: Download Victorian ped/cyc crash data
-├── spatial_features.py          ← Step 2: OSM features per school (HS3/HS4/HS6/HS8)
-├── environmental_features.py    ← Step 3: AQI (HS10) + crime rate (HS7)
-├── feature_engineering.py       ← Step 5: School-level ML feature matrix
-├── ml_model.py                  ← Step 6: Predict HS scores from open data (Ridge + LOO-CV)
-├── seifa_analysis.py            ← Step 7: SEIFA 2021 disadvantage analysis
+├── run_all.py                   ← Master runner — runs all 10 steps in order
 ├── config.py                    ← Shared constants (paths, school gates, HS indicators)
+│
+│── crash_analysis.py            ← Step 1:  Download Victorian ped/cyc crash data
+├── spatial_features.py          ← Step 2:  OSM features per school (HS3/HS4/HS6/HS8)
+├── environmental_features.py    ← Step 3:  AQI (HS10) + crime rate (HS7)
+├── main.py                      ← Step 4:  HS scoring, charts, maps, recommendations
+├── feature_engineering.py       ← Step 5:  School-level ML feature matrix
+├── ml_model.py                  ← Step 6:  Predict HS scores from open data (Ridge + LOO-CV)
+├── seifa_analysis.py            ← Step 7:  SEIFA 2021 disadvantage analysis
+├── equity_analysis.py           ← Step 8:  Equity overlay — SEIFA × HS safety scores
+├── crash_trend_analysis.py      ← Step 9:  Crash trends, school-hours breakdown, time-of-day
+├── demographics_chart.py        ← Step 10: ABS Census demographics chart
 │
 ├── src/                         ← Modular source code
 │   ├── scoring/                 ← HS1–HS10 scoring functions (one file per indicator)
@@ -74,7 +80,7 @@ Preston HS is flagged **Major** due to HS2 = 0.4 — no formal pedestrian crossi
 │   └── utils/                   ← Geo helpers, IO utilities
 │
 └── outputs/
-    ├── crash_data_statewide.csv     ← 7,773 Victorian ped/cyc crashes
+    ├── crash_data_statewide.csv     ← 7,948 Victorian ped/cyc crashes (2021–2025)
     ├── crash_data_darebin.csv       ← Darebin subset within 400m of school gates
     ├── spatial_features.csv         ← OSM features per school at 200m/400m/800m
     ├── environmental_features.csv   ← AQI + crime rate per school
@@ -83,21 +89,22 @@ Preston HS is flagged **Major** due to HS2 = 0.4 — no formal pedestrian crossi
     ├── ml_predictions.csv           ← LOO-CV predicted vs actual HS scores
     ├── recommendations.csv          ← HS-aligned intervention recommendations
     ├── seifa_darebin.csv            ← SEIFA disadvantage index by school catchment
+    ├── seifa_darebin_sa1.csv        ← SA1-level SEIFA breakdown
     │
-    ├── chart1_hs_radar.png          ← 10-indicator radar chart (all schools)
-    ├── chart2_hs_scores.png         ← Per-indicator bar comparison
-    ├── chart3_hs_breakdown.png      ← Per-school indicator breakdown
+    ├── chart1_safety_scores.png     ← Grouped bar: HS sub-scores per school
+    ├── chart2_hazard_severity.png   ← Stacked bar: Major/Moderate/Minor counts
+    ├── chart3_score_breakdown.png   ← Per-school HS indicator breakdown panels
+    ├── chart4_demographics.png      ← ABS Census 2021: income, car ownership, travel mode
     ├── chart_hs_correlation.png     ← Feature × indicator Pearson correlation heatmap
     ├── chart_hs_prediction.png      ← LOO-CV actual vs predicted HS scores
     ├── chart_feature_importance.png ← Ridge regression coefficients per HS indicator
+    ├── chart_equity_seifa.png       ← Equity analysis: SEIFA disadvantage × HS scores
+    ├── chart_crash_trends.png       ← Crash trends 2021–2025 + time-of-day distribution
     ├── heatmap.png                  ← Static crash heatmap
     ├── map_interactive.html         ← Interactive map (open in browser)
     ├── map_heatmap.html             ← Interactive heatmap with crash markers
     │
     ├── kde_heatmap.tif              ← KDE raster (GeoTIFF, EPSG:7855)
-    ├── map_Preston_HS.png           ← Per-school static map exports
-    ├── map_Reservoir_HS.png
-    ├── map_William_Ruthven_SC.png
     ├── networks.gpkg                ← Walk/cycling/road network geometries
     ├── school_streets.gpkg          ← All GIS vector layers
     ├── school_streets.qgz           ← QGIS project file
@@ -112,22 +119,30 @@ Preston HS is flagged **Major** due to HS2 = 0.4 — no formal pedestrian crossi
 ```bash
 python run_all.py
 ```
-Skips steps whose outputs already exist. Use `--force` to re-run everything from scratch, or `--from 4` to start from a specific step.
+Skips steps whose outputs already exist. Use `--force` to re-run everything from scratch, or `--from 8` to run only the new analysis steps.
 
 ### Step by step
 ```bash
-python crash_analysis.py           # Step 1 — crash data
-python spatial_features.py         # Step 2 — OSM features (takes ~5 min)
-python environmental_features.py   # Step 3 — AQI + crime
-python main.py                     # Step 4 — HS scores, charts, maps, recommendations
-python feature_engineering.py      # Step 5 — ML feature matrix
-python ml_model.py                 # Step 6 — HS score prediction model
-python seifa_analysis.py           # Step 7 — SEIFA disadvantage analysis
+python crash_analysis.py           # Step 1  — crash data (requires internet)
+python spatial_features.py         # Step 2  — OSM features (~3–5 min per school)
+python environmental_features.py   # Step 3  — AQI + crime
+python main.py                     # Step 4  — HS scores, charts, maps, recommendations
+python feature_engineering.py      # Step 5  — ML feature matrix
+python ml_model.py                 # Step 6  — HS score prediction model
+python seifa_analysis.py           # Step 7  — SEIFA disadvantage analysis
+python equity_analysis.py          # Step 8  — Equity overlay (SEIFA × HS scores)
+python crash_trend_analysis.py     # Step 9  — Crash trend analysis
+python demographics_chart.py       # Step 10 — ABS Census demographics chart
 ```
 
 ### Quick re-run (scores + charts only, after data is downloaded)
 ```bash
 python main.py
+```
+
+### Run only the new analysis steps
+```bash
+python run_all.py --from 8
 ```
 
 ---
@@ -145,10 +160,10 @@ python crash_analysis.py
 
 | File | Description |
 |---|---|
-| `outputs/crash_data_statewide.csv` | 7,773 Victorian ped/cyc crashes with `nearest_school` and `dist_to_gate_m` |
+| `outputs/crash_data_statewide.csv` | 7,948 Victorian ped/cyc crashes with `nearest_school` and `dist_to_gate_m` |
 | `outputs/crash_data_darebin.csv` | Darebin subset within 400m of the 3 school gates |
 
-Key columns: `ACCIDENT_NO`, `ACCIDENT_DATE`, `SEVERITY`, `SPEED_ZONE`, `LATITUDE`, `LONGITUDE`, `nearest_school`, `dist_to_gate_m`.
+Key columns: `ACCIDENT_NO`, `ACCIDENT_DATE`, `ACCIDENT_TIME`, `SEVERITY`, `SPEED_ZONE`, `LATITUDE`, `LONGITUDE`, `nearest_school`, `dist_to_gate_m`.
 
 ---
 
@@ -207,11 +222,11 @@ python main.py
 
 | File | Description |
 |---|---|
-| `chart1_hs_radar.png` | 10-indicator radar chart overlaying all 3 schools |
-| `chart2_hs_scores.png` | Per-indicator bar comparison across schools |
-| `chart3_hs_breakdown.png` | Per-school breakdown of all 10 indicators |
+| `chart1_safety_scores.png` | Grouped bar: HS sub-scores (FAS/CSS/EEI/CIS/CYS) per school |
+| `chart2_hazard_severity.png` | Stacked bar: Major/Moderate/Minor hazard counts per school |
+| `chart3_score_breakdown.png` | Per-school breakdown panels for all 10 HS indicators |
 | `heatmap.png` | Static crash density heatmap |
-| `map_interactive.html` | Interactive map — HS scores in popup, crash overlay, network layers |
+| `map_interactive.html` | Interactive map — HS scores, crash overlay, network layers |
 | `map_heatmap.html` | Interactive KDE heatmap |
 | `recommendations.csv` | Rule-based interventions per indicator with priority, cost, and timeframe |
 | `hs_scores.csv` | HS1–HS10 scores per school — used by `feature_engineering.py` |
@@ -305,6 +320,68 @@ python seifa_analysis.py
 | `seifa_darebin.csv` | SEIFA score per school catchment |
 | `seifa_darebin_sa1.csv` | SA1-level SEIFA breakdown |
 
+| School | IRSD Score | Decile | Disadvantage level |
+|---|---|---|---|
+| Reservoir HS | 975 | 4 | Moderate-high disadvantage |
+| William Ruthven SC | 975 | 4 | Moderate-high disadvantage |
+| Preston HS | 1010 | 6 | Moderate disadvantage |
+
+---
+
+## Step 8 — Equity analysis (`equity_analysis.py`)
+
+Joins SEIFA disadvantage data with Healthy Streets scores to reveal whether the most socioeconomically disadvantaged school catchments also have the worst pedestrian safety outcomes.
+
+```bash
+python equity_analysis.py
+```
+
+**Output:** `outputs/chart_equity_seifa.png` — 3-panel chart:
+1. Side-by-side bars: SEIFA decile vs HS overall per school
+2. Scatter plot: IRSD decile × HS overall with equity quadrant shading
+3. Full 10-indicator heatmap with SEIFA scores annotated
+
+**Key finding:** Correlation r = 0.84 between IRSD decile and HS overall — more disadvantaged catchments have worse safety scores. Reservoir HS (most disadvantaged, Decile 4) also has the lowest HS overall (6.1). This supports prioritised investment under the 300,000 Streets initiative.
+
+---
+
+## Step 9 — Crash trend analysis (`crash_trend_analysis.py`)
+
+Deep-dives into VicRoads crash data (2021–2025) to reveal year-on-year trends, school-hours patterns, and time-of-day distribution.
+
+```bash
+python crash_trend_analysis.py
+```
+
+**Output:** `outputs/chart_crash_trends.png` — 4-panel chart:
+1. Darebin LGA ped/cyc crashes by year (stacked by severity)
+2. Our 3 schools: crashes by year
+3. School-hours vs off-peak breakdown per school
+4. Time-of-day distribution (Darebin LGA)
+
+**Key findings:**
+- Darebin LGA crashes increasing: 25 (2021) → 73 (2024)
+- Peak crash hour: **17:00** (school pickup window)
+- Preston HS has the most crashes (15) within 400m of its gate
+- William Ruthven SC: 2 of 2 crashes occurred during school hours
+
+---
+
+## Step 10 — Demographics chart (`demographics_chart.py`)
+
+Generates suburb-level demographic context from ABS Census 2021, showing income, car ownership, and active travel mode share for Reservoir and Preston catchments.
+
+```bash
+python demographics_chart.py
+```
+
+**Output:** `outputs/chart4_demographics.png`
+
+| Suburb | Median income | No car households | PT to work | School-age children |
+|---|---|---|---|---|
+| Reservoir | $1,541/week | 11.1% | 7.7% | ~4,854 |
+| Preston | $1,844/week | 12.8% | 7.9% | ~3,278 |
+
 ---
 
 ## Updating the data
@@ -327,6 +404,9 @@ python seifa_analysis.py
 | `feature_engineering.py` | `pandas`, `numpy` |
 | `ml_model.py` | `scikit-learn`, `pandas`, `numpy`, `matplotlib`, `seaborn` |
 | `seifa_analysis.py` | `pandas`, `numpy`, `requests` |
+| `equity_analysis.py` | `pandas`, `numpy`, `matplotlib` |
+| `crash_trend_analysis.py` | `pandas`, `numpy`, `matplotlib` |
+| `demographics_chart.py` | `pandas`, `matplotlib` |
 
 ```bash
 pip install -r requirements.txt
@@ -344,6 +424,7 @@ pip install -r requirements.txt
 | Air quality (PM2.5) | EPA Victoria AirWatch — Alphington monitoring station (site 10102) |
 | Crime rate | Crime Statistics Agency Victoria — suburb-level offences per 100k |
 | Demographics | ABS Census 2021 — `demographics_darebin.csv` |
+| Socioeconomic disadvantage | ABS SEIFA 2021 — Index of Relative Socio-Economic Disadvantage (IRSD) |
 
 ---
 

@@ -216,6 +216,7 @@ def plot_demographics(demo_file: str, out_dir: str) -> str:
                     fontsize=10, fontweight='bold', color='#1A1A1A')
         ax.set_title(metric, fontsize=9, fontweight='bold', color='#1A1A1A', pad=8)
         ax.set_ylim(0, max(vals) * 1.3)
+        ax.set_xticks(range(len(suburbs)))
         ax.set_xticklabels(suburbs, fontsize=9, fontweight='bold')
         ax.yaxis.grid(True, color='#DDDDDD', linewidth=0.6)
         ax.set_axisbelow(True)

@@ -17,6 +17,9 @@ This system combines field observation data, open government crash records, Open
 - Interactive maps and static charts for stakeholder communication
 - A trained Ridge regression model that predicts HS indicator scores from open data
 - SEIFA socio-economic disadvantage analysis for school catchments
+- Equity analysis linking disadvantage to safety outcomes
+- Crash trend analysis (2021–2025) with school-hours breakdown
+- ABS Census 2021 demographic context per catchment
 - GIS layers for council planning workflows (QGIS-ready)
 
 The system is designed as a reproducible pipeline — all outputs regenerate from source data by re-running `python run_all.py`.
@@ -26,14 +29,16 @@ The system is designed as a reproducible pipeline — all outputs regenerate fro
 ## 2. Data Flow Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              DATA SOURCES                                    │
-│                                                                              │
-│  data.vic.gov.au        OpenStreetMap         EPA Victoria   CSA Victoria   │
-│  (crash records +       (walk / bike /        AirWatch       crime rate     │
-│   DET school gates)      road networks +      PM2.5 AQI      per suburb     │
-│                          amenities/trees)                                    │
-└──────┬──────────────────────────┬──────────────────┬──────────────┬─────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              DATA SOURCES                                     │
+│                                                                               │
+│  data.vic.gov.au        OpenStreetMap         EPA Victoria   CSA Victoria    │
+│  (crash records +       (walk / bike /        AirWatch       crime rate      │
+│   DET school gates)      road networks +      PM2.5 AQI      per suburb      │
+│                          amenities/trees)                                     │
+│                                                  ABS SEIFA 2021              │
+│                                                  ABS Census 2021             │
+└──────┬──────────────────────────┬──────────────────┬──────────────┬──────────┘
        │                          │                  │              │
        ▼                          ▼                  ▼              ▼
 ┌─────────────┐    ┌──────────────────────┐    ┌──────────────────────────┐
@@ -50,20 +55,20 @@ The system is designed as a reproducible pipeline — all outputs regenerate fro
 └──────┬───────┘               │                            │
        │                       │                            │
        ▼                       ▼                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                          outputs/                                │
-│  crash_data_statewide.csv  (7,773 crashes)                      │
-│  crash_data_darebin.csv    (400m Darebin subset)                │
-│  spatial_features.csv      (53 cols × 3 schools)               │
-│  environmental_features.csv (AQI + crime per school)           │
-│  networks.gpkg              (walk/cycling/road geometries)      │
-└──────┬───────────────────────────────────┬──────────────────────┘
-       │                                   │
-       │       school_data.csv             │
-       │       (field observations)        │
-       │               │                   │
-       │               ▼                   │
-       │    ┌───────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────────────┐
+│                          outputs/                                  │
+│  crash_data_statewide.csv  (7,948 crashes, 2021–2025)            │
+│  crash_data_darebin.csv    (400m Darebin subset)                 │
+│  spatial_features.csv      (53 cols × 3 schools)                │
+│  environmental_features.csv (AQI + crime per school)            │
+│  networks.gpkg              (walk/cycling/road geometries)       │
+└──────┬────────────────────────────────┬─────────────────────────┘
+       │                                │
+       │       school_data.csv          │
+       │       (field observations)     │
+       │               │                │
+       │               ▼                │
+       │    ┌──────────────────────────────────────────┐
        │    │   main.py  +  src/                        │
        │    │                                           │
        │    │  src/scoring/hs1.py … hs10.py             │
@@ -74,35 +79,39 @@ The system is designed as a reproducible pipeline — all outputs regenerate fro
        │    │                                           │
        │    │  → hs_scores.csv                          │
        │    │  → recommendations.csv                    │
-       │    │  → chart1_hs_radar.png                    │
-       │    │  → chart2_hs_scores.png                   │
-       │    │  → chart3_hs_breakdown.png                │
+       │    │  → chart1_safety_scores.png               │
+       │    │  → chart2_hazard_severity.png             │
+       │    │  → chart3_score_breakdown.png             │
        │    │  → map_interactive.html                   │
+       │    │  → map_heatmap.html                       │
        │    └──────────┬────────────────────────────────┘
        │               │
-       └───────────────┼──────────────────────────┐
-                       │                          │
-                       ▼                          ▼
-            ┌──────────────────────┐   ┌──────────────────────┐
-            │ feature_engineering  │   │   seifa_analysis.py  │
-            │       .py            │   │                      │
-            │                      │   │  ABS SEIFA 2021      │
-            │ X: 26 open-data      │   │  Darebin school      │
-            │    features          │   │  catchment analysis  │
-            │ Y: HS1–HS10 scores   │   │                      │
-            └──────────┬───────────┘   └──────────────────────┘
-                       │
-                       ▼
-            ┌──────────────────────┐
-            │    ml_model.py       │
-            │                      │
-            │  Ridge regression    │
-            │  (multi-output)      │
-            │  LOO-CV, n=3 schools │
-            │                      │
-            │  Predicts HS1–HS10   │
-            │  from open data      │
-            └──────────────────────┘
+       └───────────────┼───────────────────────────────────────┐
+                       │                                       │
+           ┌───────────┴──────────┐              ┌────────────┴───────────┐
+           │                      │              │                        │
+           ▼                      ▼              ▼                        ▼
+┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│feature_engineering│  │ seifa_analysis   │  │ equity_analysis  │  │crash_trend       │
+│      .py         │  │     .py          │  │     .py          │  │_analysis.py      │
+│                  │  │                  │  │                  │  │                  │
+│ X: 26 open-data  │  │ ABS SEIFA 2021   │  │ Joins SEIFA +    │  │ Year trends      │
+│    features      │  │ Darebin school   │  │ hs_scores.csv    │  │ School-hours vs  │
+│ Y: HS1–HS10      │  │ catchment IRSD   │  │ 3-panel equity   │  │ off-peak         │
+│    scores        │  │ disadvantage     │  │ chart            │  │ Time-of-day dist │
+└────────┬─────────┘  └──────────────────┘  └──────────────────┘  └──────────────────┘
+         │
+         ▼
+┌──────────────────────┐        ┌──────────────────────┐
+│    ml_model.py       │        │  demographics_chart  │
+│                      │        │       .py            │
+│  Ridge regression    │        │                      │
+│  (multi-output)      │        │ ABS Census 2021      │
+│  LOO-CV, n=3 schools │        │ income / car / mode  │
+│                      │        │ share per suburb     │
+│  → hs_predictor.pkl  │        └──────────────────────┘
+│  → ML charts         │
+└──────────────────────┘
 ```
 
 ---
@@ -127,7 +136,9 @@ src/
 ├── data/
 │   ├── loader.py             ← load_school_data() — CSV clean + rename
 │   ├── crash_downloader.py   ← VicRoads crash API helpers
-│   └── osm_extractor.py      ← OSM / Overpass API helpers
+│   ├── osm_extractor.py      ← OSM / Overpass API helpers
+│   ├── epa_fetcher.py        ← EPA AirWatch PM2.5 fetcher
+│   └── crime_fetcher.py      ← Crime Statistics Agency Victoria fetcher
 │
 ├── recommendations/
 │   ├── engine.py    ← run_recommendations() — applies all rules to df
@@ -136,10 +147,10 @@ src/
 ├── ml/
 │   ├── train.py     ← fit Ridge regression pipeline
 │   ├── evaluate.py  ← LOO-CV, MAE per indicator
-│   └── predict.py   ← score new schools from pkl model
+│   └── predict.py   ← score new schools from pkl model (stub — not yet implemented)
 │
 ├── visualisation/
-│   ├── charts.py          ← static PNG charts
+│   ├── charts.py          ← static PNG charts (chart1–chart4)
 │   ├── heatmap.py         ← KDE heatmap (folium + scipy)
 │   ├── interactive_map.py ← folium hazard + crash + network map
 │   └── qgis_export.py     ← QGIS layer styling helpers
@@ -156,12 +167,13 @@ All shared constants (school gates, HS indicator list, column rename map) live i
 ## 4. Pipeline Components
 
 ### `run_all.py` — Master runner
-Runs all 7 steps in order. Skips steps whose outputs already exist.
+Runs all 10 steps in order. Skips steps whose outputs already exist.
 
 ```bash
 python run_all.py              # run all, skip existing
 python run_all.py --force      # force re-run everything
 python run_all.py --from 4     # start from step 4
+python run_all.py --from 8     # run only the analysis steps (8–10)
 ```
 
 ### `crash_analysis.py` — Step 1
@@ -173,7 +185,7 @@ Downloads Victorian road crash data and assigns each crash to its nearest school
 | Filter | Pedestrian or cyclist involvement · last 5 years · Victoria only |
 | School gates | DET school-locations-time-series API · falls back to 3 hardcoded Darebin gates |
 | Proximity method | Vectorised haversine |
-| Outputs | `crash_data_statewide.csv` (7,773 crashes) · `crash_data_darebin.csv` (400m Darebin subset) |
+| Outputs | `crash_data_statewide.csv` (7,948 crashes) · `crash_data_darebin.csv` (400m Darebin subset) |
 
 ### `spatial_features.py` — Step 2
 Queries OpenStreetMap for each assessed school at three buffer radii and computes 53 spatial features.
@@ -219,6 +231,14 @@ Orchestrates HS scoring, chart generation, recommendations, and map output.
 | HS9 | calming + school_zone + parking + lanes + FP_condition | 10 |
 | HS10 | AQI PM2.5 → base score − arterial_pct penalty | 10 |
 
+**Severity classification:**
+
+| Level | Threshold |
+|---|---|
+| **Major** | HS2 < 3.0 OR HS1 < 3.0 OR HS5 < 2.0 |
+| **Moderate** | 2+ indicators below 6.0 OR HS_overall < 5.0 |
+| **Minor** | All other cases |
+
 ### `feature_engineering.py` — Step 5
 
 | Item | Detail |
@@ -237,6 +257,7 @@ Orchestrates HS scoring, chart generation, recommendations, and map output.
 | Mean LOO-CV MAE | 2.88 |
 | Best predicted | HS7 (MAE 0.54) · HS10 (MAE 0.92) |
 | Hardest to predict | HS8 (MAE 4.72) · HS2 (MAE 4.51) |
+| Scenario readiness | Change a feature value (e.g. `cycle_pct_400m`) and call `pipe.predict()` — no retraining needed |
 | Outputs | `ml_predictions.csv` · `hs_predictor.pkl` · 3 ML charts |
 
 ### `seifa_analysis.py` — Step 7
@@ -244,8 +265,36 @@ Maps ABS SEIFA 2021 disadvantage scores onto Darebin school catchment areas.
 
 | Output | Description |
 |---|---|
-| `seifa_darebin.csv` | SEIFA score per school catchment |
+| `seifa_darebin.csv` | Weighted IRSD score and decile per school catchment |
 | `seifa_darebin_sa1.csv` | SA1-level SEIFA breakdown |
+
+### `equity_analysis.py` — Step 8
+Joins `seifa_darebin.csv` with `hs_scores.csv` and visualises the relationship between socioeconomic disadvantage and pedestrian safety.
+
+| Output | Description |
+|---|---|
+| `chart_equity_seifa.png` | 3-panel: decile vs HS bars · scatter with equity quadrant · 10-indicator heatmap |
+
+**Key finding:** Pearson r = 0.84 between IRSD decile and HS overall — more disadvantaged catchments have worse safety scores (Reservoir HS: Decile 4, HS 6.1 vs Preston HS: Decile 6, HS 7.2).
+
+### `crash_trend_analysis.py` — Step 9
+Deep-dives into the statewide crash dataset, filtering for Darebin LGA and the 3 assessed schools.
+
+| Output | Description |
+|---|---|
+| `chart_crash_trends.png` | 4-panel: LGA year trend · per-school year trend · school-hours vs off-peak · time-of-day |
+
+**Key findings:**
+- Darebin LGA ped/cyc crashes rose from 25 (2021) to 73 (2024)
+- Peak crash hour: 17:00 (school pickup)
+- Preston HS has 15 crashes within 400m — the highest of the 3 schools
+
+### `demographics_chart.py` — Step 10
+Calls `src/visualisation/charts.plot_demographics()` using `demographics_darebin.csv` (ABS Census 2021).
+
+| Output | Description |
+|---|---|
+| `chart4_demographics.png` | 4-panel bar: median income · no-car households · PT mode share · full-time work rate |
 
 ---
 
@@ -268,8 +317,8 @@ Maps ABS SEIFA 2021 disadvantage scores onto Darebin school catchment areas.
 
 | School | HS1 | HS2 | HS3 | HS4 | HS5 | HS6 | HS7 | HS8 | HS9 | HS10 | Overall | Severity |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Reservoir HS | 4.2 | 5.7 | 5.0 | 6.0 | 5.0 | 6.0 | 8.0 | 6.8 | 5.2 | 9.0 | 6.1 | Minor |
-| William Ruthven SC | 9.5 | 6.8 | 3.0 | 3.3 | 10.0 | 4.2 | 7.5 | 4.3 | 8.0 | 10.0 | 6.7 | Minor |
+| Reservoir HS | 4.2 | 5.7 | 5.0 | 6.0 | 5.0 | 6.0 | 8.0 | 6.8 | 5.2 | 9.0 | 6.1 | **Moderate** |
+| William Ruthven SC | 9.5 | 6.8 | 3.0 | 3.3 | 10.0 | 4.2 | 7.5 | 4.3 | 8.0 | 10.0 | 6.7 | **Moderate** |
 | Preston HS | 9.1 | 0.4 | 5.0 | 8.0 | 7.0 | 7.8 | 8.0 | 10.0 | 7.6 | 9.0 | 7.2 | **Major** |
 
 ---
@@ -293,7 +342,39 @@ Maps ABS SEIFA 2021 disadvantage scores onto Darebin school catchment areas.
 
 ---
 
-## 7. Key Design Decisions
+## 7. Equity Analysis Results
+
+| School | IRSD Decile | HS Overall | Disadvantage Level |
+|---|---|---|---|
+| Reservoir HS | 4 (most disadvantaged) | 6.1 (lowest) | Moderate-high |
+| William Ruthven SC | 4 | 6.7 | Moderate-high |
+| Preston HS | 6 (least disadvantaged) | 7.2 (highest) | Moderate |
+
+**Pearson r = 0.84** — more disadvantaged catchments have worse pedestrian safety outcomes. Reservoir HS, which serves the most disadvantaged catchment in this study, also has the most indicators below 6.0 (HS1, HS2, HS3, HS5, HS9). This is the core policy finding for the Regen Melbourne 300,000 Streets initiative.
+
+---
+
+## 8. Crash Analysis Results (2021–2025)
+
+| Year | Darebin LGA ped/cyc crashes |
+|---|---|
+| 2021 | 25 |
+| 2022 | 53 |
+| 2023 | 59 |
+| 2024 | 73 |
+| 2025 (partial) | 40 |
+
+| School | Total crashes (400m) | During school hours |
+|---|---|---|
+| Preston HS | 15 | 4 (27%) |
+| Reservoir HS | 4 | 0 |
+| William Ruthven SC | 2 | 2 (100%) |
+
+Peak crash hour across Darebin LGA: **17:00** (school pickup).
+
+---
+
+## 9. Key Design Decisions
 
 | Decision | Rationale |
 |---|---|
@@ -305,40 +386,49 @@ Maps ABS SEIFA 2021 disadvantage scores onto Darebin school catchment areas.
 | EPSG:7855 for metric operations | GDA2020 / MGA zone 55 — Victorian standard, sub-metre accuracy for buffers in Melbourne |
 | `config.py` as single source of truth | All paths, school gates, HS indicator list in one place — any script can import rather than hardcode |
 | `run_all.py` master runner | New team members run one command; skip logic means OSM queries don't re-run unnecessarily |
+| Separate equity / crash / demographics scripts | Keeps analytical modules independent and re-runnable; `--from 8` allows fast re-analysis without re-downloading data |
 
 ---
 
-## 8. Future Work
+## 10. Future Work
 
 | Priority | Enhancement |
 |---|---|
-| High | Build `scenario_engine.py` — select an intervention → model predicts resulting HS score changes |
+| High | Build `scenario_engine.py` — load `hs_predictor.pkl`, modify a feature value (e.g. `cycle_pct_400m`), call `pipe.predict()`, show before/after HS scores and severity change |
 | High | Add 2+ more schools to strengthen ML generalisability |
-| Medium | Run `spatial_features.py` for all Victorian government secondary schools — enables statewide prediction |
+| Medium | Run `spatial_features.py` for all Victorian government secondary schools — enables statewide HS prediction |
 | Medium | Expand field observations to more gate locations per school |
+| Medium | Add Safe Routes to School map using `networks.gpkg` and `osmnx` routing |
 | Low | Deploy interactive map as a hosted web app for council access |
 | Low | Automate quarterly re-run on new crash data releases |
+| Low | Sentiment analysis on community feedback (surveys, Engage Victoria) using VADER or DistilBERT |
 
 ---
 
-## 9. Run Order
+## 11. Run Order
 
 ```bash
-python run_all.py           # recommended — runs all 7 steps, skips existing outputs
+python run_all.py           # recommended — runs all 10 steps, skips existing outputs
 
 # or step by step:
-python crash_analysis.py        # Step 1
-python spatial_features.py      # Step 2
-python environmental_features.py # Step 3
-python main.py                  # Step 4
-python feature_engineering.py   # Step 5
-python ml_model.py              # Step 6
-python seifa_analysis.py        # Step 7
+python crash_analysis.py         # Step 1  — crash data (internet required)
+python spatial_features.py       # Step 2  — OSM features (~5 min per school)
+python environmental_features.py # Step 3  — AQI + crime
+python main.py                   # Step 4  — HS scoring, charts, maps, recommendations
+python feature_engineering.py    # Step 5  — ML feature matrix
+python ml_model.py               # Step 6  — Ridge regression + LOO-CV
+python seifa_analysis.py         # Step 7  — SEIFA disadvantage analysis
+python equity_analysis.py        # Step 8  — Equity overlay (SEIFA × HS scores)
+python crash_trend_analysis.py   # Step 9  — Crash trends + school-hours analysis
+python demographics_chart.py     # Step 10 — ABS Census demographics chart
+
+# Re-run only analysis steps (data already downloaded):
+python run_all.py --from 8
 ```
 
 ---
 
-## 10. Dependencies
+## 12. Dependencies
 
 | Script | Key packages |
 |---|---|
@@ -349,6 +439,9 @@ python seifa_analysis.py        # Step 7
 | `feature_engineering.py` | `pandas`, `numpy` |
 | `ml_model.py` | `scikit-learn`, `pandas`, `numpy`, `matplotlib`, `seaborn` |
 | `seifa_analysis.py` | `pandas`, `numpy`, `requests` |
+| `equity_analysis.py` | `pandas`, `numpy`, `matplotlib` |
+| `crash_trend_analysis.py` | `pandas`, `numpy`, `matplotlib` |
+| `demographics_chart.py` | `pandas`, `matplotlib` |
 
 ```bash
 pip install -r requirements.txt
