@@ -139,7 +139,7 @@ INTERVENTIONS = {
             'high_speed_road_400m': -3,
             'avg_speed_400m'      : -5.0,
         },
-        'cost'      : 'High  (network-level, council decision)',
+        'cost'      : 'High  (network-level, long-lead approval)',
         'timeframe' : '2–5 years',
         'hs_target' : 'HS5',
     },

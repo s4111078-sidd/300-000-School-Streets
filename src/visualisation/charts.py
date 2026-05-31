@@ -224,7 +224,7 @@ def plot_demographics(demo_file: str, out_dir: str) -> str:
         ax.spines['right'].set_visible(False)
         ax.set_facecolor('#FAFAFA')
 
-    fig.suptitle('Suburb Demographics — City of Darebin  (ABS Census 2021)',
+    fig.suptitle('Suburb Demographics — Darebin  (ABS Census 2021)',
                  fontsize=13, fontweight='bold', y=1.02)
     plt.figtext(0.99, 0.01, '300,000 Streets  |  Source: ABS Census 2021',
                 ha='right', fontsize=7, color='#888888')

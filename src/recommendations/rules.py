@@ -223,7 +223,7 @@ def rule_16_low_hs7_safety(row) -> Optional[dict]:
         return {
             'hs_indicator'  : 'HS7',
             'hazard'        : f'Low personal safety score (HS7 {float(hs7):.1f}/10)',
-            'recommendation': 'Improve street lighting, increase passive surveillance with activated frontages, engage council on CPTED principles',
+            'recommendation': 'Improve street lighting, increase passive surveillance with activated frontages, apply CPTED principles',
             'priority'      : 'High',
             'cost'          : 'Medium — $20,000 to $200,000',
             'timeframe'     : 'Short-term — within 1 year',

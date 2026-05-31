@@ -3,7 +3,7 @@
 
 **Project:** 300,000 Streets of Melbourne — School Streets POC
 **Partners:** Regen Melbourne × RMIT University
-**Scope:** Healthy Streets assessment for secondary school walking routes, City of Darebin, Victoria
+**Scope:** Healthy Streets assessment for secondary school walking routes, Darebin, Victoria
 **Framework:** Healthy Streets (Lucy Saunders / Transport for London) — 10 indicators, 0–10 per indicator
 
 ---
@@ -21,7 +21,8 @@ This system combines field observation data, open government crash records, Open
 - Crash trend analysis (2021–2025) with school-hours breakdown
 - ABS Census 2021 demographic context per catchment
 - What-if scenario engine — models the effect of physical interventions on HS scores and severity
-- GIS layers for council planning workflows (QGIS-ready)
+- Interactive web dashboard (GitHub Pages) — map, school tabs, scenario explorer, analysis charts, recommendations table
+- GIS layers for planning workflows (QGIS-ready)
 
 The system is designed as a reproducible pipeline — all outputs regenerate from source data by re-running `python run_all.py`.
 
@@ -132,6 +133,42 @@ The system is designed as a reproducible pipeline — all outputs regenerate fro
 │                                      │
 │  → scenario_<school>_<keys>.png      │
 │  → scenario_ranking_<school>.png     │
+└──────────┬───────────────────────────┘
+           │  (all pipeline outputs)
+           ▼
+┌──────────────────────────────────────┐
+│           prepare_data.py             │
+│                                      │
+│  Reads: hs_scores.csv,               │
+│    recommendations.csv,              │
+│    ml_predictions.csv,               │
+│    seifa_darebin.csv,                │
+│    hs_predictor.pkl (scenarios)      │
+│                                      │
+│  Pre-computes 30 scenarios           │
+│  (10 interventions × 3 schools)      │
+│                                      │
+│  → docs/data/data.json               │
+│  → docs/data/charts/*.png (9 files)  │
+└──────────┬───────────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────────┐
+│      docs/  — Web Dashboard           │
+│      (GitHub Pages, static)          │
+│                                      │
+│  index.html  — 7-section layout      │
+│  app.js      — Chart.js + Leaflet    │
+│  style.css   — Tailwind + custom     │
+│                                      │
+│  Sections:                           │
+│  · Hero — live stats strip           │
+│  · Map — Leaflet school markers      │
+│  · School Assessments — radar + bars │
+│  · Scenario Analysis — before/after  │
+│  · Data Analysis — all 9 charts      │
+│  · Recommendations — filter + CSV    │
+│  · About — framework explainer       │
 └──────────────────────────────────────┘
 ```
 
@@ -348,7 +385,7 @@ Standalone CLI for modelling the effect of physical street interventions. **Prer
 | `benches` | `bench_count_200m` | +6 | ~$5k–$15k |
 | `pt_stop` | `pt_stops_400m` | +1 | ~$50k–$200k |
 | `shelter` | `shelter_count_200m` | +2 | ~$15k–$40k |
-| `remove_arterial` | `arterial_pct_400m`, `high_speed_road_400m`, `avg_speed_400m` | −10%, −3, −5 km/h | Council |
+| `remove_arterial` | `arterial_pct_400m`, `high_speed_road_400m`, `avg_speed_400m` | −10%, −3, −5 km/h | High / long-lead |
 
 **Outputs:**
 
@@ -356,6 +393,46 @@ Standalone CLI for modelling the effect of physical street interventions. **Prer
 |---|---|
 | `outputs/scenario_<school>_<keys>.png` | 2-panel: horizontal before/after HS bars (left) + delta bars (right) |
 | `outputs/scenario_ranking_<school>.png` | Intervention ranking chart sorted by ΔHS overall |
+
+### `prepare_data.py` — Dashboard data builder
+
+Bundles all pipeline CSV outputs into a single `docs/data/data.json` file and copies chart images into `docs/data/charts/`. Must be run after any pipeline step that changes outputs.
+
+| Item | Detail |
+|---|---|
+| Inputs | `hs_scores.csv` · `recommendations.csv` · `ml_predictions.csv` · `seifa_darebin.csv` · `hs_predictor.pkl` · `config.py` |
+| Scenario pre-computation | Calls `src.scenarios.engine.run_scenario()` — 10 interventions × 3 schools = 30 results embedded in `data.json` |
+| Hero stats | Schools assessed · major hazards · Darebin crash count · equity r · peak crash hour |
+| Charts copied | 9 PNGs from `outputs/` → `docs/data/charts/` |
+| Output | `docs/data/data.json` (schools, ML, scenarios, stats, chart refs) |
+
+```bash
+python prepare_data.py    # run after python run_all.py
+```
+
+### `docs/` — Web dashboard (GitHub Pages)
+
+Static single-page dashboard. Loads `data.json` on page open — no backend, no Python runtime required.
+
+| File | Role |
+|---|---|
+| `docs/index.html` | 7-section HTML layout with Tailwind CSS |
+| `docs/app.js` | Chart.js + Leaflet — all rendering logic (~600 lines) |
+| `docs/style.css` | Custom styles (hero, scenario pills, indicator bars, about table) |
+| `docs/data/data.json` | Generated — all data the dashboard needs |
+| `docs/data/charts/*.png` | Generated — 9 chart images |
+
+**Dashboard sections:**
+
+| Section | Key component |
+|---|---|
+| Hero | 5-stat strip (schools, hazards, crashes, equity r, peak hour) — from `data.stats` |
+| Map | Leaflet markers coloured by severity; red pulse animation for Major; popup → school tab |
+| School Assessments | Per-school tab: Chart.js radar + HS indicator progress bars + key hazard |
+| Scenario Analysis | School tabs + intervention pills → instant before/after grouped bar chart; 30 pre-computed results |
+| Data Analysis | 3 HS charts + ML MAE bar chart + SEIFA cards + equity / crash / demographics chart images |
+| Recommendations | Filterable table by school + priority; CSV download |
+| About | Healthy Streets framework overview + 10-indicator table + severity classification rules |
 
 ---
 
@@ -451,26 +528,7 @@ Peak crash hour across Darebin LGA: **17:00** (school pickup).
 
 ---
 
-## 10. Future Work
-
-| Priority | Enhancement |
-|---|---|
-| ~~Done~~ | ~~Build scenario engine~~ — `scenario_analyzer.py` + `src/scenarios/` delivered |
-| High | **Web UI / Dashboard** — school selector, intervention checkboxes, before/after chart in browser; custom intervention builder for non-technical collaborators |
-| High | **Scale to all Darebin schools** — ~30+ schools; more training data → better ML generalisability (n=3 is the core weakness) |
-| High | Add 2+ more schools to strengthen ML (same pipeline, just add to `config.py` + `school_data.csv`) |
-| Medium | **Safe Routes to School** — network analysis using `networks.gpkg` + `osmnx` routing; map safest walking/cycling paths from residential catchments |
-| Medium | Run `spatial_features.py` for all Victorian government secondary schools — enables statewide HS prediction from open data |
-| Medium | **Before/after validation** — re-run analysis after a physical intervention is built; compare predicted ΔHS vs actual ΔHS |
-| Medium | Expand field observations to more gate locations per school |
-| Low | **Cost-benefit analysis engine** — map HS improvement to health outcomes (ABS/AIHW coefficients); gives councils a dollar-figure ROI per intervention |
-| Low | Deploy interactive map as a hosted web app for council access |
-| Low | Automate quarterly re-run on new crash data releases |
-| Low | Sentiment analysis on community feedback (surveys, Engage Victoria) using VADER or DistilBERT |
-
----
-
-## 11. Run Order
+## 10. Run Order
 
 ```bash
 python run_all.py           # recommended — runs all 10 steps, skips existing outputs
@@ -495,11 +553,15 @@ python scenario_analyzer.py --list
 python scenario_analyzer.py --school "Preston HS" --interventions pedestrian_crossing
 python scenario_analyzer.py --school "Preston HS" --rank-all
 python scenario_analyzer.py --all-schools --rank-all
+
+# Web dashboard (after full pipeline):
+python prepare_data.py                     # bundle outputs → docs/data/data.json + copy charts
+cd docs && python -m http.server 8080      # serve locally at http://localhost:8080
 ```
 
 ---
 
-## 12. Dependencies
+## 11. Dependencies
 
 | Script | Key packages |
 |---|---|

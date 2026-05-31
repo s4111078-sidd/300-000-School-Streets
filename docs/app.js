@@ -1,15 +1,15 @@
 /* ── 300,000 Streets — Dashboard app ──────────────────────── */
 
 const HS_NAMES = {
-  HS1: 'Pedestrians',
-  HS2: 'Easy to cross',
-  HS3: 'Shade and shelter',
-  HS4: 'Rest places',
-  HS5: 'Not too noisy',
-  HS6: 'Active travel',
-  HS7: 'Feel safe',
-  HS8: 'Things to do',
-  HS9: 'Feel relaxed',
+  HS1:  'Pedestrians',
+  HS2:  'Easy to cross',
+  HS3:  'Shade & shelter',
+  HS4:  'Rest places',
+  HS5:  'Not too noisy',
+  HS6:  'Active travel',
+  HS7:  'Feel safe',
+  HS8:  'Things to do',
+  HS9:  'Feel relaxed',
   HS10: 'Clean air',
 };
 const HS_CODES = Object.keys(HS_NAMES);
@@ -51,8 +51,10 @@ fetch('./data/data.json')
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('main-content').classList.remove('hidden');
     initNavbar();
+    initHero(data);
     initMap(data.schools);
     initSchools(data.schools);
+    initScenario(data);
     initAnalysis(data);
     initRecommendations(data.schools);
   })
@@ -85,6 +87,47 @@ function initNavbar() {
   });
 }
 
+// ── HERO ──────────────────────────────────────────────────────
+function initHero(data) {
+  const stats = data.stats || {};
+  const el    = document.getElementById('hero-stats');
+
+  const items = [
+    {
+      value: stats.schools_assessed ?? 3,
+      label: 'schools assessed',
+    },
+    {
+      value: stats.major_hazards ?? 1,
+      label: 'major hazard' + ((stats.major_hazards ?? 1) !== 1 ? 's' : ''),
+      color: '#C0392B',
+    },
+    {
+      value: stats.crash_darebin ? `${stats.crash_darebin}+` : '250+',
+      label: 'Darebin crashes (2021–25)',
+    },
+    {
+      value: `r = ${stats.equity_r ?? 0.84}`,
+      label: 'equity–safety correlation',
+      color: '#028090',
+    },
+    {
+      value: stats.peak_crash_hour ?? '17:00',
+      label: 'peak crash hour',
+      color: '#D35400',
+    },
+  ];
+
+  el.innerHTML = items.map(item => `
+    <div class="hero-stat-card">
+      <div class="hero-stat-value" style="${item.color ? `color:${item.color}` : ''}">
+        ${item.value}
+      </div>
+      <div class="hero-stat-label">${item.label}</div>
+    </div>
+  `).join('');
+}
+
 // ── MAP ────────────────────────────────────────────────────────
 function initMap(schools) {
   const map = L.map('map').setView([-37.72, 145.01], 13);
@@ -108,8 +151,8 @@ function initMap(schools) {
         : `<div style="width:16px;height:16px;border-radius:50%;
                background:${color};border:2px solid #fff;
                box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`,
-      iconSize: isPulsing ? [18, 18] : [16, 16],
-      iconAnchor: isPulsing ? [9, 9] : [8, 8],
+      iconSize:   isPulsing ? [18, 18] : [16, 16],
+      iconAnchor: isPulsing ? [9, 9]   : [8, 8],
     });
 
     const badgeHtml = `<span class="${severityClass(school.severity)}">${school.severity}</span>`;
@@ -282,7 +325,7 @@ function drawRadar(school, idx) {
           max: 10,
           ticks: { stepSize: 2, font: { size: 9 }, color: '#999' },
           pointLabels: { font: { size: 9 }, color: '#555' },
-          grid:  { color: '#EEEEEE' },
+          grid:       { color: '#EEEEEE' },
           angleLines: { color: '#DDDDDD' },
         },
       },
@@ -296,12 +339,185 @@ function drawRadar(school, idx) {
   });
 }
 
+// ── SCENARIO SECTION ──────────────────────────────────────────
+function initScenario(data) {
+  const scenarios = data.scenarios;
+  const schools   = data.schools;
+
+  if (!scenarios || Object.keys(scenarios).length === 0) {
+    document.getElementById('scenario-section').innerHTML = `
+      <div class="max-w-7xl mx-auto px-4 py-12">
+        <h2 class="section-heading">What-if Scenario Analysis</h2>
+        <p class="section-sub mt-2">
+          Run <code>python prepare_data.py</code> after the full pipeline to enable scenarios.
+        </p>
+      </div>`;
+    return;
+  }
+
+  const tabsEl = document.getElementById('scenario-tabs');
+  let activeSchool = schools[0].short_name;
+  let scenarioChart = null;
+
+  // School tabs
+  schools.forEach((school, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'school-tab' + (i === 0 ? ' active' : '');
+    btn.textContent = school.short_name;
+    btn.addEventListener('click', () => {
+      tabsEl.querySelectorAll('.school-tab').forEach((b, j) =>
+        b.classList.toggle('active', j === i)
+      );
+      activeSchool = school.short_name;
+      renderInterventionGrid(activeSchool);
+      clearScenarioResult();
+    });
+    tabsEl.appendChild(btn);
+  });
+
+  renderInterventionGrid(activeSchool);
+  clearScenarioResult();
+
+  function renderInterventionGrid(schoolName) {
+    const grid         = document.getElementById('intervention-grid');
+    const schoolScenarios = scenarios[schoolName] || {};
+
+    grid.innerHTML = Object.entries(schoolScenarios).map(([key, s]) => {
+      const sign  = s.delta_overall >= 0 ? '+' : '';
+      const color = s.delta_overall > 0.05 ? '#1E8449' :
+                    s.delta_overall < -0.05 ? '#C0392B' : '#888';
+      return `
+        <button class="iv-pill" data-key="${key}"
+                onclick="selectIntervention('${key}', '${schoolName}')">
+          <span class="iv-name">${esc(s.label)}</span>
+          <span class="iv-badge">
+            <span style="color:${color};font-weight:700">
+              ${sign}${s.delta_overall.toFixed(2)}
+            </span>
+            &nbsp;·&nbsp;${esc(s.timeframe)}
+          </span>
+        </button>`;
+    }).join('');
+  }
+
+  window.selectIntervention = function(key, schoolName) {
+    document.querySelectorAll('.iv-pill').forEach(p =>
+      p.classList.toggle('active', p.dataset.key === key)
+    );
+    const s = (scenarios[schoolName] || {})[key];
+    if (s) renderScenarioResult(s, schoolName, scenarioChart, c => { scenarioChart = c; });
+  };
+
+  function clearScenarioResult() {
+    document.getElementById('scenario-result').classList.add('hidden');
+    document.getElementById('scenario-placeholder').classList.remove('hidden');
+    document.querySelectorAll('.iv-pill').forEach(p => p.classList.remove('active'));
+    if (scenarioChart) { scenarioChart.destroy(); scenarioChart = null; }
+  }
+}
+
+function renderScenarioResult(s, schoolName, existingChart, setChart) {
+  document.getElementById('scenario-placeholder').classList.add('hidden');
+  document.getElementById('scenario-result').classList.remove('hidden');
+
+  const sevSame   = s.baseline_severity === s.scenario_severity;
+  const sevHtml   = sevSame
+    ? `<span class="${severityClass(s.baseline_severity)}">${s.baseline_severity}</span>
+       <span class="text-gray-400 text-xs ml-1">(no change)</span>`
+    : `<span class="${severityClass(s.baseline_severity)}">${s.baseline_severity}</span>
+       <span class="text-gray-400 mx-1">→</span>
+       <span class="${severityClass(s.scenario_severity)}">${s.scenario_severity}</span>`;
+
+  const dSign  = s.delta_overall >= 0 ? '+' : '';
+  const dColor = s.delta_overall > 0.05 ? '#1E8449' :
+                 s.delta_overall < -0.05 ? '#C0392B' : '#888';
+
+  document.getElementById('scenario-meta').innerHTML = `
+    <div class="scenario-stat">
+      <div class="scenario-stat-label">HS Overall</div>
+      <div class="scenario-stat-val">
+        <span class="text-gray-500">${s.baseline_overall}</span>
+        <span class="text-gray-300 mx-1">→</span>
+        <strong>${s.scenario_overall}</strong>
+        <span style="color:${dColor};font-size:0.8rem;margin-left:4px">
+          (${dSign}${s.delta_overall})
+        </span>
+      </div>
+    </div>
+    <div class="scenario-stat">
+      <div class="scenario-stat-label">Severity</div>
+      <div class="scenario-stat-val">${sevHtml}</div>
+    </div>
+    <div class="scenario-stat">
+      <div class="scenario-stat-label">Cost</div>
+      <div class="scenario-stat-val text-sm">${esc(s.cost)}</div>
+    </div>
+    <div class="scenario-stat">
+      <div class="scenario-stat-label">Timeframe</div>
+      <div class="scenario-stat-val text-sm">${esc(s.timeframe)}</div>
+    </div>
+  `;
+
+  // Draw chart
+  const canvas = document.getElementById('scenario-chart');
+  if (existingChart) existingChart.destroy();
+
+  const baseline = HS_CODES.map(c => s.baseline[c] ?? 0);
+  const scenario = HS_CODES.map(c => s.scenario[c] ?? 0);
+
+  const newChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: HS_CODES.map(c => `${c}\n${HS_NAMES[c]}`),
+      datasets: [
+        {
+          label: 'Baseline',
+          data: baseline,
+          backgroundColor: 'rgba(150,150,150,0.45)',
+          borderRadius: 3,
+        },
+        {
+          label: 'After intervention',
+          data: scenario,
+          backgroundColor: scenario.map((v, i) =>
+            v > baseline[i] + 0.05 ? 'rgba(30,132,73,0.75)' :
+            v < baseline[i] - 0.05 ? 'rgba(192,57,43,0.75)' :
+            'rgba(2,128,144,0.5)'
+          ),
+          borderRadius: 3,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 12 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.raw).toFixed(2)}`,
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { font: { size: 10 }, maxRotation: 0 } },
+        y: {
+          min: 0, max: 10,
+          title: { display: true, text: 'HS Score (0–10)', font: { size: 11 } },
+          grid: { color: '#EEEEEE' },
+        },
+      },
+    },
+  });
+  setChart(newChart);
+}
+
 // ── ANALYSIS SECTION ──────────────────────────────────────────
 function initAnalysis(data) {
   buildHsCharts(data.charts);
   buildMlChart(data.ml_results);
   buildMlChartImages(data.charts);
   buildSeifaCards(data.schools);
+  buildExtraCharts(data.charts);
   initLightbox();
 }
 
@@ -312,16 +528,7 @@ function buildHsCharts(charts) {
     { file: charts.chart2, caption: charts.chart2_caption },
     { file: charts.chart3, caption: charts.chart3_caption },
   ];
-  el.innerHTML = items.map(item => `
-    <div class="chart-card">
-      <img src="./data/charts/${item.file}" alt="${item.caption}" loading="lazy"
-           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-      <div style="display:none;padding:1rem;font-size:0.8rem;color:#999">
-        Chart not found: ${item.file}
-      </div>
-      <div class="chart-caption">${item.caption}</div>
-    </div>
-  `).join('');
+  el.innerHTML = items.map(item => chartCardHtml(item.file, item.caption)).join('');
 }
 
 function buildMlChart(mlResults) {
@@ -349,9 +556,7 @@ function buildMlChart(mlResults) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          callbacks: {
-            label: ctx => ` MAE: ${ctx.raw.toFixed(3)}`,
-          },
+          callbacks: { label: ctx => ` MAE: ${ctx.raw.toFixed(3)}` },
         },
       },
       scales: {
@@ -378,18 +583,9 @@ function buildMlChartImages(charts) {
   const el = document.getElementById('ml-chart-images');
   const items = [
     { file: charts.prediction,         caption: 'LOO-CV predicted vs actual HS scores per school' },
-    { file: charts.feature_importance, caption: 'Ridge regression coefficients — top predictors per indicator' },
+    { file: charts.feature_importance, caption: 'Ridge coefficients — top predictors per HS indicator' },
   ];
-  el.innerHTML = items.map(item => `
-    <div class="chart-card">
-      <img src="./data/charts/${item.file}" alt="${item.caption}" loading="lazy"
-           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-      <div style="display:none;padding:1rem;font-size:0.8rem;color:#999">
-        Chart not found: ${item.file}
-      </div>
-      <div class="chart-caption">${item.caption}</div>
-    </div>
-  `).join('');
+  el.innerHTML = items.map(item => chartCardHtml(item.file, item.caption)).join('');
 }
 
 function buildSeifaCards(schools) {
@@ -402,7 +598,7 @@ function buildSeifaCards(schools) {
         <p class="text-xs text-gray-400 mt-1">SEIFA data not available</p>
       </div>`;
 
-    const decilePct = Math.min((s.irsd_decile / 10) * 100, 100).toFixed(0);
+    const decilePct  = Math.min((s.irsd_decile / 10) * 100, 100).toFixed(0);
     const decileColor =
       s.irsd_decile <= 3 ? '#C0392B' :
       s.irsd_decile <= 6 ? '#D35400' : '#1E8449';
@@ -413,7 +609,6 @@ function buildSeifaCards(schools) {
         <p class="text-xs text-gray-400">${s.suburb}</p>
         <div class="seifa-score mt-2">${s.irsd_score}</div>
         <p class="text-xs text-gray-400 mt-0.5">IRSD Score</p>
-
         <div class="mt-3">
           <div class="flex justify-between text-xs text-gray-500 mb-1">
             <span>Decile ${s.irsd_decile.toFixed(1)} / 10</span>
@@ -422,7 +617,6 @@ function buildSeifaCards(schools) {
             <div class="decile-bar-fill" style="width:${decilePct}%;background:${decileColor}"></div>
           </div>
         </div>
-
         <p class="text-xs mt-2 font-medium" style="color:${decileColor}">
           ${s.disadvantage_level}
         </p>
@@ -431,22 +625,37 @@ function buildSeifaCards(schools) {
   }).join('');
 }
 
+function buildExtraCharts(charts) {
+  const pairs = [
+    { id: 'equity-chart',       file: charts.equity,       caption: 'Equity analysis: SEIFA disadvantage × Healthy Streets scores (Pearson r = 0.84)' },
+    { id: 'crash-chart',        file: charts.crash_trends,  caption: 'Ped/cyc crash trends 2021–2025 — Darebin LGA year trend, school-hours breakdown, time-of-day' },
+    { id: 'demographics-chart', file: charts.demographics,  caption: 'ABS Census 2021 — median income, no-car households, PT mode share, Reservoir & Preston' },
+  ];
+  pairs.forEach(({ id, file, caption }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (!file) {
+      el.innerHTML = `<p class="text-sm text-gray-400 italic">
+        Chart not available — run <code>python prepare_data.py</code> to generate.</p>`;
+      return;
+    }
+    el.innerHTML = chartCardHtml(file, caption);
+  });
+}
+
 // ── LIGHTBOX ──────────────────────────────────────────────────
 function initLightbox() {
   const overlay  = document.getElementById('lightbox');
   const closeBtn = document.getElementById('lightbox-close');
 
-  // Inject hint text — images are in the DOM at this point because
-  // initLightbox() is called at the end of initAnalysis().
   document.querySelectorAll('.chart-card img').forEach(chartImg => {
     const hint = document.createElement('p');
     hint.className = 'chart-hint';
-    hint.textContent = '🔍 Click to enlarge';
+    hint.textContent = 'Click to enlarge';
     const caption = chartImg.closest('.chart-card').querySelector('.chart-caption');
     if (caption) caption.before(hint);
   });
 
-  // Event delegation — one listener on document covers all chart images.
   document.addEventListener('click', e => {
     if (!e.target.matches('.chart-card img')) return;
     const img = e.target;
@@ -454,32 +663,21 @@ function initLightbox() {
     openLightbox(img.src, img.alt);
   });
 
-  // Close on button click
   closeBtn.addEventListener('click', closeLightbox);
-
-  // Close on backdrop click (the overlay div itself, not the enlarged image)
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) closeLightbox();
-  });
-
-  // Close on Escape key
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeLightbox();
-  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeLightbox(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 }
 
 function openLightbox(src, alt) {
   const overlay = document.getElementById('lightbox');
-  const img     = document.getElementById('lightbox-img');
-  img.src = src;
-  img.alt = alt || '';
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox-img').alt = alt || '';
   overlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
 }
 
 function closeLightbox() {
-  const overlay = document.getElementById('lightbox');
-  overlay.classList.remove('is-open');
+  document.getElementById('lightbox').classList.remove('is-open');
   document.body.style.overflow = '';
 }
 
@@ -514,8 +712,7 @@ function renderRecs() {
   document.getElementById('rec-count').textContent =
     `Showing ${recs.length} of ${allRecs.length} recommendations`;
 
-  const tbody = document.getElementById('rec-tbody');
-  tbody.innerHTML = recs.map(r => `
+  document.getElementById('rec-tbody').innerHTML = recs.map(r => `
     <tr>
       <td>${esc(r.school)}</td>
       <td><strong>${esc(r.indicator)}</strong></td>
@@ -527,8 +724,7 @@ function renderRecs() {
     </tr>
   `).join('');
 
-  const cards = document.getElementById('rec-cards');
-  cards.innerHTML = recs.map(r => `
+  document.getElementById('rec-cards').innerHTML = recs.map(r => `
     <div class="rec-mobile-card">
       <div class="flex items-center gap-2 mb-1">
         <strong>${esc(r.school)}</strong>
@@ -538,28 +734,23 @@ function renderRecs() {
         <span class="${priorityClass(r.priority)}">${esc(r.priority)}</span>
       </div>
       <dl>
-        <dt>Hazard</dt>
-        <dd>${esc(r.hazard)}</dd>
-        <dt>Intervention</dt>
-        <dd>${esc(r.recommendation)}</dd>
-        <dt>Cost</dt>
-        <dd>${esc(r.cost)}</dd>
-        <dt>Timeframe</dt>
-        <dd>${esc(r.timeframe)}</dd>
+        <dt>Hazard</dt>      <dd>${esc(r.hazard)}</dd>
+        <dt>Intervention</dt><dd>${esc(r.recommendation)}</dd>
+        <dt>Cost</dt>        <dd>${esc(r.cost)}</dd>
+        <dt>Timeframe</dt>   <dd>${esc(r.timeframe)}</dd>
       </dl>
     </div>
   `).join('');
 }
 
 function downloadCsv() {
-  const recs = getFilteredRecs();
+  const recs    = getFilteredRecs();
   const headers = ['School', 'Indicator', 'Hazard', 'Recommendation', 'Priority', 'Cost', 'Timeframe'];
-  const rows = recs.map(r => [
-    r.school, r.indicator, r.hazard, r.recommendation,
-    r.priority, r.cost, r.timeframe,
-  ].map(csvCell).join(','));
-
-  const csv = [headers.join(','), ...rows].join('\r\n');
+  const rows    = recs.map(r =>
+    [r.school, r.indicator, r.hazard, r.recommendation, r.priority, r.cost, r.timeframe]
+      .map(csvCell).join(',')
+  );
+  const csv  = [headers.join(','), ...rows].join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -570,6 +761,19 @@ function downloadCsv() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────
+function chartCardHtml(file, caption) {
+  if (!file) return '';
+  return `
+    <div class="chart-card">
+      <img src="./data/charts/${file}" alt="${esc(caption)}" loading="lazy"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div style="display:none;padding:1rem;font-size:0.8rem;color:#999">
+        Chart not found: ${file}
+      </div>
+      <div class="chart-caption">${esc(caption)}</div>
+    </div>`;
+}
+
 function esc(str) {
   if (str == null) return '';
   return String(str)
