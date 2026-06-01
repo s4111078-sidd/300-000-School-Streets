@@ -212,6 +212,129 @@ def build_scenarios(schools):
     return scenarios
 
 
+def build_crash_geojson():
+    """Convert crash_data_darebin.csv to GeoJSON FeatureCollection."""
+    path = OUTPUTS / 'crash_data_darebin.csv'
+    if not path.exists():
+        return None
+    df = pd.read_csv(path)
+    sev_label = {1: 'Fatal', 2: 'Serious injury', 3: 'Other injury'}
+    features = []
+    for _, r in df.iterrows():
+        lat = r.get('LATITUDE')
+        lon = r.get('LONGITUDE')
+        if pd.isna(lat) or pd.isna(lon):
+            continue
+        sev = int(r['SEVERITY']) if pd.notna(r.get('SEVERITY')) else 3
+        features.append({
+            'type': 'Feature',
+            'geometry': {'type': 'Point', 'coordinates': [round(float(lon), 5), round(float(lat), 5)]},
+            'properties': {
+                'id':           str(r.get('ACCIDENT_NO', '')),
+                'date':         str(r.get('ACCIDENT_DATE', '')),
+                'time':         str(r.get('ACCIDENT_TIME', '')),
+                'severity':     sev,
+                'severity_label': sev_label.get(sev, 'Injury'),
+                'type':         str(r.get('ACCIDENT_TYPE_DESC', '')),
+                'speed_zone':   int(r['SPEED_ZONE']) if pd.notna(r.get('SPEED_ZONE')) and str(r.get('SPEED_ZONE')) != '999' else None,
+                'school':       str(r.get('nearest_school', '')),
+                'dist_m':       round(float(r['dist_to_gate_m']), 0) if pd.notna(r.get('dist_to_gate_m')) else None,
+                'killed':       int(r.get('NO_PERSONS_KILLED', 0)),
+                'injured_serious': int(r.get('NO_PERSONS_INJ_2', 0)),
+                'light':        str(r.get('LIGHT_CONDITION', '')),
+                'road_geometry': str(r.get('ROAD_GEOMETRY_DESC', '')),
+                'day':          str(r.get('DAY_WEEK_DESC', '')),
+            }
+        })
+    return {'type': 'FeatureCollection', 'features': features}
+
+
+def build_heatmap_points():
+    """Return [[lat, lon, intensity]] for Leaflet.heat using statewide crash data filtered to Darebin LGA."""
+    statewide = OUTPUTS / 'crash_data_statewide.csv'
+    if statewide.exists():
+        df = pd.read_csv(statewide, usecols=lambda c: c in [
+            'LATITUDE', 'LONGITUDE', 'SEVERITY', 'LGA_NAME'])
+        if 'LGA_NAME' in df.columns:
+            df = df[df['LGA_NAME'].str.upper().str.contains('DAREBIN', na=False)]
+        else:
+            # fallback: bounding box around Darebin
+            df = df[
+                df['LATITUDE'].between(-37.80, -37.66) &
+                df['LONGITUDE'].between(144.97, 145.08)
+            ]
+    else:
+        df = pd.read_csv(OUTPUTS / 'crash_data_darebin.csv', usecols=lambda c: c in [
+            'LATITUDE', 'LONGITUDE', 'SEVERITY'])
+    df = df.dropna(subset=['LATITUDE', 'LONGITUDE'])
+    points = []
+    for _, r in df.iterrows():
+        sev = int(r.get('SEVERITY', 3))
+        intensity = round((4 - sev) / 3.0, 2)   # fatal→1.0, serious→0.67, minor→0.33
+        points.append([round(float(r['LATITUDE']), 5), round(float(r['LONGITUDE']), 5), intensity])
+    return points
+
+
+def build_network_geojson():
+    """Read walk_400m and cycling_400m from networks.gpkg → GeoJSON."""
+    path = OUTPUTS / 'networks.gpkg'
+    if not path.exists():
+        return {'walk': None, 'cycling': None}
+    try:
+        import geopandas as gpd
+        result = {}
+        for layer_key, layer_name in [('walk', 'walk_400m'), ('cycling', 'cycling_400m')]:
+            try:
+                gdf = gpd.read_file(path, layer=layer_name, engine='pyogrio')
+                gdf = gdf.to_crs('EPSG:4326')
+                features = []
+                for _, row in gdf.iterrows():
+                    geom = row.geometry
+                    if geom is None or geom.is_empty:
+                        continue
+                    geom_json = geom.__geo_interface__
+                    # Round coordinates to 5dp to reduce file size
+                    def round_coords(coords):
+                        if isinstance(coords[0], (int, float)):
+                            return [round(coords[0], 5), round(coords[1], 5)]
+                        return [round_coords(c) for c in coords]
+                    geom_json['coordinates'] = round_coords(geom_json['coordinates'])
+                    features.append({
+                        'type': 'Feature',
+                        'geometry': geom_json,
+                        'properties': {
+                            'school': str(row.get('school_name', '')),
+                            'highway': str(row.get('highway', '')),
+                        }
+                    })
+                result[layer_key] = {'type': 'FeatureCollection', 'features': features}
+                print(f'[OK] {layer_name}: {len(features)} edges')
+            except Exception as e:
+                print(f'[WARN] Could not read {layer_name}: {e}')
+                result[layer_key] = None
+        return result
+    except ImportError:
+        print('[WARN] geopandas not available — skipping network GeoJSON')
+        return {'walk': None, 'cycling': None}
+
+
+def build_spatial_stats():
+    """Return per-school OSM feature counts for map tooltips."""
+    path = OUTPUTS / 'spatial_features.csv'
+    if not path.exists():
+        return {}
+    df = pd.read_csv(path)
+    result = {}
+    want = ['crossings_400m', 'signals_400m', 'tree_count_100m', 'shelter_count_200m',
+            'bench_count_200m', 'pt_stops_400m', 'cycle_pct_400m', 'footpath_pct_400m',
+            'green_pct_400m', 'arterial_pct_400m']
+    for _, row in df.iterrows():
+        school = str(row.get('school_name', row.get('school_short', '')))
+        result[school] = {col: round(float(row[col]), 1) if col in row.index and pd.notna(row[col]) else None
+                          for col in want}
+    return result
+
+
 def build_stats(schools):
     """Build summary stats for the hero banner."""
     major_count = sum(1 for s in schools if s['severity'] == 'Major')
@@ -279,12 +402,24 @@ def main():
         total = sum(len(v) for v in scenarios.values())
         print(f'[OK] Scenarios computed     -> {total} results')
 
+    print('[..] Building map layers (crashes, networks, heatmap)...')
+    crash_geojson    = build_crash_geojson()
+    heatmap_points   = build_heatmap_points()
+    networks         = build_network_geojson()
+    spatial_stats    = build_spatial_stats()
+    print(f'[OK] Crash points: {len(crash_geojson["features"]) if crash_geojson else 0}')
+    print(f'[OK] Heatmap points: {len(heatmap_points)}')
+
     data = {
-        'generated_at': datetime.utcnow().isoformat() + 'Z',
-        'stats':        stats,
-        'schools':      schools,
-        'ml_results':   ml_results,
-        'scenarios':    scenarios,
+        'generated_at':   datetime.utcnow().isoformat() + 'Z',
+        'stats':          stats,
+        'schools':        schools,
+        'ml_results':     ml_results,
+        'scenarios':      scenarios,
+        'crash_geojson':  crash_geojson,
+        'heatmap_points': heatmap_points,
+        'networks':       networks,
+        'spatial_stats':  spatial_stats,
         'charts': {
             'chart1':             'chart1_safety_scores.png',
             'chart1_caption':     'Safety scores — all 3 schools across 10 HS indicators',

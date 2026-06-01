@@ -52,7 +52,7 @@ fetch('./data/data.json')
     document.getElementById('main-content').classList.remove('hidden');
     initNavbar();
     initHero(data);
-    initMap(data.schools);
+    initMap(data);
     initSchools(data.schools);
     initScenario(data);
     initAnalysis(data);
@@ -129,53 +129,217 @@ function initHero(data) {
 }
 
 // ── MAP ────────────────────────────────────────────────────────
-function initMap(schools) {
-  const map = L.map('map').setView([-37.72, 145.01], 13);
+function initMap(data) {
+  const schools       = data.schools       || [];
+  const crashGeoJson  = data.crash_geojson || null;
+  const heatPoints    = data.heatmap_points || [];
+  const networks      = data.networks       || {};
+  const spatialStats  = data.spatial_stats  || {};
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  const map = L.map('map').setView([-37.72, 145.01], 14);
+
+  // ── Base tiles ──
+  const osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 19,
-  }).addTo(map);
+  });
+  const darkTile = L.tileLayer(
+    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; CARTO',
+    maxZoom: 19,
+  });
+  osmTile.addTo(map);
 
+  // ── Layer groups ──
+  const schoolLayer = L.layerGroup().addTo(map);
+  const crashLayer  = L.layerGroup().addTo(map);
+  const walkLayer   = L.layerGroup();
+  const cycleLayer  = L.layerGroup().addTo(map);
+  const heatLayer   = L.layerGroup().addTo(map);
+  const seifaLayer  = L.layerGroup().addTo(map);
+
+  // ── School markers ──
   schools.forEach((school, idx) => {
-    const color =
-      school.severity === 'Major'    ? '#C0392B' :
-      school.severity === 'Moderate' ? '#D35400' : '#1E8449';
-
+    const color = school.severity === 'Major' ? '#C0392B'
+                : school.severity === 'Moderate' ? '#D35400' : '#1E8449';
     const isPulsing = school.severity === 'Major';
-
     const icon = L.divIcon({
       className: '',
       html: isPulsing
         ? `<div class="pulse-marker"></div>`
-        : `<div style="width:16px;height:16px;border-radius:50%;
-               background:${color};border:2px solid #fff;
-               box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`,
-      iconSize:   isPulsing ? [18, 18] : [16, 16],
-      iconAnchor: isPulsing ? [9, 9]   : [8, 8],
+        : `<div style="width:18px;height:18px;border-radius:50%;background:${color};
+               border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,0.4)"></div>`,
+      iconSize: [18, 18], iconAnchor: [9, 9],
     });
 
-    const badgeHtml = `<span class="${severityClass(school.severity)}">${school.severity}</span>`;
+    const ss = spatialStats[school.short_name] || {};
+    const statsHtml = ss.crossings_400m != null ? `
+      <div style="margin-top:8px;font-size:11px;color:#555;border-top:1px solid #eee;padding-top:6px">
+        <b>OSM features (400m)</b><br>
+        🚶 Footpath: ${ss.footpath_pct_400m ?? '—'}% &nbsp;|&nbsp;
+        🚦 Crossings: ${ss.crossings_400m ?? '—'}<br>
+        🌳 Trees (100m): ${ss.tree_count_100m ?? '—'} &nbsp;|&nbsp;
+        🪑 Benches: ${ss.bench_count_200m ?? '—'}<br>
+        🚲 Cycling: ${ss.cycle_pct_400m ?? '—'}% &nbsp;|&nbsp;
+        🚌 PT stops: ${ss.pt_stops_400m ?? '—'}<br>
+        🌿 Green space: ${ss.green_pct_400m ?? '—'}% &nbsp;|&nbsp;
+        ⛽ Arterial: ${ss.arterial_pct_400m ?? '—'}%
+      </div>` : '';
 
-    const popup = L.popup({ maxWidth: 220 }).setContent(`
-      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px">
+    const seifa = school.seifa || {};
+    const seifaHtml = seifa.irsd_decile ? `
+      <div style="margin-top:6px;font-size:11px;color:#666">
+        SEIFA Decile ${seifa.irsd_decile} — ${seifa.disadvantage_level}
+      </div>` : '';
+
+    const popup = L.popup({ maxWidth: 260, className: 'school-popup' }).setContent(`
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5">
         <div class="map-popup-title">${school.name}</div>
         <div style="margin:4px 0">
           <span class="map-popup-score">${school.overall_score}</span>
           <span style="color:#888;font-size:11px"> / 10</span>
+          &nbsp;<span class="${severityClass(school.severity)}">${school.severity}</span>
         </div>
-        ${badgeHtml}
-        <br>
-        <button class="map-popup-btn" onclick="goToSchool(${idx})">
-          View School Details
+        ${seifaHtml}${statsHtml}
+        <button class="map-popup-btn" style="margin-top:8px" onclick="goToSchool(${idx})">
+          View School Details →
         </button>
-      </div>
-    `);
+      </div>`);
 
-    L.marker([school.lat, school.lng], { icon })
-      .addTo(map)
+    L.marker([school.lat, school.lng], { icon, zIndexOffset: 1000 })
+      .addTo(schoolLayer)
       .bindPopup(popup);
   });
+
+  // ── Crash markers ──
+  const sevColor = { 1: '#7F1D1D', 2: '#DC2626', 3: '#F97316' };
+  if (crashGeoJson && crashGeoJson.features) {
+    crashGeoJson.features.forEach(feat => {
+      const [lon, lat] = feat.geometry.coordinates;
+      const p = feat.properties;
+      const sev = p.severity || 3;
+      const col = sevColor[sev] || '#F97316';
+
+      const circle = L.circleMarker([lat, lon], {
+        radius: sev === 1 ? 10 : sev === 2 ? 8 : 6,
+        fillColor: col, color: '#fff', weight: 1.5,
+        fillOpacity: 0.85, opacity: 1,
+      });
+
+      const speedStr = p.speed_zone ? `${p.speed_zone} km/h zone` : 'Unknown zone';
+      const tooltip = `<b>${p.severity_label}</b><br>${p.type || 'Crash'}<br>${p.date} ${p.time}`;
+      circle.bindTooltip(tooltip, { sticky: true, className: 'crash-tooltip' });
+      circle.bindPopup(`
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;min-width:200px">
+          <div style="font-weight:700;font-size:14px;color:${col};margin-bottom:4px">
+            ${p.severity_label}
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <tr><td style="color:#888;padding:2px 6px 2px 0">Type</td><td>${p.type || '—'}</td></tr>
+            <tr><td style="color:#888;padding:2px 6px 2px 0">Date</td><td>${p.date} ${p.time}</td></tr>
+            <tr><td style="color:#888;padding:2px 6px 2px 0">Day</td><td>${p.day || '—'}</td></tr>
+            <tr><td style="color:#888;padding:2px 6px 2px 0">Speed zone</td><td>${speedStr}</td></tr>
+            <tr><td style="color:#888;padding:2px 6px 2px 0">Light</td><td>${p.light || '—'}</td></tr>
+            <tr><td style="color:#888;padding:2px 6px 2px 0">Road type</td><td>${p.road_geometry || '—'}</td></tr>
+            <tr><td style="color:#888;padding:2px 6px 2px 0">Killed</td><td>${p.killed ?? 0}</td></tr>
+            <tr><td style="color:#888;padding:2px 6px 2px 0">Serious injury</td><td>${p.injured_serious ?? 0}</td></tr>
+            <tr><td style="color:#888;padding:2px 6px 2px 0">Nearest school</td><td>${p.school || '—'}</td></tr>
+            <tr><td style="color:#888;padding:2px 6px 2px 0">Distance to gate</td><td>${p.dist_m != null ? p.dist_m + 'm' : '—'}</td></tr>
+          </table>
+        </div>`, { maxWidth: 260 });
+      circle.addTo(crashLayer);
+    });
+  }
+
+  // ── Walk network ──
+  if (networks.walk && networks.walk.features) {
+    L.geoJSON(networks.walk, {
+      style: () => ({ color: '#3B82F6', weight: 1.8, opacity: 0.7 }),
+      onEachFeature: (feat, layer) => {
+        if (feat.properties.highway) {
+          layer.bindTooltip(`Walk: ${feat.properties.highway}`, { sticky: true });
+        }
+      }
+    }).addTo(walkLayer);
+  }
+
+  // ── Cycling network ──
+  if (networks.cycling && networks.cycling.features) {
+    L.geoJSON(networks.cycling, {
+      style: feat => {
+        const hw = (feat.properties.highway || '').toLowerCase();
+        const isProtected = hw.includes('cycleway') || hw.includes('path');
+        return { color: isProtected ? '#10B981' : '#6EE7B7', weight: isProtected ? 2.5 : 1.5, opacity: 0.85 };
+      },
+      onEachFeature: (feat, layer) => {
+        layer.bindTooltip(`Cycle: ${feat.properties.highway || 'route'}`, { sticky: true });
+      }
+    }).addTo(cycleLayer);
+  }
+
+  // ── Heatmap ──
+  if (heatPoints.length > 0 && L.heatLayer) {
+    L.heatLayer(heatPoints, {
+      radius: 20, blur: 25, maxZoom: 17,
+      gradient: { 0.2: '#FED7AA', 0.5: '#F97316', 0.8: '#DC2626', 1.0: '#7F1D1D' },
+    }).addTo(heatLayer);
+  }
+
+  // ── SEIFA catchment circles ──
+  const seifaColors = { 1: '#7F1D1D', 2: '#B91C1C', 3: '#DC2626', 4: '#F97316',
+                        5: '#FBBF24', 6: '#A3E635', 7: '#4ADE80', 8: '#22C55E',
+                        9: '#16A34A', 10: '#166534' };
+  schools.forEach(school => {
+    const s = school.seifa || {};
+    if (!s.irsd_decile) return;
+    const decile = Math.round(s.irsd_decile);
+    const col = seifaColors[decile] || '#888';
+    L.circle([school.lat, school.lng], {
+      radius: 400, color: col, fillColor: col,
+      fillOpacity: 0.12, weight: 2, dashArray: '6 4',
+    })
+    .bindTooltip(`
+      <b>${school.short_name}</b><br>
+      SEIFA IRSD Decile: ${s.irsd_decile}<br>
+      ${s.disadvantage_level || ''}<br>
+      Population: ${s.catchment_population?.toLocaleString() || '—'}`,
+      { sticky: false })
+    .addTo(seifaLayer);
+  });
+
+  // ── Layer control ──
+  const baseMaps = { 'OpenStreetMap': osmTile, 'Dark': darkTile };
+  const overlays = {
+    '🏫 Schools':        schoolLayer,
+    '💥 Crash spots':    crashLayer,
+    '🔥 Crash heatmap':  heatLayer,
+    '🚶 Walk network':   walkLayer,
+    '🚲 Cycling network': cycleLayer,
+    '📊 SEIFA catchments': seifaLayer,
+  };
+  L.control.layers(baseMaps, overlays, { collapsed: false, position: 'topright' }).addTo(map);
+
+  // ── Legend ──
+  const legend = L.control({ position: 'bottomleft' });
+  legend.onAdd = () => {
+    const div = L.DomUtil.create('div', 'map-legend');
+    div.innerHTML = `
+      <div style="font-family:-apple-system,sans-serif;font-size:11px;background:#fff;
+           padding:8px 10px;border-radius:6px;box-shadow:0 1px 5px rgba(0,0,0,0.25);line-height:1.7">
+        <b style="display:block;margin-bottom:4px">Crash severity</b>
+        <span style="color:#DC2626">●</span> Serious injury &nbsp;
+        <span style="color:#F97316">●</span> Other injury<br>
+        <b style="display:block;margin:4px 0 2px">Networks</b>
+        <span style="color:#3B82F6">━</span> Walk &nbsp;
+        <span style="color:#10B981">━</span> Cycling (protected) &nbsp;
+        <span style="color:#6EE7B7">━</span> Cycling<br>
+        <b style="display:block;margin:4px 0 2px">SEIFA decile</b>
+        <span style="color:#DC2626">●</span> Most disadvantaged (1–3) &nbsp;
+        <span style="color:#22C55E">●</span> Least (8–10)
+      </div>`;
+    return div;
+  };
+  legend.addTo(map);
 }
 
 function goToSchool(idx) {
