@@ -216,6 +216,7 @@ def plot_demographics(demo_file: str, out_dir: str) -> str:
                     fontsize=10, fontweight='bold', color='#1A1A1A')
         ax.set_title(metric, fontsize=9, fontweight='bold', color='#1A1A1A', pad=8)
         ax.set_ylim(0, max(vals) * 1.3)
+        ax.set_xticks(range(len(suburbs)))
         ax.set_xticklabels(suburbs, fontsize=9, fontweight='bold')
         ax.yaxis.grid(True, color='#DDDDDD', linewidth=0.6)
         ax.set_axisbelow(True)
@@ -223,7 +224,7 @@ def plot_demographics(demo_file: str, out_dir: str) -> str:
         ax.spines['right'].set_visible(False)
         ax.set_facecolor('#FAFAFA')
 
-    fig.suptitle('Suburb Demographics — City of Darebin  (ABS Census 2021)',
+    fig.suptitle('Suburb Demographics — Darebin  (ABS Census 2021)',
                  fontsize=13, fontweight='bold', y=1.02)
     plt.figtext(0.99, 0.01, '300,000 Streets  |  Source: ABS Census 2021',
                 ha='right', fontsize=7, color='#888888')

@@ -75,6 +75,27 @@ STEPS = [
         'checks' : ['outputs/seifa_darebin.csv'],
         'note'   : 'ABS SEIFA 2021 — socio-economic context for Darebin catchments.',
     },
+    {
+        'n'      : 8,
+        'script' : 'equity_analysis.py',
+        'label'  : 'Equity analysis — SEIFA × HS safety scores',
+        'checks' : ['outputs/chart_equity_seifa.png'],
+        'note'   : 'Joins SEIFA disadvantage to HS scores. Shows safety–equity gap.',
+    },
+    {
+        'n'      : 9,
+        'script' : 'crash_trend_analysis.py',
+        'label'  : 'Crash trend analysis (2021–2025)',
+        'checks' : ['outputs/chart_crash_trends.png'],
+        'note'   : 'Year trends, school-hours breakdown, time-of-day distribution.',
+    },
+    {
+        'n'      : 10,
+        'script' : 'demographics_chart.py',
+        'label'  : 'ABS Census demographics chart',
+        'checks' : ['outputs/chart4_demographics.png'],
+        'note'   : 'ABS Census 2021 — income, car ownership, active travel mode share.',
+    },
 ]
 
 def _all_exist(paths):
@@ -103,17 +124,17 @@ for step in STEPS:
     checks = step['checks']
 
     if n < FROM:
-        print(f'  [{n}/7] {label}  {YELLOW}(skipped — before --from){RESET}')
+        print(f'  [{n}/10] {label}  {YELLOW}(skipped — before --from){RESET}')
         results.append('skip')
         continue
 
     if not FORCE and _all_exist(checks):
-        print(f'  [{n}/7] {label}  {GREEN}✓ already done{RESET}')
+        print(f'  [{n}/10] {label}  {GREEN}✓ already done{RESET}')
         results.append('skip')
         continue
 
     print(f'\n{BOLD}{"─"*60}')
-    print(f'  [{n}/7] {label}')
+    print(f'  [{n}/10] {label}')
     print(f'  {CYAN}{step["note"]}{RESET}')
     print(f'{"─"*60}{RESET}')
 
@@ -122,10 +143,10 @@ for step in STEPS:
     elapsed = time.time() - t0
 
     if success:
-        print(f'\n  {GREEN}✓ Step {n} completed in {elapsed:.1f}s{RESET}')
+        print(f'\n  {GREEN}✓ Step {n}/10 completed in {elapsed:.1f}s{RESET}')
         results.append('ok')
     else:
-        print(f'\n  {RED}✗ Step {n} FAILED — check output above{RESET}')
+        print(f'\n  {RED}✗ Step {n}/10 FAILED — check output above{RESET}')
         results.append('fail')
         print(f'  {YELLOW}Continuing with remaining steps...{RESET}')
 
@@ -142,12 +163,15 @@ for step, result in zip(STEPS, results):
 
 print()
 print(f'  {BOLD}Key outputs:{RESET}')
-print('    outputs/hs_scores.csv          — HS1–HS10 scores per school')
-print('    outputs/recommendations.csv    — ranked interventions')
-print('    outputs/chart1_hs_radar.png    — radar chart')
-print('    outputs/map_interactive.html   — open in browser')
-print('    outputs/ml_predictions.csv     — ML LOO-CV results')
-print('    outputs/seifa_darebin.csv      — SEIFA disadvantage analysis')
+print('    outputs/hs_scores.csv              — HS1–HS10 scores per school')
+print('    outputs/recommendations.csv        — ranked interventions')
+print('    outputs/chart1_safety_scores.png   — grouped bar chart')
+print('    outputs/map_interactive.html       — open in browser')
+print('    outputs/ml_predictions.csv         — ML LOO-CV results')
+print('    outputs/seifa_darebin.csv          — SEIFA disadvantage analysis')
+print('    outputs/chart_equity_seifa.png     — equity analysis (SEIFA × HS)')
+print('    outputs/chart_crash_trends.png     — crash trends 2021–2025')
+print('    outputs/chart4_demographics.png    — ABS Census demographics')
 print()
 
 if 'fail' in results:
