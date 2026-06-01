@@ -76,9 +76,9 @@ def compute_severity(row):
     hs5     = row.get('HS5')
     overall = row.get('HS_overall')
 
-    if pd.notna(hs2) and hs2 < 3.0:  return 'Major'
-    if pd.notna(hs1) and hs1 < 3.0:  return 'Major'
-    if pd.notna(hs5) and hs5 < 2.0:  return 'Major'
+    if pd.notna(hs2) and hs2 < 4.0:  return 'Major'
+    if pd.notna(hs1) and hs1 < 4.0:  return 'Major'
+    if pd.notna(hs5) and hs5 < 3.0:  return 'Major'
 
     all_vals = [row.get(c) for c in HS_CODES]
     low = sum(1 for v in all_vals if pd.notna(v) and v < 6.0)

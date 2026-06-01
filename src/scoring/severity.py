@@ -17,9 +17,9 @@ def compute_severity(row) -> str:
     overall = row.get('HS_overall')
 
     # Major: any critical safety indicator in crisis range
-    if pd.notna(hs2) and hs2 < 3.0: return 'Major'
-    if pd.notna(hs1) and hs1 < 3.0: return 'Major'
-    if pd.notna(hs5) and hs5 < 2.0: return 'Major'
+    if pd.notna(hs2) and hs2 < 4.0: return 'Major'
+    if pd.notna(hs1) and hs1 < 4.0: return 'Major'
+    if pd.notna(hs5) and hs5 < 3.0: return 'Major'
 
     # Moderate: 2+ indicators below the HS "good" threshold (6.0)
     all_vals = [row.get(c) for c in _ALL_CODES]
