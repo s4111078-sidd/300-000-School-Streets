@@ -36,7 +36,8 @@ outputs/*.qgz
 # Generated Office documents
 outputs/*.pptx
 outputs/*.docx
-
+reports/*.pptx
+reports/*.docx
 # Temporary download files
 outputs/*.xlsx
 outputs/_csa_tmp.xlsx
@@ -50,3 +51,12 @@ env/
 .vscode/
 .idea/
 *.ipynb_checkpoints
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.swp

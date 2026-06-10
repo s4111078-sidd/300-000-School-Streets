@@ -5,241 +5,326 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>300,000 Streets — School Safety Dashboard</title>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
   <!-- Custom styles -->
   <link rel="stylesheet" href="style.css" />
 </head>
-<body class="bg-gray-50 text-gray-700 font-sans">
+<body>
 
-  <!-- ── NAVBAR ──────────────────────────────────────────────── -->
-  <nav id="navbar" class="sticky top-0 z-50 w-full" style="background:#1A1A1A;">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+<!-- ── HEADER ─────────────────────────────────────────────────── -->
+<header id="site-header">
+  <div class="header-inner">
 
-      <a href="#" class="text-white font-bold text-lg tracking-tight">
-        300,000 Streets
-      </a>
+    <!-- Logo -->
+    <button class="header-logo-btn" onclick="switchTab('page-home')" aria-label="Home">
+      <img src="./logo.png" alt="Regen Melbourne × RMIT University" class="header-logo" />
+    </button>
 
-      <!-- Desktop nav -->
-      <ul class="hidden md:flex gap-6 text-sm text-white">
-        <li><a href="#map-section"             class="nav-link">Map</a></li>
-        <li><a href="#schools-section"         class="nav-link">Schools</a></li>
-        <li><a href="#scenario-section"        class="nav-link">Scenario</a></li>
-        <li><a href="#analysis-section"        class="nav-link">Analysis</a></li>
-        <li><a href="#recommendations-section" class="nav-link">Recommendations</a></li>
-        <li><a href="#about-section"           class="nav-link">About</a></li>
-      </ul>
+    <!-- Desktop nav -->
+    <nav class="header-nav" id="header-nav">
+      <button class="nav-tab active" data-page="page-home">Home</button>
+      <button class="nav-tab"        data-page="page-map">Map</button>
+      <button class="nav-tab"        data-page="page-schools">Schools</button>
+      <button class="nav-tab"        data-page="page-scenario">Scenario</button>
+      <button class="nav-tab"        data-page="page-analysis">Analysis</button>
+      <button class="nav-tab"        data-page="page-recommendations">Recommendations</button>
+      <button class="nav-tab"        data-page="page-about">About</button>
+    </nav>
 
-      <!-- Hamburger (mobile) -->
-      <button id="hamburger" class="md:hidden text-white focus:outline-none" aria-label="Menu">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path id="ham-open"   stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M4 6h16M4 12h16M4 18h16"/>
-          <path id="ham-close" class="hidden" stroke-linecap="round" stroke-linejoin="round"
-                stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-
-    <!-- Mobile dropdown -->
-    <div id="mobile-menu" class="hidden md:hidden px-4 pb-3 flex flex-col gap-3 text-sm text-white border-t border-gray-700">
-      <a href="#map-section"             class="nav-link py-1">Map</a>
-      <a href="#schools-section"         class="nav-link py-1">Schools</a>
-      <a href="#scenario-section"        class="nav-link py-1">Scenario</a>
-      <a href="#analysis-section"        class="nav-link py-1">Analysis</a>
-      <a href="#recommendations-section" class="nav-link py-1">Recommendations</a>
-      <a href="#about-section"           class="nav-link py-1">About</a>
-    </div>
-  </nav>
-
-  <!-- ── ERROR BANNER (hidden by default) ─────────────────── -->
-  <div id="error-banner" class="hidden bg-red-100 border border-red-300 text-red-800 rounded mx-4 mt-4 p-4 text-sm">
-    <strong>Failed to load dashboard data.</strong>
-    <span id="error-msg"></span>
-    <p class="mt-1 text-xs">Make sure you have run <code>python prepare_data.py</code> and are serving
-      the dashboard from a local server (not opening as file://).</p>
+    <!-- Hamburger -->
+    <button class="hamburger" id="hamburger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 
-  <!-- ── LOADING STATE ────────────────────────────────────── -->
-  <div id="loading" class="flex items-center justify-center py-20 text-gray-500 text-sm">
-    Loading dashboard data…
+  <!-- Mobile nav dropdown -->
+  <div id="mobile-menu" class="mobile-menu hidden">
+    <button class="mob-nav-tab" data-page="page-home">Home</button>
+    <button class="mob-nav-tab" data-page="page-map">Map</button>
+    <button class="mob-nav-tab" data-page="page-schools">Schools</button>
+    <button class="mob-nav-tab" data-page="page-scenario">Scenario</button>
+    <button class="mob-nav-tab" data-page="page-analysis">Analysis</button>
+    <button class="mob-nav-tab" data-page="page-recommendations">Recommendations</button>
+    <button class="mob-nav-tab" data-page="page-about">About</button>
   </div>
+</header>
 
-  <!-- ── MAIN CONTENT (hidden until data loads) ────────────── -->
-  <main id="main-content" class="hidden">
+<!-- ── LOADING OVERLAY ────────────────────────────────────────── -->
+<div id="loading-overlay" class="loading-overlay">
+  <div class="loading-spinner"></div>
+  <p class="loading-text">Loading dashboard data…</p>
+</div>
 
-    <!-- ── HERO ──────────────────────────────────────────────── -->
-    <section id="hero-section" class="hero-section">
-      <div class="max-w-7xl mx-auto px-4 py-12">
-        <p class="hero-eyebrow">Regen Melbourne × RMIT University</p>
-        <h1 class="hero-title">300,000 Streets of Melbourne</h1>
-        <p class="hero-sub">
-          Healthy Streets safety assessment for school walking routes in Darebin.
-          Using open data, field observation, and machine learning to prioritise
-          infrastructure investment where it's needed most.
-        </p>
-        <div id="hero-stats" class="hero-stats"></div>
+<!-- ── ERROR BANNER ───────────────────────────────────────────── -->
+<div id="error-banner" class="error-banner hidden">
+  <strong>Failed to load dashboard data.</strong>
+  <span id="error-msg"></span>
+  <p>Make sure you have run <code>python prepare_data.py</code> and are serving from a local server.</p>
+</div>
+
+<!-- ── PAGES ──────────────────────────────────────────────────── -->
+<main id="main-pages">
+
+  <!-- ── PAGE: HOME ─────────────────────────────────────────── -->
+  <div id="page-home" class="page hidden">
+
+    <!-- Hero banner -->
+    <section class="home-hero">
+      <div class="home-hero-inner">
+        <div class="home-hero-left">
+          <p class="hero-eyebrow">Regen Melbourne × RMIT University · City of Darebin</p>
+          <h1 class="hero-title">300,000 Streets<br>of Melbourne</h1>
+          <p class="hero-subtitle">School Streets Safety Analysis</p>
+          <p class="hero-question">
+            Do children in disadvantaged suburbs walk to school on more dangerous streets?
+          </p>
+          <div class="hero-actions">
+            <button class="btn-primary" onclick="switchTab('page-map')">View Map</button>
+            <button class="btn-outline" onclick="switchTab('page-recommendations')">See Recommendations</button>
+          </div>
+        </div>
+        <div class="home-hero-right">
+          <div class="hero-big-number">192%</div>
+          <div class="hero-big-label">increase in pedestrian &amp;<br>cyclist crashes · Darebin</div>
+          <div class="hero-big-year">2021 → 2024</div>
+        </div>
       </div>
     </section>
 
-    <!-- ── SECTION 1 — MAP ──────────────────────────────────── -->
-    <section id="map-section" class="w-full">
-      <div id="map"></div>
+    <!-- Key stats row -->
+    <section class="home-stats-section">
+      <div class="content-wrap">
+        <div id="hero-stats" class="home-stats-grid"></div>
+      </div>
     </section>
 
-    <!-- ── SECTION 2 — SCHOOLS ──────────────────────────────── -->
-    <section id="schools-section" class="max-w-7xl mx-auto px-4 py-12">
+    <!-- School summary cards -->
+    <section class="home-schools-section">
+      <div class="content-wrap">
+        <h2 class="section-heading">Schools Assessed</h2>
+        <p class="section-sub">Healthy Streets framework — 10 indicators, 0–10 scale. Threshold: 6.0</p>
+        <div id="home-school-cards" class="home-school-cards"></div>
+      </div>
+    </section>
+
+    <!-- Key findings -->
+    <section class="home-findings-section">
+      <div class="content-wrap">
+        <h2 class="section-heading">Key Findings</h2>
+        <div class="findings-grid">
+
+          <div class="finding-card finding-red">
+            <div class="finding-icon">⚠</div>
+            <div class="finding-body">
+              <strong>Preston HS is MAJOR severity</strong>
+              <p>HS2 = 0.4 — no pedestrian crossing on a high-traffic arterial road. Students cross informally every day.</p>
+            </div>
+          </div>
+
+          <div class="finding-card finding-amber">
+            <div class="finding-icon">📊</div>
+            <div class="finding-body">
+              <strong>Crashes are rising — and school-timed</strong>
+              <p>192% increase in Darebin 2021–2024. At William Ruthven SC, 100% of crashes happen during school hours.</p>
+            </div>
+          </div>
+
+          <div class="finding-card finding-teal">
+            <div class="finding-icon">r=0.84</div>
+            <div class="finding-body">
+              <strong>Disadvantage predicts danger</strong>
+              <p>Strong correlation between SEIFA disadvantage decile and HS safety score across all schools.</p>
+            </div>
+          </div>
+
+          <div class="finding-card finding-green">
+            <div class="finding-icon">🤖</div>
+            <div class="finding-body">
+              <strong>2 indicators can be automated</strong>
+              <p>HS7 (feel safe) and HS10 (clean air) predicted from open data. 200+ schools can be triaged at zero survey cost.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer rendered inside page -->
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-left">
+          <img src="./logo.png" alt="Regen Melbourne × RMIT" class="footer-logo" />
+        </div>
+        <div class="footer-center">
+          <p class="footer-title">300,000 Streets of Melbourne</p>
+          <p class="footer-sub">Regen Melbourne × RMIT University · COSC2667/COSC2777 · 2026</p>
+          <p class="footer-sub">Framework: Saunders, L. (2015). <em>Healthy Streets for London.</em> Transport for London.</p>
+        </div>
+        <div class="footer-right">
+          <a href="https://github.com/s4111078-sidd/300-000-School-Streets"
+             target="_blank" rel="noopener" class="footer-link">GitHub Repository</a>
+          <a href="https://healthystreets.com" target="_blank" rel="noopener" class="footer-link">Healthy Streets</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        © 2026 Regen Melbourne × RMIT University · School Streets Safety Dashboard
+      </div>
+    </footer>
+  </div>
+
+  <!-- ── PAGE: MAP ───────────────────────────────────────────── -->
+  <div id="page-map" class="page hidden page-map">
+    <div id="map"></div>
+  </div>
+
+  <!-- ── PAGE: SCHOOLS ──────────────────────────────────────── -->
+  <div id="page-schools" class="page hidden page-scroll">
+    <div class="content-wrap py-10">
       <h2 class="section-heading">School Assessments</h2>
       <p class="section-sub">
         Healthy Streets framework — 10 indicators, 0–10 scale.
         Minimum acceptable score: <strong>6.0</strong>
       </p>
-
-      <div id="school-tabs" class="flex gap-2 mt-6 overflow-x-auto pb-1"></div>
+      <div id="school-tabs" class="school-tabs-row mt-6"></div>
       <div id="school-content" class="mt-4"></div>
-    </section>
-
-    <!-- ── SECTION 3 — SCENARIO ─────────────────────────────── -->
-    <section id="scenario-section" class="bg-white py-12">
-      <div class="max-w-7xl mx-auto px-4">
-        <h2 class="section-heading">What-if Scenario Analysis</h2>
-        <p class="section-sub">
-          Select a school and an intervention to model how physical improvements
-          would change Healthy Streets scores. Results use the trained Ridge regression
-          model via the delta method — actual scores as baseline, model predicts the change.
-        </p>
-
-        <!-- School tabs -->
-        <div id="scenario-tabs" class="flex gap-2 mt-6 overflow-x-auto pb-1"></div>
-
-        <div class="mt-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-          <!-- Left: intervention picker -->
-          <div class="lg:col-span-2">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              Select an intervention
-            </p>
-            <div id="intervention-grid" class="space-y-2"></div>
-          </div>
-
-          <!-- Right: result panel -->
-          <div class="lg:col-span-3">
-            <!-- Placeholder -->
-            <div id="scenario-placeholder" class="scenario-placeholder">
-              <svg class="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                      d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
-                         a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-              </svg>
-              <p class="text-gray-400 text-sm">Select an intervention on the left to see the predicted impact.</p>
-            </div>
-
-            <!-- Result -->
-            <div id="scenario-result" class="hidden">
-              <div id="scenario-meta" class="scenario-meta-strip"></div>
-              <div class="card p-4 mt-4">
-                <canvas id="scenario-chart" height="260"></canvas>
-              </div>
-              <p class="text-xs text-gray-400 italic mt-2">
-                Delta method: scenario score = actual score + model-predicted change.
-                n=3 training schools — treat as directional, not precise.
-              </p>
-            </div>
-          </div>
+    </div>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-center">
+          <p class="footer-title">300,000 Streets of Melbourne</p>
+          <p class="footer-sub">Regen Melbourne × RMIT University · 2026</p>
         </div>
       </div>
-    </section>
+    </footer>
+  </div>
 
-    <!-- ── SECTION 4 — ANALYSIS ─────────────────────────────── -->
-    <section id="analysis-section" class="py-12" style="background:#F8F9FA;">
-      <div class="max-w-7xl mx-auto px-4">
-        <h2 class="section-heading">Data Analysis</h2>
-
-        <!-- 4a: HS charts -->
-        <h3 class="subsection-heading mt-8">Healthy Streets Indicator Charts</h3>
-        <div id="hs-charts" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4"></div>
-
-        <!-- 4b: ML results -->
-        <h3 class="subsection-heading mt-12">
-          Which indicators can be predicted from open data?
-        </h3>
-        <p class="text-sm text-gray-500 mt-1">
-          Ridge regression trained on OSM, EPA air quality, and Crime Statistics data.
-          Evaluated using Leave-One-Out Cross-Validation (n=3 schools).
-        </p>
-        <div class="mt-6 card p-6">
-          <canvas id="ml-chart" height="320"></canvas>
-          <div class="ml-legend mt-4 flex flex-wrap gap-4 text-xs text-gray-600">
-            <span class="flex items-center gap-1">
-              <span class="inline-block w-3 h-3 rounded-sm" style="background:#1E8449"></span>
-              Can automate (MAE &lt; 1.5)
-            </span>
-            <span class="flex items-center gap-1">
-              <span class="inline-block w-3 h-3 rounded-sm" style="background:#D35400"></span>
-              Partially automatable (MAE 1.5–3.0)
-            </span>
-            <span class="flex items-center gap-1">
-              <span class="inline-block w-3 h-3 rounded-sm" style="background:#C0392B"></span>
-              Needs field survey (MAE &gt; 3.0)
-            </span>
-          </div>
-          <p class="text-xs text-gray-400 italic mt-3">
-            n=3 schools — results are illustrative. Accuracy improves as more schools are added.
-          </p>
-        </div>
-        <div id="ml-chart-images" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6"></div>
-
-        <!-- 4c: SEIFA -->
-        <h3 class="subsection-heading mt-12">Socioeconomic Context</h3>
-        <p class="text-sm text-gray-500 mt-1">
-          ABS SEIFA 2021 — Index of Relative Socio-Economic Disadvantage. Lower score = more disadvantaged.
-        </p>
-        <div id="seifa-cards" class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4"></div>
-
-        <div class="mt-6 rounded-lg p-6 text-white text-sm leading-relaxed"
-             style="background:#1A1A1A;">
-          <strong class="block mb-1">Key equity finding:</strong>
-          Pearson r = 0.84 between IRSD decile and HS overall — more disadvantaged catchments
-          have worse pedestrian safety outcomes. Reservoir HS (Decile 4, HS 6.1) vs Preston HS
-          (Decile 6, HS 7.2). This strengthens the case for prioritised investment under the
-          300,000 Streets initiative.
-        </div>
-
-        <!-- 4d: Equity chart -->
-        <h3 class="subsection-heading mt-12">Equity Analysis — SEIFA × Safety Scores</h3>
-        <p class="text-sm text-gray-500 mt-1">
-          Comparing socioeconomic disadvantage against Healthy Streets scores across all 10 indicators.
-        </p>
-        <div id="equity-chart" class="mt-4"></div>
-
-        <!-- 4e: Crash trends -->
-        <h3 class="subsection-heading mt-12">Crash Trends 2021–2025</h3>
-        <p class="text-sm text-gray-500 mt-1">
-          VicRoads ped/cyc crash data — Darebin LGA year-on-year trend, school-hours breakdown,
-          and time-of-day distribution.
-        </p>
-        <div id="crash-chart" class="mt-4"></div>
-
-        <!-- 4f: Demographics -->
-        <h3 class="subsection-heading mt-12">Community Demographics</h3>
-        <p class="text-sm text-gray-500 mt-1">
-          ABS Census 2021 — income, car ownership, and active travel mode share for Reservoir and Preston.
-        </p>
-        <div id="demographics-chart" class="mt-4"></div>
-
-      </div>
-    </section>
-
-    <!-- ── SECTION 5 — RECOMMENDATIONS ─────────────────────── -->
-    <section id="recommendations-section" class="max-w-7xl mx-auto px-4 py-12">
-      <h2 class="section-heading">Prioritised Interventions</h2>
+  <!-- ── PAGE: SCENARIO ─────────────────────────────────────── -->
+  <div id="page-scenario" class="page hidden page-scroll">
+    <div class="content-wrap py-10">
+      <h2 class="section-heading">What-if Scenario Analysis</h2>
       <p class="section-sub">
-        Generated automatically from field observations. 17 rules applied per location.
+        Select a school and an intervention to model how physical improvements would change
+        Healthy Streets scores. Uses Ridge regression delta method — actual scores as baseline.
       </p>
+
+      <div id="scenario-tabs" class="school-tabs-row mt-6"></div>
+
+      <div class="mt-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div class="lg:col-span-2">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            Select an intervention
+          </p>
+          <div id="intervention-grid" class="space-y-2"></div>
+        </div>
+        <div class="lg:col-span-3">
+          <div id="scenario-placeholder" class="scenario-placeholder">
+            <svg class="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                       a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="text-gray-400 text-sm">Select an intervention on the left to see the predicted impact.</p>
+          </div>
+          <div id="scenario-result" class="hidden">
+            <div id="scenario-meta" class="scenario-meta-strip"></div>
+            <div class="card p-4 mt-4">
+              <canvas id="scenario-chart" height="260"></canvas>
+            </div>
+            <p class="text-xs text-gray-400 italic mt-2">
+              Delta method: scenario score = actual score + model-predicted change.
+              n=3 training schools — treat as directional, not precise.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-center">
+          <p class="footer-title">300,000 Streets of Melbourne</p>
+          <p class="footer-sub">Regen Melbourne × RMIT University · 2026</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ── PAGE: ANALYSIS ─────────────────────────────────────── -->
+  <div id="page-analysis" class="page hidden page-scroll" style="background:#F8F9FA;">
+    <div class="content-wrap py-10">
+      <h2 class="section-heading">Data Analysis</h2>
+
+      <h3 class="subsection-heading mt-8">Healthy Streets Indicator Charts</h3>
+      <div id="hs-charts" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4"></div>
+
+      <h3 class="subsection-heading mt-12">Which indicators can be predicted from open data?</h3>
+      <p class="text-sm text-gray-500 mt-1">
+        Ridge regression trained on OSM, EPA air quality, and Crime Statistics data.
+        Leave-One-Out Cross-Validation (n=3).
+      </p>
+      <div class="mt-6 card p-6">
+        <canvas id="ml-chart" height="320"></canvas>
+        <div class="ml-legend mt-4 flex flex-wrap gap-4 text-xs text-gray-600">
+          <span class="flex items-center gap-1">
+            <span class="inline-block w-3 h-3 rounded-sm" style="background:#1E8449"></span>
+            Can automate (MAE &lt; 1.5)
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="inline-block w-3 h-3 rounded-sm" style="background:#D35400"></span>
+            Partially automatable (MAE 1.5–3.0)
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="inline-block w-3 h-3 rounded-sm" style="background:#C0392B"></span>
+            Needs field survey (MAE &gt; 3.0)
+          </span>
+        </div>
+        <p class="text-xs text-gray-400 italic mt-3">
+          n=3 schools — results are illustrative. Accuracy improves as more schools are added.
+        </p>
+      </div>
+      <div id="ml-chart-images" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6"></div>
+
+      <h3 class="subsection-heading mt-12">Socioeconomic Context</h3>
+      <p class="text-sm text-gray-500 mt-1">
+        ABS SEIFA 2021 — Index of Relative Socio-Economic Disadvantage. Lower score = more disadvantaged.
+      </p>
+      <div id="seifa-cards" class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4"></div>
+      <div class="mt-6 rounded-lg p-6 text-white text-sm leading-relaxed" style="background:#1A1A1A;">
+        <strong class="block mb-1">Key equity finding:</strong>
+        Pearson r = 0.84 between IRSD decile and HS overall — more disadvantaged catchments
+        have worse pedestrian safety outcomes.
+      </div>
+
+      <h3 class="subsection-heading mt-12">Equity Analysis — SEIFA × Safety Scores</h3>
+      <div id="equity-chart" class="mt-4"></div>
+
+      <h3 class="subsection-heading mt-12">Crash Trends 2021–2025</h3>
+      <p class="text-sm text-gray-500 mt-1">
+        VicRoads ped/cyc crash data — Darebin LGA year trend, school-hours breakdown, time-of-day distribution.
+      </p>
+      <div id="crash-chart" class="mt-4"></div>
+
+      <h3 class="subsection-heading mt-12">Community Demographics</h3>
+      <p class="text-sm text-gray-500 mt-1">
+        ABS Census 2021 — income, car ownership, and active travel mode share.
+      </p>
+      <div id="demographics-chart" class="mt-4"></div>
+    </div>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-center">
+          <p class="footer-title">300,000 Streets of Melbourne</p>
+          <p class="footer-sub">Regen Melbourne × RMIT University · 2026</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ── PAGE: RECOMMENDATIONS ──────────────────────────────── -->
+  <div id="page-recommendations" class="page hidden page-scroll">
+    <div class="content-wrap py-10">
+      <h2 class="section-heading">Prioritised Interventions</h2>
+      <p class="section-sub">Generated automatically from field observations. 17 rules applied per location.</p>
 
       <div class="flex flex-wrap items-center gap-3 mt-6">
         <select id="filter-school" class="filter-select">
@@ -275,127 +360,109 @@
           <tbody id="rec-tbody"></tbody>
         </table>
       </div>
-
       <div id="rec-cards" class="md:hidden mt-4 space-y-3"></div>
-    </section>
+    </div>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-center">
+          <p class="footer-title">300,000 Streets of Melbourne</p>
+          <p class="footer-sub">Regen Melbourne × RMIT University · 2026</p>
+        </div>
+      </div>
+    </footer>
+  </div>
 
-    <!-- ── SECTION 6 — ABOUT ─────────────────────────────────── -->
-    <section id="about-section" class="py-12" style="background:#1A1A1A;">
-      <div class="max-w-7xl mx-auto px-4">
-        <h2 class="section-heading" style="color:#fff;">About this project</h2>
-        <p class="section-sub mt-1" style="color:#aaa;">
-          300,000 Streets of Melbourne — a Regen Melbourne × RMIT University initiative
-        </p>
+  <!-- ── PAGE: ABOUT ────────────────────────────────────────── -->
+  <div id="page-about" class="page hidden page-scroll" style="background:#1A1A1A;">
+    <div class="content-wrap py-12">
+      <h2 class="section-heading" style="color:#fff;">About this project</h2>
+      <p class="section-sub mt-1" style="color:#aaa;">
+        300,000 Streets of Melbourne — a Regen Melbourne × RMIT University initiative
+      </p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mt-8">
-
-          <!-- Left: project description -->
-          <div class="text-sm text-gray-300 space-y-4">
-            <p>
-              This tool assesses the pedestrian and cyclist safety of walking routes around
-              secondary schools in Melbourne using the <strong class="text-white">Healthy Streets
-              framework</strong> — a 10-indicator system developed by Lucy Saunders and adopted
-              by Transport for London.
-            </p>
-            <p>
-              Each school gate is scored across 10 indicators (0 = worst, 10 = best) using a
-              combination of field observation, OpenStreetMap data, EPA air quality readings,
-              VicRoads crash records, and ABS Census data. A score of <strong class="text-white">6.0
-              or above</strong> across all indicators is the target threshold for a safe school street.
-            </p>
-            <p>
-              The <strong class="text-white">equity analysis</strong> reveals that the most
-              socioeconomically disadvantaged school catchments (SEIFA Decile 4) also have the
-              worst safety outcomes — a Pearson correlation of r = 0.84 — supporting a
-              prioritised investment approach.
-            </p>
-            <p>
-              The <strong class="text-white">scenario engine</strong> uses a Ridge regression
-              model trained on open data to predict how physical interventions (crossings, bike
-              lanes, footpaths, etc.) would change Healthy Streets scores, helping
-              prioritise spend before committing capital.
-            </p>
-            <div class="about-links mt-4">
-              <a href="https://github.com/s4111078-sidd/300-000-School-Streets"
-                 target="_blank" rel="noopener" class="about-link">
-                GitHub Repository
-              </a>
-              <a href="https://healthystreets.com" target="_blank" rel="noopener" class="about-link">
-                Healthy Streets Framework
-              </a>
-            </div>
-          </div>
-
-          <!-- Right: indicator table -->
-          <div>
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              The 10 Healthy Streets Indicators
-            </p>
-            <div class="about-indicator-table">
-              <div class="about-indicator-row about-indicator-header">
-                <span>Code</span><span>Indicator</span><span>Primary source</span>
-              </div>
-              <div class="about-indicator-row"><span>HS1</span><span>Pedestrians from all walks of life</span><span>Field observation</span></div>
-              <div class="about-indicator-row"><span>HS2</span><span>Easy to cross</span><span>Field observation</span></div>
-              <div class="about-indicator-row"><span>HS3</span><span>Shade and shelter</span><span>OSM (trees, shelters)</span></div>
-              <div class="about-indicator-row"><span>HS4</span><span>Places to stop and rest</span><span>OSM (benches, parks)</span></div>
-              <div class="about-indicator-row"><span>HS5</span><span>Not too noisy</span><span>Field observation</span></div>
-              <div class="about-indicator-row"><span>HS6</span><span>People choose active travel</span><span>OSM + field</span></div>
-              <div class="about-indicator-row"><span>HS7</span><span>People feel safe</span><span>Field + Crime Stats Vic</span></div>
-              <div class="about-indicator-row"><span>HS8</span><span>Things to see and do</span><span>OSM (amenities)</span></div>
-              <div class="about-indicator-row"><span>HS9</span><span>People feel relaxed</span><span>Field observation</span></div>
-              <div class="about-indicator-row"><span>HS10</span><span>Clean air</span><span>EPA Victoria AirWatch</span></div>
-            </div>
-            <p class="text-xs text-gray-500 mt-3">
-              Severity: <span style="color:#C0392B">Major</span> = HS2 &lt; 3 or HS1 &lt; 3 or HS5 &lt; 2 &nbsp;|&nbsp;
-              <span style="color:#D35400">Moderate</span> = 2+ indicators below 6.0 &nbsp;|&nbsp;
-              <span style="color:#1E8449">Minor</span> = all others
-            </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mt-8">
+        <div class="text-sm text-gray-300 space-y-4">
+          <p>
+            This tool assesses the pedestrian and cyclist safety of walking routes around
+            secondary schools in Melbourne using the <strong class="text-white">Healthy Streets
+            framework</strong> — a 10-indicator system developed by Lucy Saunders and adopted
+            by Transport for London.
+          </p>
+          <p>
+            Each school gate is scored across 10 indicators (0 = worst, 10 = best) using a
+            combination of field observation, OpenStreetMap data, EPA air quality readings,
+            VicRoads crash records, and ABS Census data. A score of <strong class="text-white">6.0
+            or above</strong> is the target threshold for a safe school street.
+          </p>
+          <p>
+            The <strong class="text-white">equity analysis</strong> reveals that the most
+            socioeconomically disadvantaged school catchments also have the worst safety outcomes
+            — a Pearson correlation of r = 0.84 — supporting a prioritised investment approach.
+          </p>
+          <p>
+            The <strong class="text-white">scenario engine</strong> uses a Ridge regression
+            model trained on open data to predict how physical interventions would change
+            Healthy Streets scores, helping prioritise spend before committing capital.
+          </p>
+          <div class="about-links mt-4">
+            <a href="https://github.com/s4111078-sidd/300-000-School-Streets"
+               target="_blank" rel="noopener" class="about-link">GitHub Repository</a>
+            <a href="https://healthystreets.com" target="_blank" rel="noopener" class="about-link">
+              Healthy Streets Framework</a>
           </div>
         </div>
 
-        <!-- Partners -->
-        <div class="mt-10 pt-8 border-t border-gray-700 text-center text-sm text-gray-500">
-          <p>
-            Built by <strong class="text-gray-300">Regen Melbourne</strong> in collaboration with
-            <strong class="text-gray-300">RMIT University</strong>.
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            The 10 Healthy Streets Indicators
           </p>
-          <p class="mt-1">
-            Framework: Saunders, L. (2015). <em>Healthy Streets for London.</em> Transport for London.
+          <div class="about-indicator-table">
+            <div class="about-indicator-row about-indicator-header">
+              <span>Code</span><span>Indicator</span><span>Primary source</span>
+            </div>
+            <div class="about-indicator-row"><span>HS1</span><span>Pedestrians from all walks of life</span><span>Field observation</span></div>
+            <div class="about-indicator-row"><span>HS2</span><span>Easy to cross</span><span>Field observation</span></div>
+            <div class="about-indicator-row"><span>HS3</span><span>Shade and shelter</span><span>OSM (trees, shelters)</span></div>
+            <div class="about-indicator-row"><span>HS4</span><span>Places to stop and rest</span><span>OSM (benches, parks)</span></div>
+            <div class="about-indicator-row"><span>HS5</span><span>Not too noisy</span><span>Field observation</span></div>
+            <div class="about-indicator-row"><span>HS6</span><span>People choose active travel</span><span>OSM + field</span></div>
+            <div class="about-indicator-row"><span>HS7</span><span>People feel safe</span><span>Field + Crime Stats Vic</span></div>
+            <div class="about-indicator-row"><span>HS8</span><span>Things to see and do</span><span>OSM (amenities)</span></div>
+            <div class="about-indicator-row"><span>HS9</span><span>People feel relaxed</span><span>Field observation</span></div>
+            <div class="about-indicator-row"><span>HS10</span><span>Clean air</span><span>EPA Victoria AirWatch</span></div>
+          </div>
+          <p class="text-xs text-gray-500 mt-3">
+            Severity: <span style="color:#C0392B">Major</span> = HS2 &lt; 4 or HS1 &lt; 4 or HS5 &lt; 3 &nbsp;|&nbsp;
+            <span style="color:#D35400">Moderate</span> = 2+ indicators below 6.0 &nbsp;|&nbsp;
+            <span style="color:#1E8449">Minor</span> = all others
           </p>
         </div>
       </div>
-    </section>
 
-  </main>
-
-  <!-- ── FOOTER ──────────────────────────────────────────────── -->
-  <footer class="w-full py-8 text-center text-sm text-gray-300" style="background:#111;">
-    <p class="font-semibold text-white">300,000 Streets of Melbourne</p>
-    <p class="mt-1">Regen Melbourne &times; RMIT University</p>
-    <p class="mt-1">2026</p>
-    <p class="mt-3">
-      <a href="https://github.com/s4111078-sidd/300-000-School-Streets"
-         class="underline hover:text-white transition"
-         target="_blank" rel="noopener">
-        GitHub — s4111078-sidd/300-000-School-Streets
-      </a>
-    </p>
-  </footer>
-
-  <!-- ── LIGHTBOX ──────────────────────────────────────────────── -->
-  <div id="lightbox" role="dialog" aria-modal="true" aria-label="Chart enlarged view">
-    <button id="lightbox-close" aria-label="Close">&times;</button>
-    <img id="lightbox-img" src="" alt="" />
+      <div class="mt-10 pt-8 border-t border-gray-700 text-center text-sm text-gray-500">
+        <img src="./logo.png" alt="Regen Melbourne × RMIT" class="h-10 mx-auto mb-4 opacity-80" />
+        <p>Built by <strong class="text-gray-300">Regen Melbourne</strong> in collaboration with
+           <strong class="text-gray-300">RMIT University</strong>.</p>
+        <p class="mt-1">Framework: Saunders, L. (2015). <em>Healthy Streets for London.</em> Transport for London.</p>
+      </div>
+    </div>
   </div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Leaflet.heat -->
-  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- App -->
-  <script src="app.js"></script>
+</main>
+
+<!-- ── LIGHTBOX ──────────────────────────────────────────────── -->
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Chart enlarged view">
+  <button id="lightbox-close" aria-label="Close">&times;</button>
+  <img id="lightbox-img" src="" alt="" />
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet.heat -->
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- App -->
+<script src="app.js"></script>
 </body>
 </html>

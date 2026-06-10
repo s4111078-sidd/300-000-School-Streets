@@ -36,6 +36,36 @@ let appData         = null;
 let activeSchoolIdx = 0;
 let allRecs         = [];
 let radarCharts     = {};
+let leafletMap      = null;   // kept for invalidateSize on tab switch
+
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab, .mob-nav-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.page === pageId)
+  );
+  const target = document.getElementById(pageId);
+  target.classList.remove('hidden');
+  target.classList.add('active');
+
+  // Init map on first visit (must be visible so canvas has non-zero dimensions)
+  if (pageId === 'page-map') {
+    if (!leafletMap && appData) {
+      setTimeout(() => initMap(appData), 50);
+    } else if (leafletMap) {
+      setTimeout(() => leafletMap.invalidateSize(), 80);
+    }
+  }
+
+  // Draw first school's radar on first visit to Schools page
+  if (pageId === 'page-schools' && appData && !radarCharts[activeSchoolIdx]) {
+    setTimeout(() => drawRadar(appData.schools[activeSchoolIdx], activeSchoolIdx), 80);
+  }
+
+  // Close mobile menu
+  document.getElementById('mobile-menu').classList.add('hidden');
+}
+window.switchTab = switchTab;
 
 // ── Bootstrap ─────────────────────────────────────────────────
 fetch('./data/data.json')
@@ -48,84 +78,135 @@ fetch('./data/data.json')
     allRecs = data.schools.flatMap(s =>
       s.recommendations.map(r => ({ ...r, school: s.short_name }))
     );
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('main-content').classList.remove('hidden');
+
+    // Hide loading overlay
+    document.getElementById('loading-overlay').style.display = 'none';
+
+    // Show home page
+    switchTab('page-home');
+
     initNavbar();
     initHero(data);
-    initMap(data);
+    initHomeSchoolCards(data.schools);
     initSchools(data.schools);
     initScenario(data);
     initAnalysis(data);
     initRecommendations(data.schools);
   })
   .catch(err => {
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('error-banner').classList.remove('hidden');
+    document.getElementById('loading-overlay').style.display = 'none';
+    const banner = document.getElementById('error-banner');
+    banner.classList.remove('hidden');
     document.getElementById('error-msg').textContent = ' ' + err.message;
   });
 
 // ── Navbar hamburger ──────────────────────────────────────────
 function initNavbar() {
-  const btn   = document.getElementById('hamburger');
-  const menu  = document.getElementById('mobile-menu');
-  const open  = document.getElementById('ham-open');
-  const close = document.getElementById('ham-close');
+  const btn  = document.getElementById('hamburger');
+  const menu = document.getElementById('mobile-menu');
 
-  btn.addEventListener('click', () => {
-    const shown = !menu.classList.contains('hidden');
-    menu.classList.toggle('hidden', shown);
-    open.classList.toggle('hidden', !shown);
-    close.classList.toggle('hidden', shown);
-  });
+  btn.addEventListener('click', () => menu.classList.toggle('hidden'));
 
-  menu.querySelectorAll('a').forEach(a => {
-    a.addEventListener('click', () => {
-      menu.classList.add('hidden');
-      open.classList.remove('hidden');
-      close.classList.add('hidden');
+  // Wire up all tab buttons (desktop + mobile)
+  document.querySelectorAll('.nav-tab, .mob-nav-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pageId = btn.dataset.page;
+      if (pageId) switchTab(pageId);
     });
   });
 }
 
-// ── HERO ──────────────────────────────────────────────────────
+// ── HERO STATS ────────────────────────────────────────────────
 function initHero(data) {
   const stats = data.stats || {};
   const el    = document.getElementById('hero-stats');
 
   const items = [
-    {
-      value: stats.schools_assessed ?? 3,
-      label: 'schools assessed',
-    },
-    {
-      value: stats.major_hazards ?? 1,
-      label: 'major hazard' + ((stats.major_hazards ?? 1) !== 1 ? 's' : ''),
-      color: '#C0392B',
-    },
-    {
-      value: stats.crash_darebin ? `${stats.crash_darebin}+` : '250+',
-      label: 'Darebin crashes (2021–25)',
-    },
-    {
-      value: `r = ${stats.equity_r ?? 0.84}`,
-      label: 'equity–safety correlation',
-      color: '#028090',
-    },
-    {
-      value: stats.peak_crash_hour ?? '17:00',
-      label: 'peak crash hour',
-      color: '#D35400',
-    },
+    { value: stats.schools_assessed ?? 3,       label: 'schools assessed' },
+    { value: stats.major_hazards ?? 1,           label: 'major hazard' + ((stats.major_hazards ?? 1) !== 1 ? 's' : ''), color: '#C0392B' },
+    { value: stats.crash_darebin ? `${stats.crash_darebin}+` : '250+', label: 'Darebin crashes 2021–25' },
+    { value: `r = ${stats.equity_r ?? 0.84}`,   label: 'equity–safety correlation', color: '#028090' },
+    { value: stats.peak_crash_hour ?? '17:00',   label: 'peak crash hour', color: '#D35400' },
   ];
 
   el.innerHTML = items.map(item => `
-    <div class="hero-stat-card">
-      <div class="hero-stat-value" style="${item.color ? `color:${item.color}` : ''}">
+    <div class="home-stat-card">
+      <div class="home-stat-value" style="${item.color ? `color:${item.color}` : ''}">
         ${item.value}
       </div>
-      <div class="hero-stat-label">${item.label}</div>
+      <div class="home-stat-label">${item.label}</div>
     </div>
   `).join('');
+}
+
+// ── HOME SCHOOL CARDS ─────────────────────────────────────────
+function initHomeSchoolCards(schools) {
+  const el = document.getElementById('home-school-cards');
+  if (!el) return;
+
+  el.innerHTML = schools.map((school, idx) => {
+    const sevCol = school.severity === 'Major' ? '#C0392B'
+                 : school.severity === 'Moderate' ? '#D35400' : '#1E8449';
+    const sevBg  = school.severity === 'Major' ? '#FDECEA'
+                 : school.severity === 'Moderate' ? '#FEF3E2' : '#E9F7EF';
+
+    // Find worst indicator
+    const worstCode = HS_CODES.reduce((a, b) =>
+      (school.hs_scores[a] ?? 10) < (school.hs_scores[b] ?? 10) ? a : b
+    );
+    const worstVal = school.hs_scores[worstCode] ?? 0;
+
+    // Count indicators below 6.0
+    const gapCount = HS_CODES.filter(c => (school.hs_scores[c] ?? 0) < 6.0).length;
+
+    return `
+      <div class="home-school-card" onclick="goToSchool(${idx})" title="View ${school.short_name} details">
+        <div class="home-school-card-header"
+             style="border-left: 4px solid ${sevCol}; padding-left: 1rem;">
+          <div style="display:flex;align-items:center;gap:0.6rem;justify-content:space-between;">
+            <div class="home-school-card-name">${school.name}</div>
+            <span class="${severityClass(school.severity)}">${school.severity}</span>
+          </div>
+          <div class="home-school-card-addr">${school.address}</div>
+        </div>
+        <div class="home-school-card-body">
+          <div class="home-school-score">
+            <span class="home-school-score-val">${school.overall_score}</span>
+            <span class="home-school-score-denom">/10</span>
+            <span class="home-school-score-label">overall HS score</span>
+          </div>
+
+          <!-- Mini indicator bars for worst 5 -->
+          <div style="margin-top:0.5rem;">
+            ${HS_CODES.slice(0, 5).map(code => {
+              const val   = school.hs_scores[code] ?? 0;
+              const color = scoreColor(val);
+              const pct   = (val / 10 * 100).toFixed(1);
+              return `
+                <div class="indicator-row" style="padding:0.15rem 0;">
+                  <span class="indicator-label" style="width:8rem;font-size:0.72rem">
+                    ${code} — ${HS_NAMES[code]}
+                  </span>
+                  <div class="bar-track" style="height:7px;">
+                    <div class="bar-fill" style="width:${pct}%;background:${color}"></div>
+                  </div>
+                  <span class="bar-score" style="color:${color};font-size:0.72rem">${val}</span>
+                </div>`;
+            }).join('')}
+          </div>
+
+          ${school.key_hazard ? `
+            <div class="home-school-hazard">
+              <strong>Key hazard</strong>
+              ${esc(school.key_hazard)}
+            </div>` : ''}
+        </div>
+        <div class="home-school-card-footer">
+          <span>${gapCount} indicator${gapCount !== 1 ? 's' : ''} below 6.0</span>
+          <span style="color:#028090;font-weight:600;font-size:0.75rem">View details →</span>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // ── MAP ────────────────────────────────────────────────────────
@@ -137,8 +218,8 @@ function initMap(data) {
   const spatialStats  = data.spatial_stats  || {};
 
   const map = L.map('map').setView([-37.72, 145.01], 14);
+  leafletMap = map;
 
-  // ── Base tiles ──
   const osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 19,
@@ -150,7 +231,6 @@ function initMap(data) {
   });
   osmTile.addTo(map);
 
-  // ── Layer groups ──
   const schoolLayer = L.layerGroup().addTo(map);
   const crashLayer  = L.layerGroup().addTo(map);
   const walkLayer   = L.layerGroup();
@@ -158,7 +238,6 @@ function initMap(data) {
   const heatLayer   = L.layerGroup().addTo(map);
   const seifaLayer  = L.layerGroup().addTo(map);
 
-  // ── School markers ──
   schools.forEach((school, idx) => {
     const color = school.severity === 'Major' ? '#C0392B'
                 : school.severity === 'Moderate' ? '#D35400' : '#1E8449';
@@ -211,7 +290,6 @@ function initMap(data) {
       .bindPopup(popup);
   });
 
-  // ── Crash markers ──
   const sevColor = { 1: '#7F1D1D', 2: '#DC2626', 3: '#F97316' };
   if (crashGeoJson && crashGeoJson.features) {
     crashGeoJson.features.forEach(feat => {
@@ -225,24 +303,16 @@ function initMap(data) {
         fillColor: col, color: '#fff', weight: 1.5,
         fillOpacity: 0.85, opacity: 1,
       });
-
-      const speedStr = p.speed_zone ? `${p.speed_zone} km/h zone` : 'Unknown zone';
-      const tooltip = `<b>${p.severity_label}</b><br>${p.type || 'Crash'}<br>${p.date} ${p.time}`;
-      circle.bindTooltip(tooltip, { sticky: true, className: 'crash-tooltip' });
+      circle.bindTooltip(`<b>${p.severity_label}</b><br>${p.type || 'Crash'}<br>${p.date} ${p.time}`,
+        { sticky: true, className: 'crash-tooltip' });
       circle.bindPopup(`
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;min-width:200px">
-          <div style="font-weight:700;font-size:14px;color:${col};margin-bottom:4px">
-            ${p.severity_label}
-          </div>
+          <div style="font-weight:700;font-size:14px;color:${col};margin-bottom:4px">${p.severity_label}</div>
           <table style="width:100%;border-collapse:collapse">
             <tr><td style="color:#888;padding:2px 6px 2px 0">Type</td><td>${p.type || '—'}</td></tr>
             <tr><td style="color:#888;padding:2px 6px 2px 0">Date</td><td>${p.date} ${p.time}</td></tr>
             <tr><td style="color:#888;padding:2px 6px 2px 0">Day</td><td>${p.day || '—'}</td></tr>
-            <tr><td style="color:#888;padding:2px 6px 2px 0">Speed zone</td><td>${speedStr}</td></tr>
-            <tr><td style="color:#888;padding:2px 6px 2px 0">Light</td><td>${p.light || '—'}</td></tr>
-            <tr><td style="color:#888;padding:2px 6px 2px 0">Road type</td><td>${p.road_geometry || '—'}</td></tr>
-            <tr><td style="color:#888;padding:2px 6px 2px 0">Killed</td><td>${p.killed ?? 0}</td></tr>
-            <tr><td style="color:#888;padding:2px 6px 2px 0">Serious injury</td><td>${p.injured_serious ?? 0}</td></tr>
+            <tr><td style="color:#888;padding:2px 6px 2px 0">Speed zone</td><td>${p.speed_zone ? p.speed_zone + ' km/h' : '—'}</td></tr>
             <tr><td style="color:#888;padding:2px 6px 2px 0">Nearest school</td><td>${p.school || '—'}</td></tr>
             <tr><td style="color:#888;padding:2px 6px 2px 0">Distance to gate</td><td>${p.dist_m != null ? p.dist_m + 'm' : '—'}</td></tr>
           </table>
@@ -251,19 +321,12 @@ function initMap(data) {
     });
   }
 
-  // ── Walk network ──
   if (networks.walk && networks.walk.features) {
     L.geoJSON(networks.walk, {
       style: () => ({ color: '#3B82F6', weight: 1.8, opacity: 0.7 }),
-      onEachFeature: (feat, layer) => {
-        if (feat.properties.highway) {
-          layer.bindTooltip(`Walk: ${feat.properties.highway}`, { sticky: true });
-        }
-      }
     }).addTo(walkLayer);
   }
 
-  // ── Cycling network ──
   if (networks.cycling && networks.cycling.features) {
     L.geoJSON(networks.cycling, {
       style: feat => {
@@ -271,13 +334,9 @@ function initMap(data) {
         const isProtected = hw.includes('cycleway') || hw.includes('path');
         return { color: isProtected ? '#10B981' : '#6EE7B7', weight: isProtected ? 2.5 : 1.5, opacity: 0.85 };
       },
-      onEachFeature: (feat, layer) => {
-        layer.bindTooltip(`Cycle: ${feat.properties.highway || 'route'}`, { sticky: true });
-      }
     }).addTo(cycleLayer);
   }
 
-  // ── Heatmap ──
   if (heatPoints.length > 0 && L.heatLayer) {
     L.heatLayer(heatPoints, {
       radius: 20, blur: 25, maxZoom: 17,
@@ -285,7 +344,6 @@ function initMap(data) {
     }).addTo(heatLayer);
   }
 
-  // ── SEIFA catchment circles ──
   const seifaColors = { 1: '#7F1D1D', 2: '#B91C1C', 3: '#DC2626', 4: '#F97316',
                         5: '#FBBF24', 6: '#A3E635', 7: '#4ADE80', 8: '#22C55E',
                         9: '#16A34A', 10: '#166534' };
@@ -298,28 +356,21 @@ function initMap(data) {
       radius: 400, color: col, fillColor: col,
       fillOpacity: 0.12, weight: 2, dashArray: '6 4',
     })
-    .bindTooltip(`
-      <b>${school.short_name}</b><br>
-      SEIFA IRSD Decile: ${s.irsd_decile}<br>
-      ${s.disadvantage_level || ''}<br>
-      Population: ${s.catchment_population?.toLocaleString() || '—'}`,
-      { sticky: false })
+    .bindTooltip(`<b>${school.short_name}</b><br>SEIFA IRSD Decile: ${s.irsd_decile}<br>${s.disadvantage_level || ''}`, { sticky: false })
     .addTo(seifaLayer);
   });
 
-  // ── Layer control ──
   const baseMaps = { 'OpenStreetMap': osmTile, 'Dark': darkTile };
   const overlays = {
-    '🏫 Schools':        schoolLayer,
-    '💥 Crash spots':    crashLayer,
-    '🔥 Crash heatmap':  heatLayer,
-    '🚶 Walk network':   walkLayer,
-    '🚲 Cycling network': cycleLayer,
-    '📊 SEIFA catchments': seifaLayer,
+    '🏫 Schools':           schoolLayer,
+    '💥 Crash spots':       crashLayer,
+    '🔥 Crash heatmap':     heatLayer,
+    '🚶 Walk network':      walkLayer,
+    '🚲 Cycling network':   cycleLayer,
+    '📊 SEIFA catchments':  seifaLayer,
   };
   L.control.layers(baseMaps, overlays, { collapsed: false, position: 'topright' }).addTo(map);
 
-  // ── Legend ──
   const legend = L.control({ position: 'bottomleft' });
   legend.onAdd = () => {
     const div = L.DomUtil.create('div', 'map-legend');
@@ -331,8 +382,7 @@ function initMap(data) {
         <span style="color:#F97316">●</span> Other injury<br>
         <b style="display:block;margin:4px 0 2px">Networks</b>
         <span style="color:#3B82F6">━</span> Walk &nbsp;
-        <span style="color:#10B981">━</span> Cycling (protected) &nbsp;
-        <span style="color:#6EE7B7">━</span> Cycling<br>
+        <span style="color:#10B981">━</span> Cycling (protected)<br>
         <b style="display:block;margin:4px 0 2px">SEIFA decile</b>
         <span style="color:#DC2626">●</span> Most disadvantaged (1–3) &nbsp;
         <span style="color:#22C55E">●</span> Least (8–10)
@@ -343,12 +393,12 @@ function initMap(data) {
 }
 
 function goToSchool(idx) {
-  document.getElementById('schools-section').scrollIntoView({ behavior: 'smooth' });
-  setTimeout(() => activateTab(idx), 400);
+  switchTab('page-schools');
+  setTimeout(() => activateTab(idx), 100);
 }
 window.goToSchool = goToSchool;
 
-// ── SCHOOLS SECTION ────────────────────────────────────────────
+// ── SCHOOLS PAGE ──────────────────────────────────────────────
 function initSchools(schools) {
   const tabsEl    = document.getElementById('school-tabs');
   const contentEl = document.getElementById('school-content');
@@ -368,16 +418,15 @@ function initSchools(schools) {
     contentEl.appendChild(panel);
   });
 
-  setTimeout(() => drawRadar(schools[0], 0), 50);
 }
 
 function activateTab(idx) {
-  document.querySelectorAll('.school-tab').forEach((btn, i) => {
-    btn.classList.toggle('active', i === idx);
-  });
-  document.querySelectorAll('[id^="school-panel-"]').forEach((panel, i) => {
-    panel.classList.toggle('hidden', i !== idx);
-  });
+  document.querySelectorAll('.school-tab').forEach((btn, i) =>
+    btn.classList.toggle('active', i === idx)
+  );
+  document.querySelectorAll('[id^="school-panel-"]').forEach((panel, i) =>
+    panel.classList.toggle('hidden', i !== idx)
+  );
   activeSchoolIdx = idx;
   if (!radarCharts[idx]) {
     setTimeout(() => drawRadar(appData.schools[idx], idx), 50);
@@ -390,23 +439,17 @@ function buildSchoolPanel(school, idx) {
 
   panel.innerHTML = `
     <div class="flex flex-col md:flex-row gap-6">
-
-      <!-- LEFT: radar chart -->
-      <div class="md:w-2/5 flex flex-col items-center justify-start">
+      <div class="md:w-2\/5 flex flex-col items-center justify-start">
         <div class="radar-wrap">
           <canvas id="radar-${idx}"></canvas>
         </div>
       </div>
-
-      <!-- RIGHT: details -->
-      <div class="md:w-3/5">
+      <div class="md:w-3\/5">
         <div class="flex flex-wrap items-center gap-3 mb-1">
           <h3 class="text-xl font-bold text-gray-900">${school.name}</h3>
           <span class="${severityClass(school.severity)}">${school.severity}</span>
         </div>
         <p class="text-sm text-gray-400 mb-3">${school.address}</p>
-
-        <!-- Overall score -->
         <div class="flex items-baseline gap-1 mb-4">
           <span style="font-size:3rem;font-weight:800;color:#028090;line-height:1">
             ${school.overall_score}
@@ -414,8 +457,6 @@ function buildSchoolPanel(school, idx) {
           <span class="text-gray-400 text-lg">/10</span>
           <span class="text-xs text-gray-400 ml-2">overall HS score</span>
         </div>
-
-        <!-- Indicator bars -->
         <div class="space-y-0.5">
           ${HS_CODES.map(code => {
             const val   = school.hs_scores[code] ?? 0;
@@ -431,8 +472,6 @@ function buildSchoolPanel(school, idx) {
               </div>`;
           }).join('')}
         </div>
-
-        <!-- Key hazard -->
         ${school.key_hazard ? `
           <div class="hazard-box">
             <strong>Key hazard</strong>
@@ -464,10 +503,10 @@ function drawRadar(school, idx) {
         {
           label: school.short_name,
           data: scores,
-          backgroundColor: 'rgba(2,128,144,0.25)',
-          borderColor: '#028090',
+          backgroundColor: 'rgba(192,57,43,0.18)',
+          borderColor: '#C0392B',
           borderWidth: 2,
-          pointBackgroundColor: '#028090',
+          pointBackgroundColor: '#C0392B',
           pointRadius: 3,
         },
         {
@@ -485,37 +524,29 @@ function drawRadar(school, idx) {
       responsive: true,
       scales: {
         r: {
-          min: 0,
-          max: 10,
+          min: 0, max: 10,
           ticks: { stepSize: 2, font: { size: 9 }, color: '#999' },
           pointLabels: { font: { size: 9 }, color: '#555' },
-          grid:       { color: '#EEEEEE' },
+          grid: { color: '#EEEEEE' },
           angleLines: { color: '#DDDDDD' },
         },
       },
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { font: { size: 10 }, boxWidth: 12, padding: 8 },
-        },
+        legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
       },
     },
   });
 }
 
-// ── SCENARIO SECTION ──────────────────────────────────────────
+// ── SCENARIO PAGE ─────────────────────────────────────────────
 function initScenario(data) {
   const scenarios = data.scenarios;
   const schools   = data.schools;
 
   if (!scenarios || Object.keys(scenarios).length === 0) {
-    document.getElementById('scenario-section').innerHTML = `
-      <div class="max-w-7xl mx-auto px-4 py-12">
-        <h2 class="section-heading">What-if Scenario Analysis</h2>
-        <p class="section-sub mt-2">
-          Run <code>python prepare_data.py</code> after the full pipeline to enable scenarios.
-        </p>
-      </div>`;
+    document.getElementById('page-scenario').querySelector('.content-wrap').innerHTML = `
+      <h2 class="section-heading">What-if Scenario Analysis</h2>
+      <p class="section-sub mt-2">Run <code>python prepare_data.py</code> after the full pipeline to enable scenarios.</p>`;
     return;
   }
 
@@ -523,7 +554,6 @@ function initScenario(data) {
   let activeSchool = schools[0].short_name;
   let scenarioChart = null;
 
-  // School tabs
   schools.forEach((school, i) => {
     const btn = document.createElement('button');
     btn.className = 'school-tab' + (i === 0 ? ' active' : '');
@@ -543,7 +573,7 @@ function initScenario(data) {
   clearScenarioResult();
 
   function renderInterventionGrid(schoolName) {
-    const grid         = document.getElementById('intervention-grid');
+    const grid = document.getElementById('intervention-grid');
     const schoolScenarios = scenarios[schoolName] || {};
 
     grid.innerHTML = Object.entries(schoolScenarios).map(([key, s]) => {
@@ -584,12 +614,12 @@ function renderScenarioResult(s, schoolName, existingChart, setChart) {
   document.getElementById('scenario-placeholder').classList.add('hidden');
   document.getElementById('scenario-result').classList.remove('hidden');
 
-  const sevSame   = s.baseline_severity === s.scenario_severity;
-  const sevHtml   = sevSame
+  const sevSame = s.baseline_severity === s.scenario_severity;
+  const sevHtml = sevSame
     ? `<span class="${severityClass(s.baseline_severity)}">${s.baseline_severity}</span>
-       <span class="text-gray-400 text-xs ml-1">(no change)</span>`
+       <span style="color:#9CA3AF;font-size:0.75rem;margin-left:4px">(no change)</span>`
     : `<span class="${severityClass(s.baseline_severity)}">${s.baseline_severity}</span>
-       <span class="text-gray-400 mx-1">→</span>
+       <span style="color:#9CA3AF;margin:0 4px">→</span>
        <span class="${severityClass(s.scenario_severity)}">${s.scenario_severity}</span>`;
 
   const dSign  = s.delta_overall >= 0 ? '+' : '';
@@ -600,12 +630,10 @@ function renderScenarioResult(s, schoolName, existingChart, setChart) {
     <div class="scenario-stat">
       <div class="scenario-stat-label">HS Overall</div>
       <div class="scenario-stat-val">
-        <span class="text-gray-500">${s.baseline_overall}</span>
-        <span class="text-gray-300 mx-1">→</span>
+        <span style="color:#9CA3AF">${s.baseline_overall}</span>
+        <span style="color:#D1D5DB;margin:0 4px">→</span>
         <strong>${s.scenario_overall}</strong>
-        <span style="color:${dColor};font-size:0.8rem;margin-left:4px">
-          (${dSign}${s.delta_overall})
-        </span>
+        <span style="color:${dColor};font-size:0.8rem;margin-left:4px">(${dSign}${s.delta_overall})</span>
       </div>
     </div>
     <div class="scenario-stat">
@@ -622,7 +650,6 @@ function renderScenarioResult(s, schoolName, existingChart, setChart) {
     </div>
   `;
 
-  // Draw chart
   const canvas = document.getElementById('scenario-chart');
   if (existingChart) existingChart.destroy();
 
@@ -634,12 +661,7 @@ function renderScenarioResult(s, schoolName, existingChart, setChart) {
     data: {
       labels: HS_CODES.map(c => `${c}\n${HS_NAMES[c]}`),
       datasets: [
-        {
-          label: 'Baseline',
-          data: baseline,
-          backgroundColor: 'rgba(150,150,150,0.45)',
-          borderRadius: 3,
-        },
+        { label: 'Baseline', data: baseline, backgroundColor: 'rgba(150,150,150,0.45)', borderRadius: 3 },
         {
           label: 'After intervention',
           data: scenario,
@@ -656,11 +678,7 @@ function renderScenarioResult(s, schoolName, existingChart, setChart) {
       responsive: true,
       plugins: {
         legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 12 } },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.raw).toFixed(2)}`,
-          },
-        },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.raw).toFixed(2)}` } },
       },
       scales: {
         x: { ticks: { font: { size: 10 }, maxRotation: 0 } },
@@ -675,7 +693,7 @@ function renderScenarioResult(s, schoolName, existingChart, setChart) {
   setChart(newChart);
 }
 
-// ── ANALYSIS SECTION ──────────────────────────────────────────
+// ── ANALYSIS PAGE ─────────────────────────────────────────────
 function initAnalysis(data) {
   buildHsCharts(data.charts);
   buildMlChart(data.ml_results);
@@ -699,45 +717,21 @@ function buildMlChart(mlResults) {
   const canvas = document.getElementById('ml-chart');
   const labels = mlResults.map(r => `${r.indicator} — ${r.name}`);
   const values = mlResults.map(r => r.mae);
-  const colors = values.map(v =>
-    v < 1.5 ? '#1E8449' : v < 3.0 ? '#D35400' : '#C0392B'
-  );
+  const colors = values.map(v => v < 1.5 ? '#1E8449' : v < 3.0 ? '#D35400' : '#C0392B');
 
   new Chart(canvas, {
     type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'MAE',
-        data: values,
-        backgroundColor: colors,
-        borderRadius: 4,
-      }],
-    },
+    data: { labels, datasets: [{ label: 'MAE', data: values, backgroundColor: colors, borderRadius: 4 }] },
     options: {
       indexAxis: 'y',
       responsive: true,
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: { label: ctx => ` MAE: ${ctx.raw.toFixed(3)}` },
-        },
+        tooltip: { callbacks: { label: ctx => ` MAE: ${ctx.raw.toFixed(3)}` } },
       },
       scales: {
-        x: {
-          title: {
-            display: true,
-            text: 'Mean Absolute Error (lower = better)',
-            font: { size: 11 },
-            color: '#666',
-          },
-          min: 0,
-          grid: { color: '#EEEEEE' },
-        },
-        y: {
-          ticks: { font: { size: 11 } },
-          grid: { display: false },
-        },
+        x: { title: { display: true, text: 'Mean Absolute Error (lower = better)', font: { size: 11 }, color: '#666' }, min: 0, grid: { color: '#EEEEEE' } },
+        y: { ticks: { font: { size: 11 } }, grid: { display: false } },
       },
     },
   });
@@ -763,9 +757,7 @@ function buildSeifaCards(schools) {
       </div>`;
 
     const decilePct  = Math.min((s.irsd_decile / 10) * 100, 100).toFixed(0);
-    const decileColor =
-      s.irsd_decile <= 3 ? '#C0392B' :
-      s.irsd_decile <= 6 ? '#D35400' : '#1E8449';
+    const decileColor = s.irsd_decile <= 3 ? '#C0392B' : s.irsd_decile <= 6 ? '#D35400' : '#1E8449';
 
     return `
       <div class="seifa-card">
@@ -781,9 +773,7 @@ function buildSeifaCards(schools) {
             <div class="decile-bar-fill" style="width:${decilePct}%;background:${decileColor}"></div>
           </div>
         </div>
-        <p class="text-xs mt-2 font-medium" style="color:${decileColor}">
-          ${s.disadvantage_level}
-        </p>
+        <p class="text-xs mt-2 font-medium" style="color:${decileColor}">${s.disadvantage_level}</p>
         ${s.implication ? `<p class="text-xs text-gray-400 mt-1 italic">${s.implication}</p>` : ''}
       </div>`;
   }).join('');
@@ -791,19 +781,16 @@ function buildSeifaCards(schools) {
 
 function buildExtraCharts(charts) {
   const pairs = [
-    { id: 'equity-chart',       file: charts.equity,       caption: 'Equity analysis: SEIFA disadvantage × Healthy Streets scores (Pearson r = 0.84)' },
-    { id: 'crash-chart',        file: charts.crash_trends,  caption: 'Ped/cyc crash trends 2021–2025 — Darebin LGA year trend, school-hours breakdown, time-of-day' },
-    { id: 'demographics-chart', file: charts.demographics,  caption: 'ABS Census 2021 — median income, no-car households, PT mode share, Reservoir & Preston' },
+    { id: 'equity-chart',       file: charts.equity,       caption: 'Equity: SEIFA disadvantage × Healthy Streets scores (r = 0.84)' },
+    { id: 'crash-chart',        file: charts.crash_trends,  caption: 'Ped/cyc crash trends 2021–2025 — Darebin LGA' },
+    { id: 'demographics-chart', file: charts.demographics,  caption: 'ABS Census 2021 — median income, car ownership, active travel' },
   ];
   pairs.forEach(({ id, file, caption }) => {
     const el = document.getElementById(id);
     if (!el) return;
-    if (!file) {
-      el.innerHTML = `<p class="text-sm text-gray-400 italic">
-        Chart not available — run <code>python prepare_data.py</code> to generate.</p>`;
-      return;
-    }
-    el.innerHTML = chartCardHtml(file, caption);
+    el.innerHTML = file
+      ? chartCardHtml(file, caption)
+      : `<p class="text-sm text-gray-400 italic">Chart not available — run <code>python prepare_data.py</code> to generate.</p>`;
   });
 }
 
@@ -822,9 +809,8 @@ function initLightbox() {
 
   document.addEventListener('click', e => {
     if (!e.target.matches('.chart-card img')) return;
-    const img = e.target;
-    if (img.style.display === 'none') return;
-    openLightbox(img.src, img.alt);
+    if (e.target.style.display === 'none') return;
+    openLightbox(e.target.src, e.target.alt);
   });
 
   closeBtn.addEventListener('click', closeLightbox);
@@ -833,10 +819,9 @@ function initLightbox() {
 }
 
 function openLightbox(src, alt) {
-  const overlay = document.getElementById('lightbox');
   document.getElementById('lightbox-img').src = src;
   document.getElementById('lightbox-img').alt = alt || '';
-  overlay.classList.add('is-open');
+  document.getElementById('lightbox').classList.add('is-open');
   document.body.style.overflow = 'hidden';
 }
 
@@ -845,7 +830,7 @@ function closeLightbox() {
   document.body.style.overflow = '';
 }
 
-// ── RECOMMENDATIONS SECTION ───────────────────────────────────
+// ── RECOMMENDATIONS PAGE ──────────────────────────────────────
 function initRecommendations(schools) {
   const schoolSelect = document.getElementById('filter-school');
   schools.forEach(s => {
@@ -858,7 +843,6 @@ function initRecommendations(schools) {
   schoolSelect.addEventListener('change', renderRecs);
   document.getElementById('filter-priority').addEventListener('change', renderRecs);
   document.getElementById('download-csv').addEventListener('click', downloadCsv);
-
   renderRecs();
 }
 
@@ -892,9 +876,7 @@ function renderRecs() {
     <div class="rec-mobile-card">
       <div class="flex items-center gap-2 mb-1">
         <strong>${esc(r.school)}</strong>
-        <span class="badge" style="background:#EEF8F9;color:#028090;font-size:0.65rem">
-          ${esc(r.indicator)}
-        </span>
+        <span class="badge" style="background:#FEF2F2;color:#C0392B;font-size:0.65rem">${esc(r.indicator)}</span>
         <span class="${priorityClass(r.priority)}">${esc(r.priority)}</span>
       </div>
       <dl>
@@ -930,10 +912,7 @@ function chartCardHtml(file, caption) {
   return `
     <div class="chart-card">
       <img src="./data/charts/${file}" alt="${esc(caption)}" loading="lazy"
-           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-      <div style="display:none;padding:1rem;font-size:0.8rem;color:#999">
-        Chart not found: ${file}
-      </div>
+           onerror="this.style.display='none'">
       <div class="chart-caption">${esc(caption)}</div>
     </div>`;
 }
@@ -941,15 +920,11 @@ function chartCardHtml(file, caption) {
 function esc(str) {
   if (str == null) return '';
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function csvCell(v) {
   const s = String(v ?? '');
   return s.includes(',') || s.includes('"') || s.includes('\n')
-    ? `"${s.replace(/"/g, '""')}"`
-    : s;
+    ? `"${s.replace(/"/g, '""')}"` : s;
 }
