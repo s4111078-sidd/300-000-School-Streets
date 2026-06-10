@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-10T07:30:00.781609Z",
+  "generated_at": "2026-06-01T04:10:53.416882Z",
   "stats": {
     "schools_assessed": 3,
     "major_hazards": 1,
@@ -331,7 +331,7 @@
         "scenario_overall": 6.1,
         "delta_overall": 0.0,
         "baseline_severity": "Moderate",
-        "scenario_severity": "Major",
+        "scenario_severity": "Moderate",
         "deltas": {
           "HS1": -0.56,
           "HS2": -0.95,
@@ -472,7 +472,7 @@
         "scenario_overall": 5.87,
         "delta_overall": -0.23,
         "baseline_severity": "Moderate",
-        "scenario_severity": "Major",
+        "scenario_severity": "Moderate",
         "deltas": {
           "HS1": -1.06,
           "HS2": 0.93,
@@ -1038,7 +1038,7 @@
         "scenario_overall": 7.0,
         "delta_overall": 0.3,
         "baseline_severity": "Moderate",
-        "scenario_severity": "Major",
+        "scenario_severity": "Moderate",
         "deltas": {
           "HS1": 0.5,
           "HS2": -2.99,
