@@ -50,3 +50,12 @@ env/
 .vscode/
 .idea/
 *.ipynb_checkpoints
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.swp

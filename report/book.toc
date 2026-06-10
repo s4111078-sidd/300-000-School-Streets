@@ -1,0 +1,249 @@
+\contentsline {chapter}{Acknowledgements}{viii}{chapter*.2}%
+\contentsline {chapter}{Preface}{ix}{chapter*.3}%
+\contentsline {part}{I\hspace {1em}Foundations}{1}{part.1}%
+\contentsline {chapter}{\numberline {1}Introduction and Project Context}{2}{chapter.1}%
+\contentsline {section}{\numberline {1.1}The 300,000 Streets Initiative}{2}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Study Scope and School Selection}{2}{section.1.2}%
+\contentsline {section}{\numberline {1.3}The Seven Deliverables}{3}{section.1.3}%
+\contentsline {section}{\numberline {1.4}How to Use This Book}{3}{section.1.4}%
+\contentsline {section}{\numberline {1.5}Project History and Timeline}{4}{section.1.5}%
+\contentsline {section}{\numberline {1.6}A Note on Reproducibility}{4}{section.1.6}%
+\contentsline {chapter}{\numberline {2}The Healthy Streets Framework}{6}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Origins and Purpose}{6}{section.2.1}%
+\contentsline {section}{\numberline {2.2}The Ten Indicators}{6}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Scoring Each Indicator: 0 to 10}{7}{section.2.3}%
+\contentsline {section}{\numberline {2.4}Severity Classification}{8}{section.2.4}%
+\contentsline {section}{\numberline {2.5}Adapting the Framework for Secondary Schools}{8}{section.2.5}%
+\contentsline {section}{\numberline {2.6}The Cycling Infrastructure Score (CIS)}{9}{section.2.6}%
+\contentsline {section}{\numberline {2.7}Why Ten Indicators?}{9}{section.2.7}%
+\contentsline {chapter}{\numberline {3}Development Environment Setup}{10}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Prerequisites}{10}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Cloning the Repository}{10}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Creating the Conda Environment}{10}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Installing Python Dependencies}{11}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Full Requirements Reference}{11}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Verifying the Installation}{12}{section.3.6}%
+\contentsline {section}{\numberline {3.7}Setting Up the Outputs Directory}{13}{section.3.7}%
+\contentsline {section}{\numberline {3.8}Coordinate Reference Systems}{13}{section.3.8}%
+\contentsline {section}{\numberline {3.9}Running the Pipeline for the First Time}{14}{section.3.9}%
+\contentsline {chapter}{\numberline {4}Repository Structure and Architecture}{15}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Directory Tree}{15}{section.4.1}%
+\contentsline {section}{\numberline {4.2}The config.py Module}{16}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Data Flow Architecture}{18}{section.4.3}%
+\contentsline {section}{\numberline {4.4}The Six-Step Main Pipeline}{18}{section.4.4}%
+\contentsline {section}{\numberline {4.5}The src/ Package Structure}{19}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}src/data/loader.py}{19}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}src/scoring/}{20}{subsection.4.5.2}%
+\contentsline {subsection}{\numberline {4.5.3}src/recommendations/engine.py}{20}{subsection.4.5.3}%
+\contentsline {subsection}{\numberline {4.5.4}src/visualisation/}{20}{subsection.4.5.4}%
+\contentsline {subsection}{\numberline {4.5.5}src/scenarios/}{20}{subsection.4.5.5}%
+\contentsline {section}{\numberline {4.6}Naming Conventions}{21}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Git Workflow and Branch Strategy}{21}{section.4.7}%
+\contentsline {section}{\numberline {4.8}Summary: What to Expect After a Full Pipeline Run}{21}{section.4.8}%
+\contentsline {chapter}{\numberline {5}Study Area and School Selection}{24}{chapter.5}%
+\contentsline {section}{\numberline {5.1}The City of Darebin}{24}{section.5.1}%
+\contentsline {section}{\numberline {5.2}The Three Schools}{24}{section.5.2}%
+\contentsline {section}{\numberline {5.3}School Selection Criteria}{25}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Socioeconomic Context: SEIFA IRSD}{26}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Catchment Definition}{26}{section.5.5}%
+\contentsline {chapter}{\numberline {6}Field Survey Methodology}{27}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Why a Primary Survey?}{27}{section.6.1}%
+\contentsline {section}{\numberline {6.2}The Google Forms Instrument}{27}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Column Rename Reference}{27}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Site Visit Protocol}{29}{section.6.4}%
+\contentsline {section}{\numberline {6.5}The Data Loader: \texttt {src/data/loader.py}}{30}{section.6.5}%
+\contentsline {chapter}{\numberline {7}OSM Data with osmnx}{32}{chapter.7}%
+\contentsline {section}{\numberline {7.1}OpenStreetMap as Infrastructure Data}{32}{section.7.1}%
+\contentsline {section}{\numberline {7.2}The osmnx Library}{32}{section.7.2}%
+\contentsline {section}{\numberline {7.3}CRS and Projection}{33}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Buffer Strategy}{33}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Walking Network Features}{34}{section.7.5}%
+\contentsline {section}{\numberline {7.6}Road Network Features}{34}{section.7.6}%
+\contentsline {section}{\numberline {7.7}Crossings and Signals}{35}{section.7.7}%
+\contentsline {section}{\numberline {7.8}Healthy Streets Extras at 400~m}{36}{section.7.8}%
+\contentsline {section}{\numberline {7.9}Cycling Network Features}{36}{section.7.9}%
+\contentsline {section}{\numberline {7.10}GeoPackage Export}{37}{section.7.10}%
+\contentsline {section}{\numberline {7.11}Full Feature Inventory}{37}{section.7.11}%
+\contentsline {chapter}{\numberline {8}Government Open Datasets}{39}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Overview}{39}{section.8.1}%
+\contentsline {section}{\numberline {8.2}VicRoads Crash Data}{39}{section.8.2}%
+\contentsline {subsection}{\numberline {8.2.1}Source and Download}{39}{subsection.8.2.1}%
+\contentsline {subsection}{\numberline {8.2.2}Key Columns}{39}{subsection.8.2.2}%
+\contentsline {subsection}{\numberline {8.2.3}School Hours Filter}{40}{subsection.8.2.3}%
+\contentsline {subsection}{\numberline {8.2.4}Crash Trend Analysis}{40}{subsection.8.2.4}%
+\contentsline {section}{\numberline {8.3}ABS SEIFA 2021 IRSD}{41}{section.8.3}%
+\contentsline {subsection}{\numberline {8.3.1}Source and Download}{41}{subsection.8.3.1}%
+\contentsline {subsection}{\numberline {8.3.2}seifa\_darebin.csv Structure}{41}{subsection.8.3.2}%
+\contentsline {subsection}{\numberline {8.3.3}Equity Analysis}{41}{subsection.8.3.3}%
+\contentsline {section}{\numberline {8.4}EPA AirWatch PM2.5}{42}{section.8.4}%
+\contentsline {subsection}{\numberline {8.4.1}Source}{42}{subsection.8.4.1}%
+\contentsline {subsection}{\numberline {8.4.2}Preprocessing}{42}{subsection.8.4.2}%
+\contentsline {section}{\numberline {8.5}Crime Statistics Victoria}{42}{section.8.5}%
+\contentsline {subsection}{\numberline {8.5.1}Source}{42}{subsection.8.5.1}%
+\contentsline {subsection}{\numberline {8.5.2}Preprocessing}{42}{subsection.8.5.2}%
+\contentsline {subsection}{\numberline {8.5.3}Usage in the ML Model}{43}{subsection.8.5.3}%
+\contentsline {section}{\numberline {8.6}Joining All Data Sources}{43}{section.8.6}%
+\contentsline {chapter}{\numberline {9}The Healthy Streets Scoring Engine}{46}{chapter.9}%
+\contentsline {section}{\numberline {9.1}Architecture of \texttt {src/scoring/}}{46}{section.9.1}%
+\contentsline {section}{\numberline {9.2}How main.py Calls the Engine}{46}{section.9.2}%
+\contentsline {section}{\numberline {9.3}HS1 --- Pedestrians from All Walks of Life}{47}{section.9.3}%
+\contentsline {section}{\numberline {9.4}HS2 --- Easy to Cross}{48}{section.9.4}%
+\contentsline {section}{\numberline {9.5}HS3 --- Shade and Shelter (Spatial Indicator)}{49}{section.9.5}%
+\contentsline {section}{\numberline {9.6}HS5 --- Not Too Noisy (Deductive Pattern)}{49}{section.9.6}%
+\contentsline {section}{\numberline {9.7}All Ten Indicators at a Glance}{50}{section.9.7}%
+\contentsline {chapter}{\numberline {10}Severity Classification and Recommendations}{52}{chapter.10}%
+\contentsline {section}{\numberline {10.1}The Severity Model}{52}{section.10.1}%
+\contentsline {section}{\numberline {10.2}The Recommendation Rules: \texttt {src/recommendations/rules.py}}{53}{section.10.2}%
+\contentsline {section}{\numberline {10.3}The Recommendation Engine: \texttt {run\_recommendations()}}{54}{section.10.3}%
+\contentsline {section}{\numberline {10.4}Recommendations CSV Structure}{54}{section.10.4}%
+\contentsline {chapter}{\numberline {11}Machine Learning: Feature Engineering and Ridge Regression}{56}{chapter.11}%
+\contentsline {section}{\numberline {11.1}Purpose and Context}{56}{section.11.1}%
+\contentsline {section}{\numberline {11.2}Feature Engineering: \texttt {feature\_engineering.py}}{56}{section.11.2}%
+\contentsline {subsection}{\numberline {11.2.1}The 26-Feature Matrix}{56}{subsection.11.2.1}%
+\contentsline {subsection}{\numberline {11.2.2}Data Joining Code}{57}{subsection.11.2.2}%
+\contentsline {section}{\numberline {11.3}The Ridge Regression Model: \texttt {ml\_model.py}}{58}{section.11.3}%
+\contentsline {subsection}{\numberline {11.3.1}Why Ridge Regression?}{58}{subsection.11.3.1}%
+\contentsline {subsection}{\numberline {11.3.2}Pipeline Structure}{58}{subsection.11.3.2}%
+\contentsline {subsection}{\numberline {11.3.3}Leave-One-Out Cross-Validation}{59}{subsection.11.3.3}%
+\contentsline {subsection}{\numberline {11.3.4}Full-Data Model and Serialisation}{59}{subsection.11.3.4}%
+\contentsline {subsection}{\numberline {11.3.5}Three Output Charts}{60}{subsection.11.3.5}%
+\contentsline {chapter}{\numberline {12}Scenario Analysis}{61}{chapter.12}%
+\contentsline {section}{\numberline {12.1}What Scenario Analysis Does}{61}{section.12.1}%
+\contentsline {section}{\numberline {12.2}Intervention Templates: \texttt {src/scenarios/interventions.py}}{61}{section.12.2}%
+\contentsline {section}{\numberline {12.3}The Scenario Analyser CLI}{63}{section.12.3}%
+\contentsline {subsection}{\numberline {12.3.1}Output Chart}{64}{subsection.12.3.1}%
+\contentsline {subsection}{\numberline {12.3.2}Rank-All Mode}{64}{subsection.12.3.2}%
+\contentsline {section}{\numberline {12.4}End-to-End Scenario Workflow}{64}{section.12.4}%
+\contentsline {part}{II\hspace {1em}Analysis, Equity, and Dashboard Deployment}{66}{part.2}%
+\contentsline {chapter}{\numberline {13}Crash Trend Analysis}{68}{chapter.13}%
+\contentsline {section}{\numberline {13.1}Why Crash Data Matters}{68}{section.13.1}%
+\contentsline {section}{\numberline {13.2}Loading and Filtering}{68}{section.13.2}%
+\contentsline {subsection}{\numberline {13.2.1}Severity Labelling}{69}{subsection.13.2.1}%
+\contentsline {subsection}{\numberline {13.2.2}School Hours Filter}{69}{subsection.13.2.2}%
+\contentsline {section}{\numberline {13.3}Four-Panel Chart}{69}{section.13.3}%
+\contentsline {subsection}{\numberline {13.3.1}Panel 1 --- Darebin LGA Crashes by Year}{69}{subsection.13.3.1}%
+\contentsline {subsection}{\numberline {13.3.2}Panel 2 --- Our Three Schools by Year}{70}{subsection.13.3.2}%
+\contentsline {subsection}{\numberline {13.3.3}Panel 3 --- School Hours vs Off-Peak}{70}{subsection.13.3.3}%
+\contentsline {subsection}{\numberline {13.3.4}Panel 4 --- Time-of-Day Distribution}{70}{subsection.13.3.4}%
+\contentsline {section}{\numberline {13.4}Key Findings Function}{70}{section.13.4}%
+\contentsline {section}{\numberline {13.5}Integration with run\_all.py}{71}{section.13.5}%
+\contentsline {chapter}{\numberline {14}Equity Analysis}{72}{chapter.14}%
+\contentsline {section}{\numberline {14.1}The Equity Hypothesis}{72}{section.14.1}%
+\contentsline {section}{\numberline {14.2}SEIFA Data Pipeline}{72}{section.14.2}%
+\contentsline {section}{\numberline {14.3}Data Join}{73}{section.14.3}%
+\contentsline {section}{\numberline {14.4}Three-Panel Chart}{73}{section.14.4}%
+\contentsline {subsection}{\numberline {14.4.1}Panel 1 --- Side-by-Side Bars}{73}{subsection.14.4.1}%
+\contentsline {subsection}{\numberline {14.4.2}Panel 2 --- Scatter Plot with Quadrant Shading}{73}{subsection.14.4.2}%
+\contentsline {subsection}{\numberline {14.4.3}Panel 3 --- Indicator Heatmap}{73}{subsection.14.4.3}%
+\contentsline {section}{\numberline {14.5}Pearson Correlation and Policy Interpretation}{74}{section.14.5}%
+\contentsline {section}{\numberline {14.6}Running the Equity Analysis}{74}{section.14.6}%
+\contentsline {chapter}{\numberline {15}Dashboard and Deployment Pipeline}{75}{chapter.15}%
+\contentsline {section}{\numberline {15.1}Architecture Overview}{75}{section.15.1}%
+\contentsline {section}{\numberline {15.2}prepare\_data.py --- The Data Builder}{75}{section.15.2}%
+\contentsline {subsection}{\numberline {15.2.1}Required Inputs}{75}{subsection.15.2.1}%
+\contentsline {subsection}{\numberline {15.2.2}build\_schools()}{75}{subsection.15.2.2}%
+\contentsline {subsection}{\numberline {15.2.3}build\_scenarios()}{76}{subsection.15.2.3}%
+\contentsline {subsection}{\numberline {15.2.4}Map Layer Builders}{76}{subsection.15.2.4}%
+\contentsline {subsection}{\numberline {15.2.5}Chart Copying}{77}{subsection.15.2.5}%
+\contentsline {subsection}{\numberline {15.2.6}Final data.json Structure}{77}{subsection.15.2.6}%
+\contentsline {section}{\numberline {15.3}Dashboard Sections}{78}{section.15.3}%
+\contentsline {subsection}{\numberline {15.3.1}Hero Banner}{78}{subsection.15.3.1}%
+\contentsline {subsection}{\numberline {15.3.2}Interactive Map}{78}{subsection.15.3.2}%
+\contentsline {subsection}{\numberline {15.3.3}School Tabs and Radar Charts}{78}{subsection.15.3.3}%
+\contentsline {subsection}{\numberline {15.3.4}Scenario Explorer}{79}{subsection.15.3.4}%
+\contentsline {subsection}{\numberline {15.3.5}Analysis Section}{79}{subsection.15.3.5}%
+\contentsline {subsection}{\numberline {15.3.6}Recommendations Panel}{79}{subsection.15.3.6}%
+\contentsline {section}{\numberline {15.4}run\_all.py --- The Master Pipeline Runner}{79}{section.15.4}%
+\contentsline {subsection}{\numberline {15.4.1}Skip-if-Exists Logic}{79}{subsection.15.4.1}%
+\contentsline {subsection}{\numberline {15.4.2}Pipeline Steps Summary}{79}{subsection.15.4.2}%
+\contentsline {subsection}{\numberline {15.4.3}Flags}{80}{subsection.15.4.3}%
+\contentsline {section}{\numberline {15.5}GitHub Pages Deployment}{80}{section.15.5}%
+\contentsline {part}{III\hspace {1em}Data Ingestion, Environmental Features, and Core Pipeline}{82}{part.3}%
+\contentsline {chapter}{\numberline {16}Crash Data Download and Spatial Join}{84}{chapter.16}%
+\contentsline {section}{\numberline {16.1}Overview}{84}{section.16.1}%
+\contentsline {section}{\numberline {16.2}VicRoads Open Data Schema}{84}{section.16.2}%
+\contentsline {section}{\numberline {16.3}Downloading the Three Tables}{84}{section.16.3}%
+\contentsline {section}{\numberline {16.4}Table Join and Date Filter}{85}{section.16.4}%
+\contentsline {section}{\numberline {16.5}Pedestrian and Cyclist Filter}{85}{section.16.5}%
+\contentsline {section}{\numberline {16.6}School Gate Lookup}{86}{section.16.6}%
+\contentsline {section}{\numberline {16.7}Vectorised Haversine Distance}{86}{section.16.7}%
+\contentsline {section}{\numberline {16.8}Running crash\_analysis.py}{87}{section.16.8}%
+\contentsline {chapter}{\numberline {17}Environmental Features: AQI and Crime}{88}{chapter.17}%
+\contentsline {section}{\numberline {17.1}Why Environmental Data}{88}{section.17.1}%
+\contentsline {section}{\numberline {17.2}Module Architecture}{88}{section.17.2}%
+\contentsline {section}{\numberline {17.3}EPA AirWatch --- Three-Tier Fallback}{88}{section.17.3}%
+\contentsline {subsection}{\numberline {17.3.1}AQI to HS10 Score Conversion}{89}{subsection.17.3.1}%
+\contentsline {section}{\numberline {17.4}Crime Statistics Agency --- Single-Attempt Download}{90}{section.17.4}%
+\contentsline {subsection}{\numberline {17.4.1}Crime Rate to HS7 Score Contribution}{90}{subsection.17.4.1}%
+\contentsline {section}{\numberline {17.5}School--Suburb Mapping}{90}{section.17.5}%
+\contentsline {section}{\numberline {17.6}Output CSV Structure}{91}{section.17.6}%
+\contentsline {chapter}{\numberline {18}Core Pipeline Orchestration}{92}{chapter.18}%
+\contentsline {section}{\numberline {18.1}Role of main.py}{92}{section.18.1}%
+\contentsline {section}{\numberline {18.2}Data Loading Hierarchy}{92}{section.18.2}%
+\contentsline {section}{\numberline {18.3}HS Scoring Loop}{93}{section.18.3}%
+\contentsline {section}{\numberline {18.4}Chart Generation}{94}{section.18.4}%
+\contentsline {subsection}{\numberline {18.4.1}Chart 1 --- Radar Chart}{94}{subsection.18.4.1}%
+\contentsline {subsection}{\numberline {18.4.2}Chart 2 --- 10-Indicator Grid}{94}{subsection.18.4.2}%
+\contentsline {subsection}{\numberline {18.4.3}Chart 3 --- Per-School Breakdown}{94}{subsection.18.4.3}%
+\contentsline {section}{\numberline {18.5}Visualisation Module}{94}{section.18.5}%
+\contentsline {subsection}{\numberline {18.5.1}Interactive Map}{95}{subsection.18.5.1}%
+\contentsline {subsection}{\numberline {18.5.2}KDE Heatmap}{95}{subsection.18.5.2}%
+\contentsline {section}{\numberline {18.6}Graceful Degradation Pattern}{95}{section.18.6}%
+\contentsline {section}{\numberline {18.7}Expected Outputs}{95}{section.18.7}%
+\contentsline {part}{IV\hspace {1em}Feature Engineering, Socio-economic Analysis, and Demographics}{97}{part.4}%
+\contentsline {chapter}{\numberline {19}Feature Engineering for Machine Learning}{98}{chapter.19}%
+\contentsline {section}{\numberline {19.1}Purpose}{98}{section.19.1}%
+\contentsline {section}{\numberline {19.2}Feature Groups}{98}{section.19.2}%
+\contentsline {subsection}{\numberline {19.2.1}Spatial Features (OSM)}{98}{subsection.19.2.1}%
+\contentsline {subsection}{\numberline {19.2.2}Environmental Features}{99}{subsection.19.2.2}%
+\contentsline {subsection}{\numberline {19.2.3}Crash Statistics}{99}{subsection.19.2.3}%
+\contentsline {section}{\numberline {19.3}Speed-Zone Sentinel Codes}{99}{section.19.3}%
+\contentsline {section}{\numberline {19.4}School-Hours Crash Fraction}{99}{section.19.4}%
+\contentsline {section}{\numberline {19.5}Four-Way Join}{100}{section.19.5}%
+\contentsline {section}{\numberline {19.6}Column Order Convention}{100}{section.19.6}%
+\contentsline {section}{\numberline {19.7}Console Summary}{100}{section.19.7}%
+\contentsline {chapter}{\numberline {20}SEIFA Disadvantage Analysis}{101}{chapter.20}%
+\contentsline {section}{\numberline {20.1}Purpose}{101}{section.20.1}%
+\contentsline {section}{\numberline {20.2}ABS Download and Dynamic Column Discovery}{101}{section.20.2}%
+\contentsline {section}{\numberline {20.3}Darebin Filtering}{102}{section.20.3}%
+\contentsline {section}{\numberline {20.4}Curated Fallback Data}{102}{section.20.4}%
+\contentsline {section}{\numberline {20.5}Population-Weighted Catchment Average}{102}{section.20.5}%
+\contentsline {section}{\numberline {20.6}Disadvantage Labels}{103}{section.20.6}%
+\contentsline {section}{\numberline {20.7}School Gate Coordinates}{103}{section.20.7}%
+\contentsline {section}{\numberline {20.8}Key Finding}{103}{section.20.8}%
+\contentsline {chapter}{\numberline {21}ABS Demographics Chart}{105}{chapter.21}%
+\contentsline {section}{\numberline {21.1}Purpose}{105}{section.21.1}%
+\contentsline {section}{\numberline {21.2}Script Structure}{105}{section.21.2}%
+\contentsline {section}{\numberline {21.3}The Four Panels}{105}{section.21.3}%
+\contentsline {section}{\numberline {21.4}School-Age Children Estimate}{106}{section.21.4}%
+\contentsline {section}{\numberline {21.5}Connection to the Equity Argument}{106}{section.21.5}%
+\contentsline {section}{\numberline {21.6}Pipeline Position}{106}{section.21.6}%
+\contentsline {part}{V\hspace {1em}Synthesis, Extensions, and Conclusions}{108}{part.5}%
+\contentsline {chapter}{\numberline {22}Pilot Study Results and Policy Implications}{109}{chapter.22}%
+\contentsline {section}{\numberline {22.1}Overview}{109}{section.22.1}%
+\contentsline {section}{\numberline {22.2}School-by-School Analysis}{110}{section.22.2}%
+\contentsline {subsection}{\numberline {22.2.1}Reservoir High School --- Overall 4.6 / 10 --- Major}{110}{subsection.22.2.1}%
+\contentsline {subsection}{\numberline {22.2.2}William Ruthven Secondary College --- Overall 5.6 / 10 --- Moderate}{110}{subsection.22.2.2}%
+\contentsline {subsection}{\numberline {22.2.3}Preston High School --- Overall 6.3 / 10 --- Moderate}{110}{subsection.22.2.3}%
+\contentsline {section}{\numberline {22.3}The Equity Finding}{111}{section.22.3}%
+\contentsline {section}{\numberline {22.4}Top Recommendations by School}{111}{section.22.4}%
+\contentsline {section}{\numberline {22.5}Implications for the 300,000 Streets Initiative}{112}{section.22.5}%
+\contentsline {chapter}{\numberline {23}Extending the Pipeline to New Schools and LGAs}{113}{chapter.23}%
+\contentsline {section}{\numberline {23.1}Design for Reuse}{113}{section.23.1}%
+\contentsline {section}{\numberline {23.2}Five-Step Checklist for a New School}{113}{section.23.2}%
+\contentsline {section}{\numberline {23.3}config.py as the Single Source of Truth}{114}{section.23.3}%
+\contentsline {section}{\numberline {23.4}Scaling to a Full LGA}{114}{section.23.4}%
+\contentsline {section}{\numberline {23.5}Common Errors and Solutions}{115}{section.23.5}%
+\contentsline {chapter}{\numberline {24}Architecture, Limitations, and Lessons Learned}{116}{chapter.24}%
+\contentsline {section}{\numberline {24.1}What the Architecture Got Right}{116}{section.24.1}%
+\contentsline {section}{\numberline {24.2}Known Limitations}{116}{section.24.2}%
+\contentsline {subsection}{\numberline {24.2.1}Leave-One-Out Cross-Validation with $n = 3$}{116}{subsection.24.2.1}%
+\contentsline {subsection}{\numberline {24.2.2}OSM Data Completeness}{117}{subsection.24.2.2}%
+\contentsline {subsection}{\numberline {24.2.3}Three-School Sample and the Equity Correlation}{117}{subsection.24.2.3}%
+\contentsline {subsection}{\numberline {24.2.4}Hardcoded Fallback Data}{117}{subsection.24.2.4}%
+\contentsline {section}{\numberline {24.3}Design Decisions Worth Documenting}{117}{section.24.3}%
+\contentsline {section}{\numberline {24.4}Future Technical Directions}{118}{section.24.4}%
+\contentsline {chapter}{\numberline {A}Complete HS Scoring Formula Reference}{119}{appendix.A}%
+\contentsline {chapter}{\numberline {B}Recommendation Rules and Intervention Catalogue}{122}{appendix.B}%
+\contentsline {chapter}{\numberline {C}Pipeline and Output Quick Reference}{124}{appendix.C}%
+\contentsline {chapter}{What's Next}{127}{appendix*.23}%

@@ -1,0 +1,268 @@
+\documentclass[9pt,a4paper]{extarticle}
+
+\usepackage[a4paper, top=14mm, bottom=14mm, left=14mm, right=14mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{mdframed}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{fontawesome5}
+
+% ── Colours ───────────────────────────────────────────────────────────────────
+\definecolor{DG}{HTML}{1B5E20}
+\definecolor{MG}{HTML}{2E7D32}
+\definecolor{LG}{HTML}{43A047}
+\definecolor{PG}{HTML}{F1F8E9}
+\definecolor{CG}{HTML}{C8E6C9}
+\definecolor{TEA}{HTML}{00696E}
+\definecolor{AMB}{HTML}{E65C00}
+\definecolor{RED}{HTML}{C62828}
+\definecolor{RLT}{HTML}{FFEBEE}
+\definecolor{ALT}{HTML}{FFF3E0}
+\definecolor{SLT}{HTML}{37474F}
+\definecolor{INK}{HTML}{212121}
+\definecolor{MUT}{HTML}{78909C}
+
+% ── Layout ────────────────────────────────────────────────────────────────────
+\setlength{\parskip}{2pt}
+\setlength{\columnsep}{8pt}
+\setlist[itemize]{leftmargin=1.2em, itemsep=0pt, parsep=0pt, topsep=1pt, label=\textcolor{MG}{\textbullet}}
+\setlist[enumerate]{leftmargin=1.4em, itemsep=0pt, parsep=0pt, topsep=1pt}
+
+\titleformat{\section}
+  {\bfseries\small\color{white}}
+  {}
+  {0em}
+  {\setlength\fboxsep{3pt}\colorbox{DG}}
+\titlespacing{\section}{0pt}{6pt}{3pt}
+
+% ── Header ────────────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[L]{\tiny\color{MUT} 300,000 Streets of Melbourne --- Quick Revision Sheet}
+\fancyhead[R]{\tiny\color{MUT} Regen Melbourne \texttimes{} RMIT \textbullet{} Hishikesh Phukan}
+\fancyfoot[C]{\tiny\color{MUT}\thepage}
+
+% ── Helpers ───────────────────────────────────────────────────────────────────
+\newcommand{\kw}[1]{\textbf{\color{DG}#1}}
+\newcommand{\num}[1]{\textbf{\color{RED}#1}}
+\newcommand{\good}[1]{\textbf{\color{MG}#1}}
+\newcommand{\warn}[1]{\textbf{\color{AMB}#1}}
+\newcommand{\bad}[1]{\textbf{\color{RED}#1}}
+\newcommand{\tag}[2]{\colorbox{#1}{\tiny\color{white}\textbf{#2}}}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+% =============================================================================
+\begin{document}
+
+% ── Title strip ───────────────────────────────────────────────────────────────
+\colorbox{DG}{\parbox{\linewidth}{%
+  \vspace{3pt}\hspace{6pt}%
+  {\color{white}\large\bfseries 300,000 Streets of Melbourne}%
+  \hfill{\color{LG}\small School Streets Safety --- Quick Revision Sheet}%
+  \hspace{6pt}\vspace{3pt}%
+}}
+\vspace{4pt}
+
+% =============================================================================
+\begin{multicols}{2}
+
+% ── THE ONE-LINE PITCH ────────────────────────────────────────────────────────
+\section{The pitch}
+A reproducible Python pipeline that \kw{scores}, \kw{maps}, and \kw{predicts} the safety of school walking routes using open government data and the \kw{Healthy Streets} framework --- then surfaces costed fixes for councils.
+
+% ── THE NUMBERS THAT MATTER ───────────────────────────────────────────────────
+\section{Numbers to remember}
+
+\begin{tabular}{@{}L{1.6cm} L{5.6cm}@{}}
+\num{192\%}   & crash increase in Darebin LGA, 2021\,\textrightarrow\,2024 (25\,\textrightarrow\,73) \\
+\num{0.4}     & Preston HS HS2 score --- no safe crossing \\
+\num{r=0.84}  & Pearson correlation: SEIFA decile vs HS score \\
+\num{100\%}   & William Ruthven SC crashes during school hours \\
+\num{7,948}   & Victorian crash records analysed (2021--2025) \\
+\num{26}      & open-data features fed into ML model \\
+\num{MAE 2.88}& Ridge regression mean absolute error (LOO-CV, n=3) \\
+\num{30}      & pre-computed scenario results (10 templates \texttimes{} 3 schools) \\
+\num{\$80k}   & cheapest fix for Preston HS (signalised crossing) \\
+\num{200+}    & Melbourne secondary schools scalable to with no code changes \\
+\end{tabular}
+
+% ── 10 HS INDICATORS ─────────────────────────────────────────────────────────
+\section{10 Healthy Streets indicators (threshold: 6.0 / 10)}
+
+\begin{tabular}{@{}C{0.56cm} L{1.8cm} L{1.6cm} L{2.6cm}@{}}
+\rowcolor{DG}
+\color{white}\tiny\textbf{Code} &
+\color{white}\tiny\textbf{Indicator} &
+\color{white}\tiny\textbf{Source} &
+\color{white}\tiny\textbf{Worst score} \\
+\rowcolor{PG}
+HS1 & Footpath      & Field   & Reservoir 4.2 \warn{[MOD]} \\
+HS2 & Easy to cross & Field   & \bad{Preston 0.4 [MAJOR]} \\
+\rowcolor{PG}
+HS3 & Shade         & OSM     & W.Ruthven 3.0 \warn{[MOD]} \\
+HS4 & Rest places   & OSM     & W.Ruthven 3.3 \warn{[MOD]} \\
+\rowcolor{PG}
+HS5 & Not too noisy & Field   & Reservoir 5.0 \\
+HS6 & Active travel & OSM+fld & W.Ruthven 4.2 \\
+\rowcolor{PG}
+HS7 & Feel safe     & CSA     & \good{All $\geq$ 7.5} \\
+HS8 & Things to do  & OSM     & W.Ruthven 4.3 \\
+\rowcolor{PG}
+HS9 & Feel relaxed  & Field   & Reservoir 5.2 \\
+HS10& Clean air     & EPA     & \good{All $\geq$ 9.0} \\
+\end{tabular}
+
+\vspace{3pt}
+\kw{Severity rules:} \bad{Major} if HS2\,$<$\,4 OR HS1\,$<$\,4 OR HS5\,$<$\,3 \textbullet{}
+\warn{Moderate} if 2+ indicators\,$<$\,6.0
+
+% ── 3 SCHOOLS AT A GLANCE ────────────────────────────────────────────────────
+\section{3 schools at a glance}
+
+\begin{tabular}{@{}L{2.2cm} C{0.9cm} C{1.0cm} L{3.2cm}@{}}
+\rowcolor{DG}
+\color{white}\tiny\textbf{School} &
+\color{white}\tiny\textbf{Overall} &
+\color{white}\tiny\textbf{Severity} &
+\color{white}\tiny\textbf{Key issue} \\
+Preston HS     & \bad{7.2} & \tag{RED}{MAJOR}    & HS2=0.4 no crossing \\
+\rowcolor{PG}
+Reservoir HS   & \warn{6.1}& \tag{AMB}{MOD}      & HS1=4.2 broken footpath \\
+W. Ruthven SC  & \warn{6.7}& \tag{AMB}{MOD}      & HS3=3.0 no shade \\
+\end{tabular}
+
+\vspace{2pt}
+\textit{\small The paradox: Preston has the \bad{highest} overall score but the \bad{only Major} severity. One failing indicator overrides nine green ones.}
+
+% ── PIPELINE IN 10 STEPS ─────────────────────────────────────────────────────
+\section{Pipeline --- 10 steps, 1 command}
+
+\texttt{\small python run\_all.py}
+
+\begin{enumerate}
+  \item \kw{Ingest} --- crash (VicRoads), streets (OSM), air (EPA), crime (CSA), SEIFA, Census
+  \item \kw{Feature engineering} --- 26 features per school gate; filter sentinels 777/888/999
+  \item \kw{HS scoring} --- \texttt{src/scoring/hs1.py} \ldots \texttt{hs10.py}; each scorer is independent
+  \item \kw{Severity classify} --- rule-based thresholds in \texttt{severity.py}
+  \item \kw{Recommendations} --- rule engine: indicator gap \textrightarrow{} intervention + cost + timeline
+  \item \kw{ML training} --- Ridge regression, LOO-CV, 26 features, predict HS1--HS10
+  \item \kw{Scenario engine} --- 10 templates \texttimes{} 3 schools = 30 delta results
+  \item \kw{Equity \& crash analysis} --- SEIFA join, 400\,m crash buffers, hourly breakdown
+  \item \kw{Visualisation} --- 9 charts (Matplotlib); GeoPackage + QGIS project export
+  \item \kw{Dashboard export} --- JSON \textrightarrow{} static GitHub Pages (Leaflet + Chart.js)
+\end{enumerate}
+
+\columnbreak
+
+% ── ML IN PLAIN TERMS ────────────────────────────────────────────────────────
+\section{Machine learning --- what and why}
+
+\begin{itemize}
+  \item \kw{Algorithm:} Ridge regression (handles collinear OSM features)
+  \item \kw{Features:} 26 (20 spatial via OSM, 2 environmental EPA/CSA, 4 crash stats)
+  \item \kw{Evaluation:} Leave-One-Out CV --- only valid method with n=3 schools
+  \item \kw{Mean MAE:} 2.88 across all 10 indicators
+  \item \good{Can automate:} HS7 (crime data) and HS10 (EPA air quality) --- no surveyor needed
+  \item \bad{Cannot automate:} HS2 --- crossing \emph{presence} $\neq$ crossing \emph{quality}
+\end{itemize}
+\vspace{2pt}
+\textit{\small Implication: councils can triage all 200+ Melbourne schools on HS7 and HS10 at zero survey cost today.}
+
+% ── EQUITY FINDING ───────────────────────────────────────────────────────────
+\section{Equity finding}
+
+\begin{tabular}{@{}L{2.2cm} C{0.8cm} C{0.7cm} L{3.2cm}@{}}
+\rowcolor{DG}
+\color{white}\tiny\textbf{School} &
+\color{white}\tiny\textbf{SEIFA} &
+\color{white}\tiny\textbf{HS} &
+\color{white}\tiny\textbf{Walking dependency} \\
+Reservoir HS   & \bad{3.7}  & \warn{6.1} & High --- lower income, less cars \\
+\rowcolor{PG}
+W.Ruthven SC   & \warn{3.7} & \warn{6.7} & High --- similar catchment \\
+Preston HS     & \good{5.5} & \good{7.2} & Lower --- more car ownership \\
+\end{tabular}
+
+\vspace{2pt}
+\kw{r\,=\,0.84:} lower decile (more disadvantage) \textrightarrow{} worse safety score.
+Lower income = less car access = more walking = more exposure to dangerous streets.
+
+% ── SCENARIO ENGINE ──────────────────────────────────────────────────────────
+\section{Scenario engine --- top 3 fixes}
+
+\begin{tabular}{@{}L{2.1cm} L{2.2cm} C{0.6cm} L{2.4cm}@{}}
+\rowcolor{DG}
+\color{white}\tiny\textbf{School} &
+\color{white}\tiny\textbf{Intervention} &
+\color{white}\tiny\textbf{Cost} &
+\color{white}\tiny\textbf{Impact} \\
+Preston HS     & Signalised crossing    & \$80--200k & HS2: 0.4\,\textrightarrow\,3.5; MAJOR\,\textrightarrow\,MOD \\
+\rowcolor{PG}
+Reservoir HS   & Footpath repair        & \$100--300k& HS1: 4.2\,\textrightarrow\,7.0 \\
+W.Ruthven SC   & 40\,km/h school zone   & \$5--20k   & HS9: instant gain \\
+\end{tabular}
+
+% ── CODEBASE MAP ─────────────────────────────────────────────────────────────
+\section{Codebase map}
+
+\begin{tabular}{@{}L{2.8cm} L{4.5cm}@{}}
+\texttt{src/scoring/}        & hs1.py \ldots hs10.py + severity.py \\
+\rowcolor{PG}
+\texttt{src/features/}       & engineer.py (26 features) \\
+\texttt{src/ml/}             & train / predict / evaluate \\
+\rowcolor{PG}
+\texttt{src/scenarios/}      & 10 intervention delta templates \\
+\texttt{src/recommendations/}& rule-to-fix mapping + cost metadata \\
+\rowcolor{PG}
+\texttt{src/data/}           & download + cache handlers \\
+\texttt{src/visualisation/}  & 9 chart builders \\
+\rowcolor{PG}
+\texttt{docs/}               & GitHub Pages dashboard \\
+\texttt{outputs/}            & CSV, PNG, GPKG, HTML, PPTX \\
+\end{tabular}
+
+% ── TECH STACK ───────────────────────────────────────────────────────────────
+\section{Tech stack (one line)}
+
+Python 3.12 \textbullet{} pandas / geopandas / OSMnx \textbullet{} scikit-learn \textbullet{} Matplotlib \textbullet{} Leaflet.js \textbullet{} Chart.js \textbullet{} GitHub Pages \textbullet{} \LaTeX{}
+
+% ── LIKELY QUESTIONS ─────────────────────────────────────────────────────────
+\section{Likely Q\&A}
+
+\begin{itemize}
+  \item \kw{Why Ridge?} Collinear OSM features; Ridge handles this; interpretable weights.
+  \item \kw{Why LOO-CV?} Only 3 schools --- any train/test split would give 0 test samples.
+  \item \kw{Why not random forest?} N=3 gives insufficient variance for ensemble methods.
+  \item \kw{How does it scale?} Same \texttt{run\_all.py}; swap school list in \texttt{config.py}; no code changes.
+  \item \kw{Is the r=0.84 significant?} With n=3 it's directional not inferential --- acknowledged in analysis.
+  \item \kw{Why not HS2 automated?} OSM tags crossing presence; it cannot tag signal timing, visibility, sightlines, or informal crossings.
+  \item \kw{What does SEIFA measure?} Relative socio-economic disadvantage (ABS 2021, SA1 level, pop-weighted IRSD).
+  \item \kw{Delta method for scenarios?} Anchors to real observed scores; model estimates the \emph{change}, not the absolute value --- avoids compounding prediction error.
+\end{itemize}
+
+\end{multicols}
+
+% ── Bottom strip ──────────────────────────────────────────────────────────────
+\vspace{4pt}
+\colorbox{DG}{\parbox{\linewidth}{%
+  \vspace{3pt}\hspace{6pt}%
+  {\color{LG}\small\textbf{Dashboard:} s4111078-sidd.github.io/300-000-School-Streets}%
+  \hfill%
+  {\color{white}\small\textbf{Run everything:} \texttt{python run\_all.py}}%
+  \hspace{6pt}\vspace{3pt}%
+}}
+
+\end{document}
