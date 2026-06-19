@@ -1,0 +1,111 @@
+FAS — Footpath Accessibility Score
+AS 1428.1 — Australian Standard for Access and Mobility
+
+Covers minimum footpath width (1.5m), kerb ramps, tactile indicators
+Link: https://www.standards.org.au/standards-catalogue/sa-snz/other/me-064/as--1428-1-2009
+Note: Paid standard — cite as "AS 1428.1-2009 Design for Access and Mobility"
+
+Austroads Guide to Road Design Part 6A — Pedestrian and Cyclist Paths
+
+Covers footpath provision, continuity, surface standards
+Link: https://www.austroads.com.au/publishers/austroads/au/items/ap-g88-15
+Free summary: https://austroads.com.au/roads-and-traffic/road-design/pedestrian-and-cyclist-paths
+
+
+CSS — Crossing Safety Score
+AS 1742.4 — Manual of Uniform Traffic Control Devices Part 4
+
+Covers pedestrian crossing types, signals, school crossing standards
+Link: https://www.standards.org.au/standards-catalogue/sa-snz/other/te-001/as--1742-4-2019
+
+Pedestrian Level of Service — Transportation Research Board (TRB) HCM 2010
+
+Covers crossing distance, visibility, pedestrian delay
+Link: https://www.trb.org/Publications/Blurbs/164718.aspx
+Free reference: https://hcm.trb.org
+
+VicRoads Pedestrian and Cycling Infrastructure Design Guide
+
+Direct practical guide for crossings near schools
+Link: https://www.vicroads.vic.gov.au/traffic-and-road-use/cycling/cycling-technical-resource-library
+
+
+EEI — Environmental Exposure Indicator
+Vision Zero — Swedish Transport Administration
+
+Supports speed-severity relationship used in EEI penalties
+Link: https://www.visionzeronetwork.org/about/what-is-vision-zero
+Academic paper: https://doi.org/10.1016/j.aap.2009.08.006
+
+Movement and Place Framework — Department of Transport Victoria (2019)
+
+Supports road classification and traffic volume weighting in EEI
+Link: https://www.vic.gov.au/movement-and-place-framework
+Full document: https://transport.vic.gov.au/about/publications/movement-and-place-in-victoria
+
+Austroads Pedestrian Safety Research — AP-R679-22
+
+Supports school zone bonus in EEI
+Link: https://austroads.com.au/publishers/austroads/au/items/ap-r679-22
+
+
+CYS — Cycling Safety Score
+Level of Traffic Stress (LTS) — Mekuria, Furth & Nixon (2012)
+
+Mineta Transportation Institute — the exact paper your CYS is based on
+Free full PDF: https://scholarworks.sjsu.edu/cgi/viewcontent.cgi?article=1017&context=mti_publications
+Direct PDF link: https://transweb.sjsu.edu/sites/default/files/1005-low-stress-bicycling-network-connectivity.pdf
+
+VicRoads Traffic Engineering Manual Vol. 3 Part 218 — Cycling Infrastructure
+
+Covers facility selection hierarchy — your CYS tier system is based on this
+Link: https://www.vicroads.vic.gov.au/traffic-and-road-use/cycling/cycling-technical-resource-library
+
+
+Healthy Streets Framework (new framework from Hishikesh's report)
+Saunders, L. (2015) — Healthy Streets for London
+
+The foundational paper for HS1–HS10 indicators
+Free PDF: https://healthystreets.com/wp-content/uploads/2018/07/Healthy-Streets-for-London.pdf
+Main site: https://healthystreets.com
+
+Transport for London — Healthy Streets
+
+Official TfL adoption of the framework
+Link: https://tfl.gov.uk/corporate/about-tfl/how-we-work/planning-for-the-future/healthy-streets
+
+
+Crash Data
+Victorian Road Crash Data — data.vic.gov.au
+
+The exact dataset used by crash_analysis.py
+Direct link: https://www.data.vic.gov.au/data/dataset/victoria-road-crash-data
+
+DET School Locations Time Series
+
+Used to assign crashes to nearest school gate
+Direct link: https://www.data.vic.gov.au/data/dataset/school-locations-time-series
+
+
+Demographics
+ABS Census 2021 — Reservoir (SAL22161)
+
+Direct link: https://www.abs.gov.au/census/find-census-data/quickstats/2021/SAL22161
+
+ABS Census 2021 — Preston (SAL22121)
+
+Direct link: https://www.abs.gov.au/census/find-census-data/quickstats/2021/SAL22121
+
+
+Environmental Data (from Hishikesh's report)
+EPA Victoria AirWatch — Alphington Station
+
+PM2.5 air quality data used for HS10
+Link: https://www.epa.vic.gov.au/for-community/environmental-information/air-quality/epa-airwatch
+
+Crime Statistics Agency Victoria
+
+Crime rate data used for HS7
+Link: https://www.crimestatistics.vic.gov.au
+
+
